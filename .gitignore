@@ -1,0 +1,41 @@
+# =============================================================================
+# .gitignore for ~/.config/nvim  (this directory IS the git repo)
+#
+# COMMIT:  init.lua, lazy-lock.json, .gitignore, bootstrap.sh, README.md
+# IGNORE:  the stale backup, OS junk, and any Neovim runtime/generated state.
+# =============================================================================
+
+# --- OS / editor junk --------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+*.swp
+*.swo
+*~
+
+# --- Stale local backups of the config (do NOT version) ----------------------
+init.lua.bak-md
+*.bak
+*.bak-*
+
+# --- Neovim runtime state (normally under ~/.local/share/nvim; ignore --------
+# --- defensively in case XDG dirs are ever redirected into the config tree) --
+lazy/
+mason/
+session/
+sessions/
+shada/
+*.shada
+undo/
+undodir/
+swap/
+*.un~
+*.log
+.netrwhist
+telescope_history
+
+# =============================================================================
+# CRITICAL: the plugin lockfile MUST be committed for reproducible versions.
+# The explicit un-ignore guarantees it survives even if a broad rule is added.
+# =============================================================================
+!lazy-lock.json
