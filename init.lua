@@ -191,6 +191,7 @@ require("lazy").setup({
         { "<leader>t", group = "Tab bar (buffers)" },
         { "<leader>tm", group = "Tab bar: move" },
         { "<leader>c", group = "Code" },
+        { "<leader>q", group = "Session" },
       })
     end,
   },
@@ -211,9 +212,19 @@ require("lazy").setup({
   {
     "nvim-telescope/telescope.nvim",
     branch = "0.1.x",
-    dependencies = { "nvim-lua/plenary.nvim" },
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      -- Routes vim.ui.select() (e.g. code-action pickers) through Telescope.
+      -- Maintained replacement for the now-archived dressing.nvim.
+      "nvim-telescope/telescope-ui-select.nvim",
+    },
     config = function()
-      require("telescope").setup({})
+      require("telescope").setup({
+        extensions = {
+          ["ui-select"] = { require("telescope.themes").get_dropdown({}) },
+        },
+      })
+      require("telescope").load_extension("ui-select")
       keymap.set("n", "<leader>ff", "<cmd>Telescope find_files<cr>", { desc = "Find Files" })
       keymap.set("n", "<leader>fg", "<cmd>Telescope live_grep<cr>", { desc = "Live Grep" })
       keymap.set("n", "<leader>fb", "<cmd>Telescope buffers<cr>", { desc = "Find Buffers" })
@@ -349,11 +360,35 @@ require("lazy").setup({
   {
     "nvim-treesitter/nvim-treesitter",
     build = ":TSUpdate",
+    -- Pin textobjects to master: this config uses treesitter's *master* (legacy)
+    -- branch, whose configs.setup{textobjects=...} module system only matches the
+    -- textobjects *master* branch. Its default 'main' branch is an incompatible
+    -- rewrite that would silently no-op the textobjects block below.
+    dependencies = { { "nvim-treesitter/nvim-treesitter-textobjects", branch = "master" } },
     config = function()
       require("nvim-treesitter.configs").setup({
-        ensure_installed = { "c", "lua", "vim", "vimdoc", "query", "javascript", "typescript", "python", "html", "css", "markdown", "markdown_inline" },
+        -- tsx + xml added so nvim-ts-autotag covers .tsx and .xml too.
+        ensure_installed = { "c", "lua", "vim", "vimdoc", "query", "javascript", "typescript", "tsx", "python", "html", "xml", "css", "markdown", "markdown_inline" },
         highlight = { enable = true },
         indent = { enable = true },
+        -- Syntax-aware text objects (needs the master branch this repo is pinned to).
+        textobjects = {
+          select = {
+            enable = true,
+            lookahead = true,
+            keymaps = {
+              ["af"] = "@function.outer", ["if"] = "@function.inner",
+              ["ac"] = "@class.outer",    ["ic"] = "@class.inner",
+              ["aa"] = "@parameter.outer",["ia"] = "@parameter.inner",
+            },
+          },
+          move = {
+            enable = true,
+            set_jumps = true,
+            goto_next_start     = { ["]f"] = "@function.outer", ["]c"] = "@class.outer" },
+            goto_previous_start = { ["[f"] = "@function.outer", ["[c"] = "@class.outer" },
+          },
+        },
       })
     end,
   },
@@ -414,6 +449,9 @@ require("lazy").setup({
     dependencies = {
       "williamboman/mason-lspconfig.nvim",
       "williamboman/mason.nvim",
+      -- Loaded here (not only via nvim-cmp) so the capabilities call below still
+      -- works after nvim-cmp is lazy-loaded on InsertEnter.
+      "hrsh7th/cmp-nvim-lsp",
     },
     config = function()
       -- Make nvim-cmp's enhanced capabilities the default for EVERY server.
@@ -436,11 +474,15 @@ require("lazy").setup({
         callback = function(event)
           local buf = event.buf
 
-          -- LSP Keymaps
+          -- LSP Keymaps.
+          -- Neovim 0.11 already provides these defaults on LspAttach, so they are
+          -- NOT re-mapped here: K (hover), grn (rename), gra (code action),
+          -- grr (references), gri (implementation), gO (document symbols).
+          -- 'gi' is intentionally left to its built-in meaning (insert at last
+          -- insert location); use gri for implementation.
           vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, { buffer = buf, desc = "Go to declaration" })
           vim.keymap.set('n', 'gd', vim.lsp.buf.definition, { buffer = buf, desc = "Go to definition" })
-          vim.keymap.set('n', 'K', vim.lsp.buf.hover, { buffer = buf, desc = "Hover documentation" })
-          vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, { buffer = buf, desc = "Go to implementation" })
+          -- Convenience mnemonics kept alongside the 0.11 grn/gra defaults:
           vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, { buffer = buf, desc = "Rename symbol" })
           vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, { buffer = buf, desc = "Code action" })
         end,
@@ -451,6 +493,9 @@ require("lazy").setup({
   -- 3. Autocompletion Engine
   {
     "hrsh7th/nvim-cmp",
+    -- CmdlineEnter is required so the cmp.setup.cmdline(':') block below works
+    -- from a fresh session (InsertEnter alone would defer cmdline completion).
+    event = { "InsertEnter", "CmdlineEnter" },
     dependencies = {
       "hrsh7th/cmp-nvim-lsp",
       "hrsh7th/cmp-buffer",
@@ -499,6 +544,118 @@ require("lazy").setup({
           { name = 'cmdline' }
         })
       })
+    end,
+  },
+
+  -- ===========================================================================
+  -- EDITING ENHANCEMENTS
+  -- ===========================================================================
+
+  -- Auto-insert closing pairs; also adds () after confirming a cmp function item.
+  {
+    "windwp/nvim-autopairs",
+    event = "InsertEnter",
+    config = function()
+      require("nvim-autopairs").setup({})
+      local ok, cmp = pcall(require, "cmp")
+      if ok then
+        cmp.event:on("confirm_done",
+          require("nvim-autopairs.completion.cmp").on_confirm_done())
+      end
+    end,
+  },
+
+  -- Add/change/delete surrounding pairs: ysiw" , cs"' , ds( , visual S to wrap.
+  {
+    "kylechui/nvim-surround",
+    version = "*",
+    event = "VeryLazy",
+    opts = {},
+  },
+
+  -- Auto-close / auto-rename HTML/JSX/TSX tags (uses the treesitter parsers above).
+  {
+    "windwp/nvim-ts-autotag",
+    ft = { "html", "xml", "markdown", "javascript", "typescript",
+           "javascriptreact", "typescriptreact" },
+    opts = {},
+  },
+
+  -- Fast structural jump: s + 2 chars. S = treesitter node select (normal/op only
+  -- so it does not clash with nvim-surround's visual-mode S).
+  {
+    "folke/flash.nvim",
+    event = "VeryLazy",
+    opts = {},
+    keys = {
+      { "s", mode = { "n", "x", "o" }, function() require("flash").jump() end, desc = "Flash jump" },
+      { "S", mode = { "n", "o" },      function() require("flash").treesitter() end, desc = "Flash Treesitter" },
+    },
+  },
+
+  -- Highlight + list TODO/FIXME/HACK/NOTE; feeds Telescope and Trouble.
+  {
+    "folke/todo-comments.nvim",
+    dependencies = { "nvim-lua/plenary.nvim" },
+    event = { "BufReadPost", "BufNewFile" },
+    opts = {},
+    keys = {
+      { "<leader>ft", "<cmd>TodoTelescope<cr>",      desc = "Find TODOs" },
+      { "<leader>xt", "<cmd>Trouble todo toggle<cr>", desc = "TODOs (Trouble)" },
+    },
+  },
+
+  -- Sticky header showing the enclosing function/class you scrolled past.
+  {
+    "nvim-treesitter/nvim-treesitter-context",
+    event = { "BufReadPost", "BufNewFile" },
+    opts = { max_lines = 3 },
+  },
+
+  -- Indent guide lines + current-scope highlight.
+  {
+    "lukas-reineke/indent-blankline.nvim",
+    main = "ibl",
+    event = { "BufReadPost", "BufNewFile" },
+    opts = {},
+  },
+
+  -- Render color literals (#rrggbb, rgb(), hsl(), Tailwind) inline.
+  {
+    "catgoose/nvim-colorizer.lua",
+    event = "BufReadPre",
+    ft = { "css", "scss", "html", "javascript", "typescript", "lua" },
+    opts = { user_default_options = { names = false, tailwind = true } },
+  },
+
+  -- Per-directory session save/restore.
+  {
+    "folke/persistence.nvim",
+    event = "BufReadPre",
+    opts = {},
+    keys = {
+      { "<leader>qs", function() require("persistence").load() end,                desc = "Restore session (cwd)" },
+      { "<leader>ql", function() require("persistence").load({ last = true }) end, desc = "Restore last session" },
+      { "<leader>qd", function() require("persistence").stop() end,                desc = "Don't save this session" },
+    },
+  },
+
+  -- Edit the filesystem as a buffer; '-' opens the parent directory.
+  {
+    "stevearc/oil.nvim",
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    cmd = "Oil",
+    keys = { { "-", "<cmd>Oil<cr>", desc = "Open parent dir (Oil)" } },
+    opts = {},
+  },
+
+  -- Visualize the undo history as a tree (paired with persistent undo).
+  {
+    "mbbill/undotree",
+    cmd = "UndotreeToggle",
+    keys = { { "<leader>u", "<cmd>UndotreeToggle<cr>", desc = "Undo tree" } },
+    config = function()
+      vim.opt.undofile = true -- persist undo across sessions so the tree survives restarts
     end,
   },
 

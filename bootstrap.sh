@@ -57,12 +57,14 @@ log "Installing plugins from lazy-lock.json (Lazy restore)…"
 nvim --headless "+Lazy! restore" +qa
 
 # ---- 3. build Treesitter parsers synchronously ------------------------------
-# 'build = :TSUpdate' compiles parsers ASYNC and +qa can quit before they
-# finish; TSUpdateSync blocks so parsers are ready at bootstrap time. Needs a
-# C compiler + make (build-essential on Debian, Xcode CLT on macOS).
+# ensure_installed only auto-installs parsers ASYNC on first launch (and +qa can
+# quit before they finish). TSInstallSync builds them now and blocks. Needs a C
+# compiler + make (build-essential on Debian, Xcode CLT on macOS).
+# Keep this list in sync with ensure_installed in init.lua (treesitter block).
+TS_PARSERS="c lua vim vimdoc query javascript typescript tsx python html xml css markdown markdown_inline"
 if command -v cc >/dev/null && command -v make >/dev/null; then
-  log "Building Treesitter parsers (TSUpdateSync)…"
-  nvim --headless "+TSUpdateSync" +qa || warn "Some parsers failed to build; they will retry on first launch."
+  log "Building Treesitter parsers (TSInstallSync)…"
+  nvim --headless "+TSInstallSync $TS_PARSERS" +qa || warn "Some parsers failed to build; they will retry on first launch."
 else
   warn "No C compiler/make — skipping parser build; parsers build on first interactive launch once cc/make exist."
 fi
