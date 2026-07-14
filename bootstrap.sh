@@ -6,7 +6,7 @@
 set -euo pipefail
 
 # ---- configuration (override via env) ---------------------------------------
-REPO_URL="${NVIM_CONFIG_REPO:-git@github.com:YOURUSER/nvim-config.git}"
+REPO_URL="${NVIM_CONFIG_REPO:-https://github.com/777sudo/nvim-config.git}"
 BRANCH="${NVIM_CONFIG_BRANCH:-main}"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
 
