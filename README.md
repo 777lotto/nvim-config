@@ -1,7 +1,7 @@
 # Neovim config
 
 A single-file (`init.lua`) IDE setup for **JavaScript/TypeScript, HTML/CSS, Python, Markdown, and Lua**.
-Requires **Neovim ≥ 0.11.4** (LuaJIT). Managed with [lazy.nvim](https://github.com/folke/lazy.nvim); tools/LSPs via [Mason](https://github.com/mason-org/mason.nvim). Leader is `<Space>`.
+Requires **Neovim ≥ 0.12.0** (LuaJIT). Managed with [lazy.nvim](https://github.com/folke/lazy.nvim); tools/LSPs via [Mason](https://github.com/mason-org/mason.nvim). Leader is `<Space>`.
 
 ## Features
 
@@ -15,9 +15,10 @@ trouble · which-key · spectre.
 
 | Need | Why | macOS | Debian |
 |------|-----|-------|--------|
-| Neovim ≥ 0.11.4 | the config itself | `brew install neovim` | **apt build is too old** — use the [release tarball/AppImage](https://github.com/neovim/neovim/releases) or the `neovim-ppa/unstable` PPA |
+| Neovim ≥ 0.12.0 | config + nvim-treesitter `main` | `brew install neovim` | **apt build is too old** — build a tagged stable release from source into a versioned user prefix (see below) |
 | git, curl | lazy.nvim / Mason | preinstalled / brew | `apt install git curl ca-certificates` |
-| C compiler + make | Treesitter parsers | Xcode CLT | `apt install build-essential` |
+| tree-sitter CLI ≥ 0.26.1 | Treesitter parser builds | installed by Mason (`tree-sitter-cli`) | installed by Mason; Debian 13's apt version is too old |
+| C compiler | Treesitter parsers | Xcode CLT | `apt install build-essential` |
 | ripgrep | Telescope live-grep | `brew install ripgrep` | `apt install ripgrep` |
 | fd *(optional)* | Telescope file finder (falls back to `rg`/`find`) | `brew install fd` | `apt install fd-find` → binary is **`fdfind`** |
 | node + npm | `pyright`, `ts_ls`, `html`, `cssls`, prettier, markdownlint-cli2 | `brew install node` | see Node note ↓ |
@@ -29,9 +30,29 @@ trouble · which-key · spectre.
 
 ```sh
 sudo apt update && sudo apt install -y \
-  git curl ca-certificates build-essential ripgrep fd-find \
-  nodejs npm python3 unzip xclip wl-clipboard fontconfig
+  git curl ca-certificates build-essential cmake ninja-build gettext \
+  ripgrep fd-find nodejs npm python3 unzip lazygit \
+  xclip wl-clipboard fontconfig
 ```
+
+### Isolated Neovim source build
+
+Build an exact release tag rather than the moving `master` or `stable` branch. This keeps the
+installed runtime removable and makes upgrades/rollbacks explicit. The current tested route is
+Neovim `v0.12.2` installed under `~/.local/opt`:
+
+```sh
+git clone --branch v0.12.2 --depth 1 \
+  https://github.com/neovim/neovim.git ~/Templates/neovim
+make -C ~/Templates/neovim CMAKE_BUILD_TYPE=Release \
+  CMAKE_INSTALL_PREFIX="$HOME/.local/opt/neovim/v0.12.2" install
+mkdir -p "$HOME/.local/bin"
+ln -s "$HOME/.local/opt/neovim/v0.12.2/bin/nvim" "$HOME/.local/bin/nvim"
+nvim --version
+```
+
+Do not run `sudo make install`: only the build prerequisites are system packages; Neovim itself
+stays under the user-owned prefix. `~/.local/bin` must be on `PATH`.
 
 ### Node version note
 `ts_ls` (typescript-language-server 5.x) requires **Node ≥ 20**.
@@ -46,13 +67,14 @@ sudo apt update && sudo apt install -y \
 NVIM_CONFIG_REPO=<your-repo-url> bash bootstrap.sh
 ```
 
-`bootstrap.sh` is idempotent. It verifies Neovim ≥ 0.11, clones/updates the repo into
+`bootstrap.sh` is idempotent. It verifies Neovim ≥ 0.12.0, clones/updates the repo into
 `~/.config/nvim` (backing up any pre-existing non-repo config), then runs headlessly:
-`Lazy! restore` (plugins at pinned commits) → `TSUpdateSync` (build parsers) →
-`MasonToolsInstallSync` (prettier, markdownlint-cli2) → `MasonInstall` (LSP servers).
+`Lazy! restore` (plugins at pinned commits) → `MasonToolsInstallSync` (tree-sitter-cli,
+prettier, markdownlint-cli2) → synchronous parser installation → `MasonInstall` (LSP servers).
 
 **Manual install:** clone the repo to `~/.config/nvim`, launch `nvim` (lazy.nvim
-self-bootstraps), then `:Lazy restore`, `:TSUpdateSync`, `:MasonToolsInstall`, `:checkhealth`.
+self-bootstraps), then `:Lazy restore`, `:MasonToolsInstall`, restart Neovim, and run
+`:TSUpdate` followed by `:checkhealth`.
 
 ## Reproducibility
 

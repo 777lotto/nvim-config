@@ -56,6 +56,10 @@ if vim.env.SSH_TTY then
     copy = { ["+"] = osc52.copy("+"), ["*"] = osc52.copy("*") },
     paste = { ["+"] = function() return { {}, "" } end, ["*"] = function() return { {}, "" } end },
   }
+else
+  -- On a local desktop, use the native clipboard provider (pbcopy on macOS;
+  -- xclip/xsel on X11; wl-clipboard on Wayland).
+  vim.opt.clipboard = "unnamedplus"
 end
 
 -- =============================================================================
@@ -501,36 +505,93 @@ require("lazy").setup({
 
   {
     "nvim-treesitter/nvim-treesitter",
+    branch = "main",
+    lazy = false,
     build = ":TSUpdate",
-    -- Pin textobjects to master: this config uses treesitter's *master* (legacy)
-    -- branch, whose configs.setup{textobjects=...} module system only matches the
-    -- textobjects *master* branch. Its default 'main' branch is an incompatible
-    -- rewrite that would silently no-op the textobjects block below.
-    dependencies = { { "nvim-treesitter/nvim-treesitter-textobjects", branch = "master" } },
+    dependencies = {
+      -- Mason provides tree-sitter-cli >= 0.26.1 before this config runs.
+      "williamboman/mason.nvim",
+      {
+        "nvim-treesitter/nvim-treesitter-textobjects",
+        branch = "main",
+        config = function()
+          require("nvim-treesitter-textobjects").setup({
+            select = { lookahead = true },
+            move = { set_jumps = true },
+          })
+
+          local ts_select = require("nvim-treesitter-textobjects.select")
+          local function map_select(lhs, capture, desc)
+            vim.keymap.set({ "x", "o" }, lhs, function()
+              ts_select.select_textobject(capture, "textobjects")
+            end, { desc = desc })
+          end
+
+          map_select("af", "@function.outer", "Around function")
+          map_select("if", "@function.inner", "Inside function")
+          map_select("ac", "@class.outer", "Around class")
+          map_select("ic", "@class.inner", "Inside class")
+          map_select("aa", "@parameter.outer", "Around parameter")
+          map_select("ia", "@parameter.inner", "Inside parameter")
+
+          local ts_move = require("nvim-treesitter-textobjects.move")
+          local function map_move(lhs, method, capture, desc)
+            vim.keymap.set({ "n", "x", "o" }, lhs, function()
+              ts_move[method](capture, "textobjects")
+            end, { desc = desc })
+          end
+
+          map_move("]f", "goto_next_start", "@function.outer", "Next function")
+          map_move("]c", "goto_next_start", "@class.outer", "Next class")
+          map_move("[f", "goto_previous_start", "@function.outer", "Previous function")
+          map_move("[c", "goto_previous_start", "@class.outer", "Previous class")
+        end,
+      },
+    },
     config = function()
-      require("nvim-treesitter.configs").setup({
-        -- tsx + xml added so nvim-ts-autotag covers .tsx and .xml too.
-        ensure_installed = { "c", "lua", "vim", "vimdoc", "query", "javascript", "typescript", "tsx", "python", "html", "xml", "css", "markdown", "markdown_inline" },
-        highlight = { enable = true },
-        indent = { enable = true },
-        -- Syntax-aware text objects (needs the master branch this repo is pinned to).
-        textobjects = {
-          select = {
-            enable = true,
-            lookahead = true,
-            keymaps = {
-              ["af"] = "@function.outer", ["if"] = "@function.inner",
-              ["ac"] = "@class.outer",    ["ic"] = "@class.inner",
-              ["aa"] = "@parameter.outer",["ia"] = "@parameter.inner",
-            },
-          },
-          move = {
-            enable = true,
-            set_jumps = true,
-            goto_next_start     = { ["]f"] = "@function.outer", ["]c"] = "@class.outer" },
-            goto_previous_start = { ["[f"] = "@function.outer", ["[c"] = "@class.outer" },
-          },
-        },
+      local parsers = {
+        "c", "lua", "vim", "vimdoc", "query", "javascript", "typescript",
+        "tsx", "python", "html", "xml", "css", "markdown", "markdown_inline",
+      }
+      local filetypes = {
+        "c", "lua", "vim", "help", "query", "javascript", "javascriptreact",
+        "typescript", "typescriptreact", "python", "html", "xml", "css", "markdown",
+      }
+
+      local treesitter = require("nvim-treesitter")
+      treesitter.setup()
+
+      local function has_supported_cli()
+        if vim.fn.executable("tree-sitter") ~= 1 then return false end
+        local version = vim.version.parse(vim.fn.system({ "tree-sitter", "--version" }))
+        return version ~= nil and vim.version.ge(version, { 0, 26, 1 })
+      end
+
+      local function install_parsers()
+        if vim.env.NVIM_TREESITTER_SKIP_INSTALL ~= "1" and has_supported_cli() then
+          treesitter.install(parsers)
+        end
+      end
+
+      local group = vim.api.nvim_create_augroup("NvimTreesitterMain", { clear = true })
+      install_parsers()
+      -- Covers a fresh machine where Mason installs tree-sitter-cli later in startup.
+      vim.api.nvim_create_autocmd("User", {
+        group = group,
+        pattern = "MasonToolsUpdateCompleted",
+        callback = install_parsers,
+      })
+
+      -- On main, highlighting is a Neovim feature and indentation is enabled via
+      -- nvim-treesitter's indentexpr instead of the removed configs.setup modules.
+      vim.api.nvim_create_autocmd("FileType", {
+        group = group,
+        pattern = filetypes,
+        callback = function(event)
+          if pcall(vim.treesitter.start, event.buf) then
+            vim.bo[event.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+          end
+        end,
       })
     end,
   },
@@ -921,13 +982,13 @@ require("lazy").setup({
     end,
   },
 
-  -- Auto-install the CLI tools that the formatter/linter shell out to.
+  -- Auto-install CLI tools used by Treesitter, the formatter, and the linter.
   {
     "WhoIsSethDaniel/mason-tool-installer.nvim",
     dependencies = { "williamboman/mason.nvim" },
     config = function()
       require("mason-tool-installer").setup({
-        ensure_installed = { "prettier", "markdownlint-cli2" },
+        ensure_installed = { "tree-sitter-cli", "prettier", "markdownlint-cli2" },
       })
     end,
   },
@@ -1088,7 +1149,10 @@ local GitPanel = (function()
   local function same_path(a, b)
     a, b = realpath(a), realpath(b)
     if not a or not b then return false end
-    return a:lower() == b:lower()  -- macOS APFS is case-insensitive
+    if uv.os_uname().sysname == 'Darwin' then
+      return a:lower() == b:lower() -- default macOS APFS is case-insensitive
+    end
+    return a == b -- Linux filesystems are normally case-sensitive
   end
 
   local function gather()

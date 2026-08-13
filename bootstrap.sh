@@ -6,7 +6,7 @@
 set -euo pipefail
 
 # ---- configuration (override via env) ---------------------------------------
-REPO_URL="${NVIM_CONFIG_REPO:-https://github.com/777sudo/nvim-config.git}"
+REPO_URL="${NVIM_CONFIG_REPO:-https://github.com/777lotto/nvim-config.git}"
 BRANCH="${NVIM_CONFIG_BRANCH:-main}"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
 
@@ -16,21 +16,22 @@ die()  { printf '\033[1;31mXX\033[0m  %s\n' "$*" >&2; exit 1; }
 
 # ---- 0. prerequisites -------------------------------------------------------
 command -v git  >/dev/null || die "git is required."
-command -v nvim >/dev/null || die "Neovim not found. Install >= 0.11 first. On Debian the apt build is usually too old — use the release tarball/AppImage or the neovim-ppa/unstable PPA."
+command -v nvim >/dev/null || die "Neovim not found. Install >= 0.12.0 first. On Debian, build a tagged stable release from source or use another current upstream build."
 
-# This config uses Neovim 0.11 features -> require >= 0.11.
-ver="$(nvim --version | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1)"
-major="${ver%%.*}"; minor="${ver##*.}"
-if [ "$major" -eq 0 ] && [ "$minor" -lt 11 ]; then
-  die "Neovim $ver found; this config needs >= 0.11."
+# nvim-treesitter's main branch requires Neovim >= 0.12.0.
+ver="$(nvim --version | sed -nE '1s/^NVIM v([0-9]+\.[0-9]+\.[0-9]+).*/\1/p')"
+[ -n "$ver" ] || die "Could not parse the installed Neovim version."
+IFS=. read -r major minor patch <<< "$ver"
+if (( major == 0 && minor < 12 )); then
+  die "Neovim $ver found; this config needs >= 0.12.0."
 fi
 log "Neovim $ver OK."
 
 # Soft-check the tools plugins/Mason shell out to (warn, do not fail).
 #   NOTE: ts_ls (typescript-language-server 5.x) needs Node >= 20. Debian
 #   'bookworm' ships Node 18 -> use NodeSource or Debian 'trixie' (Node 20).
-for t in rg node npm python3 cc make unzip curl; do
-  command -v "$t" >/dev/null || warn "'$t' missing — some features/installs may fail. Debian: sudo apt install ripgrep nodejs npm python3 build-essential unzip curl"
+for t in rg node npm python3 cc unzip curl tar; do
+  command -v "$t" >/dev/null || warn "'$t' missing — some features/installs may fail. Debian: sudo apt install ripgrep nodejs npm python3 build-essential unzip curl tar"
 done
 
 # ---- 1. clone or update the config (idempotent) -----------------------------
@@ -56,23 +57,24 @@ fi
 log "Installing plugins from lazy-lock.json (Lazy restore)…"
 nvim --headless "+Lazy! restore" +qa
 
-# ---- 3. build Treesitter parsers synchronously ------------------------------
-# ensure_installed only auto-installs parsers ASYNC on first launch (and +qa can
-# quit before they finish). TSInstallSync builds them now and blocks. Needs a C
-# compiler + make (build-essential on Debian, Xcode CLT on macOS).
-# Keep this list in sync with ensure_installed in init.lua (treesitter block).
-TS_PARSERS="c lua vim vimdoc query javascript typescript tsx python html xml css markdown markdown_inline"
-if command -v cc >/dev/null && command -v make >/dev/null; then
-  log "Building Treesitter parsers (TSInstallSync)…"
-  nvim --headless "+TSInstallSync $TS_PARSERS" +qa || warn "Some parsers failed to build; they will retry on first launch."
-else
-  warn "No C compiler/make — skipping parser build; parsers build on first interactive launch once cc/make exist."
-fi
+# ---- 3. install Mason CLI tools ---------------------------------------------
+# nvim-treesitter main requires tree-sitter-cli >= 0.26.1. Debian 13's package
+# is older, so Mason installs a current upstream binary before parser builds.
+# mason-tool-installer's *Sync command blocks until every tool is available.
+log "Installing Mason CLI tools (tree-sitter-cli, prettier, markdownlint-cli2)…"
+NVIM_TREESITTER_SKIP_INSTALL=1 nvim --headless "+MasonToolsInstallSync" +qa
 
-# ---- 4. install Mason CLI tools (prettier, markdownlint-cli2) ---------------
-# mason-tool-installer's *Sync command blocks until finished.
-log "Installing Mason CLI tools (prettier, markdownlint-cli2)…"
-nvim --headless "+MasonToolsInstallSync" +qa
+# ---- 4. build Treesitter parsers synchronously ------------------------------
+# The main branch removed TSInstallSync; wait on its Lua install task instead.
+# Keep this list in sync with the parsers table in init.lua's Treesitter block.
+if command -v cc >/dev/null; then
+  log "Building Treesitter parsers…"
+  NVIM_TREESITTER_SKIP_INSTALL=1 nvim --headless \
+    "+lua local ok = require('nvim-treesitter').install({ 'c', 'lua', 'vim', 'vimdoc', 'query', 'javascript', 'typescript', 'tsx', 'python', 'html', 'xml', 'css', 'markdown', 'markdown_inline' }):wait(300000); if not ok then vim.cmd('cquit 1') end" \
+    +qa || warn "Some parsers failed to build; they will retry on first launch."
+else
+  warn "No C compiler — skipping parser build; parsers build on first interactive launch once cc exists."
+fi
 
 # ---- 5. install Mason LSP servers -------------------------------------------
 # Mason registry names mirroring mason-lspconfig.ensure_installed in init.lua:
