@@ -1119,7 +1119,10 @@ local GitPanel = (function()
     end
     return res
   end
-  local function chomp(s) return (s or ''):gsub('%s+$', '') end
+  local function chomp(s)
+    local trimmed = (s or ''):gsub('%s+$', '')
+    return trimmed
+  end
   -- split on NUL, returning every field including trailing empties dropped
   local function nul_split(s)
     local t = {}
