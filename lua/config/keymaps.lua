@@ -6,19 +6,19 @@ local keymap = vim.keymap
 -- Remap command key to backtick
 keymap.set('n', '`', ':')
 
--- Save file
-keymap.set("n", "<leader>w", "<cmd>w<CR>", { desc = "Save file" })
-keymap.set("n", "<leader>W", "<cmd>wa<CR>", { desc = "Save all files" })
+-- File saves
+keymap.set("n", "<leader>fs", "<cmd>w<CR>", { desc = "Save file" })
+keymap.set("n", "<leader>fS", "<cmd>wa<CR>", { desc = "Save all files" })
 
 -- Quit without forcing: modified buffers still trigger Neovim's save warning.
 keymap.set("n", "<leader>qq", "<cmd>quit<CR>", { desc = "Quit current window" })
 keymap.set("n", "<leader>qa", "<cmd>qall<CR>", { desc = "Quit all" })
 
 -- Window management keymaps
-keymap.set("n", "<leader>sv", "<C-w>v", { desc = "Split window vertically" })
-keymap.set("n", "<leader>sh", "<C-w>s", { desc = "Split window horizontally" })
-keymap.set("n", "<leader>se", "<C-w>=", { desc = "Make splits equal size" })
-keymap.set("n", "<leader>sx", "<cmd>close<CR>", { desc = "Close current split" })
+keymap.set("n", "<leader>wv", "<C-w>v", { desc = "Split window vertically" })
+keymap.set("n", "<leader>wh", "<C-w>s", { desc = "Split window horizontally" })
+keymap.set("n", "<leader>we", "<C-w>=", { desc = "Make splits equal size" })
+keymap.set("n", "<leader>wx", "<cmd>close<CR>", { desc = "Close current split" })
 keymap.set("n", "<leader>fd", "<cmd>Telescope diagnostics<cr>", { desc = "Find Diagnostics (Project)" })
 keymap.set("n", "<M-Up>", "<cmd>resize +2<cr>", { desc = "Increase window height" })
 keymap.set("n", "<M-Down>", "<cmd>resize -2<cr>", { desc = "Decrease window height" })

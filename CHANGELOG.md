@@ -18,6 +18,8 @@ versioning for release organization.
   `:EnvironmentInfo` diagnostics.
 - GitPanel first-push publishing: create a GitHub repository with optional
   `gh`, or attach an existing remote URL and establish upstream tracking.
+- Independent terminal buffers on `<leader>tt` and an explicit
+  `:FloatTerminal` command for the persistent `<C-\>` floating terminal.
 
 ### Changed
 
@@ -31,3 +33,8 @@ versioning for release organization.
   end-to-end server validation.
 - GitPanel accepts CR, LF, and keypad Enter locally, matching the terminal-safe
   Enter handling already used by nvim-tree.
+- Project live grep now uses `<leader>sw`; `<C-r>` inside the picker performs a
+  confirmed exact-text project replacement, replacing the Spectre plugin and
+  its `<leader>sr` mappings. The cursor-word search mappings were removed.
+- Telescope now tracks its latest stable release for compatibility with
+  Neovim 0.12 and the rewritten `nvim-treesitter` API.

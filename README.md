@@ -186,6 +186,20 @@ not affect Git.
 The session mappings remain because they solve a different problem from
 quitting and are safely grouped under the same discoverable `q` prefix.
 
+## Terminals
+
+| Key / command | Action |
+| --- | --- |
+| `<leader>tt` | Open a new, independent terminal buffer (every use creates another) |
+| `<C-\>` | Show or hide one persistent floating terminal |
+| `:FloatTerminal` | Show or hide that same persistent floating terminal |
+
+The floating terminal is a ToggleTerm buffer displayed in a Neovim floating
+window. Toggling the window closed only hides it: its shell and any commands
+running inside it continue until the shell exits or Neovim ends. Ordinary
+`<leader>tt` terminals are separate listed buffers, so they appear in the
+bufferline bar and can run concurrently with each other and with the float.
+
 ## Git workflows
 
 - `<leader>gg`: custom GitPanel tab.
@@ -201,6 +215,15 @@ GitPanel now lives in a normal plugin package with a lightweight
 users to extract code from this config. In a local-only repository, `P` can
 create and push a GitHub repository through the optional authenticated `gh`
 CLI, or attach an existing remote URL for another Git host.
+
+## Project search and replace
+
+`<leader>sw` opens Telescope Live Grep. Search remains regex-capable; press
+`<C-r>` inside the picker to replace the current prompt as exact,
+case-sensitive text across the project. Replacement text is entered in a
+centered floating prompt, followed by a second confirmation showing the match
+and file counts. The action refuses to run while a matching buffer has unsaved
+changes.
 
 ## Themes and rendered files
 
@@ -244,9 +267,9 @@ branches to one `main` branch is documented in
 ## Discoverability
 
 Press `<leader>?` for all mappings or `<leader>sk` to search them. Useful
-starting points are `<leader>ff` (files), `<leader>fg` (grep), `<leader>fe`
-(file explorer), `<C-\>` (terminal), `<leader>sr` (project replace), and
-`<leader>u` (undo tree).
+starting points are `<leader>ff` (files), `<leader>sw` (project grep), `<leader>fe`
+(file explorer), `<leader>tt` (new terminal buffer), `<C-\>` (persistent
+floating terminal), and `<leader>u` (undo tree).
 
 Common terminal, LSP, and clipboard checks are collected in
 [Troubleshooting](docs/troubleshooting.md).

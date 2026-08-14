@@ -45,14 +45,15 @@ return {
     -- You do NOT need to register individual keys here — which-key reads
     -- the `desc` from every mapping you already created automatically.
     wk.add({
-      { "<leader>f", group = "Find / Files" },
+      { "<leader>f", group = "Files / Find" },
       { "<leader>e", group = "Edit", mode = { "n", "x" } },
       { "<leader>n", group = "Navigate", mode = { "n", "x" } },
-      { "<leader>s", group = "Window / Search" },
+      { "<leader>s", group = "Search / Replace" },
+      { "<leader>w", group = "Windows / Splits" },
       { "<leader>x", group = "Diagnostics" },
       { "<leader>b", group = "Buffers" },
       { "<leader>g", group = "Git" },
-      { "<leader>t", group = "Tab bar (buffers)" },
+      { "<leader>t", group = "Tab bar / Terminals" },
       { "<leader>tm", group = "Tab bar: move" },
       { "<leader>c", group = "Code" },
       { "<leader>q", group = "Quit / Session" },
@@ -66,7 +67,7 @@ return {
 {
   "szw/vim-maximizer",
   keys = {
-    { "<leader>sm", "<cmd>MaximizerToggle<cr>", desc = "Maximize / restore window" },
+    { "<leader>wm", "<cmd>MaximizerToggle<cr>", desc = "Maximize / restore window" },
   },
 },
 }

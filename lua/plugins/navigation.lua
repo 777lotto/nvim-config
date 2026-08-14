@@ -3,7 +3,7 @@ local keymap = vim.keymap
 return {
 {
   "nvim-telescope/telescope.nvim",
-  branch = "0.1.x",
+  version = "*",
   dependencies = {
     "nvim-lua/plenary.nvim",
     -- Routes vim.ui.select() (e.g. code-action pickers) through Telescope.
@@ -18,9 +18,10 @@ return {
     })
     require("telescope").load_extension("ui-select")
     keymap.set("n", "<leader>ff", "<cmd>Telescope find_files<cr>", { desc = "Find Files" })
-    keymap.set("n", "<leader>fg", "<cmd>Telescope live_grep<cr>", { desc = "Live Grep" })
     keymap.set("n", "<leader>fb", "<cmd>Telescope buffers<cr>", { desc = "Find Buffers" })
-    keymap.set("n", "<leader>sw", "<cmd>Telescope grep_string<cr>", { desc = "Search for word under cursor" })
+    keymap.set("n", "<leader>sw", function()
+      require("config.project_search").live_grep()
+    end, { desc = "Search Project (Live Grep)" })
     keymap.set("v", "<leader>s", "<cmd>Telescope grep_string<cr>", { desc = "Search for selected text" })
   end,
 },
@@ -94,12 +95,21 @@ end,
   "akinsho/toggleterm.nvim",
   version = "*",
   config = function()
+    -- Each invocation creates a new, ordinary terminal buffer. These terminals
+    -- are deliberately independent from the persistent ToggleTerm instance
+    -- below, and appear as separate entries in the bufferline "tab" bar.
+    keymap.set("n", "<leader>tt", function()
+      vim.cmd("terminal")
+      vim.cmd("startinsert")
+    end, { desc = "Terminal: new buffer", noremap = true, silent = true })
+
     require("toggleterm").setup({
-      -- Toggle the floating terminal with Ctrl-\ (a real control byte, so it
-      -- survives common terminal and SSH layers). It works in normal AND
-      -- terminal mode, so
-      -- the same chord dismisses the float from inside it. <esc> still drops
-      -- to normal mode (its <C-\><C-n> RHS is non-recursive, so no conflict).
+      -- Toggle one persistent floating terminal with Ctrl-\ (a real control
+      -- byte, so it survives common terminal and SSH layers). Hiding its
+      -- window leaves its buffer and shell job running for the Neovim session.
+      -- It works in normal AND terminal mode, so the same chord dismisses the
+      -- float from inside it. <esc> still drops to normal mode (its
+      -- <C-\><C-n> RHS is non-recursive, so no conflict).
       open_mapping = [[<c-\>]],
       size = function(term)
         if term.direction == "horizontal" then
@@ -125,7 +135,11 @@ end,
       },
     })
 
-    -- Terminal is toggled via open_mapping (<C-\>) set above.
+    -- This is an explicit command for the same persistent terminal toggled by
+    -- <C-\>; it does not share a job with the <leader>tt terminal buffers.
+    vim.api.nvim_create_user_command("FloatTerminal", function()
+      vim.cmd("ToggleTerm direction=float")
+    end, { desc = "Toggle the persistent floating terminal" })
 
     -- Exit terminal mode with Escape. Keep this autocmd local to the plugin
     -- instead of clearing every TermOpen autocmd in the user's configuration.
