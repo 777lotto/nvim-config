@@ -976,7 +976,30 @@ require("lazy").setup({
     dependencies = { "nvim-treesitter/nvim-treesitter", "nvim-tree/nvim-web-devicons" },
     ft = { "markdown", "markdown.mdx" },
     config = function()
-      require("render-markdown").setup({})
+      require("render-markdown").setup({
+        -- The plugin defaults use boxed heading numbers and several abstract
+        -- Material Design glyphs. Keep Nerd Font icons where they convey real
+        -- information (file types, Git state, known web sites), but use plain,
+        -- readable markers for Markdown structure.
+        heading = {
+          sign = false,
+          icons = { "# ", "## ", "### ", "#### ", "##### ", "###### " },
+        },
+        checkbox = {
+          unchecked = { icon = "[ ] " },
+          checked = { icon = "[x] " },
+          custom = {
+            todo = { rendered = "[-] " },
+          },
+        },
+        link = {
+          footnote = { icon = "^ " },
+          image = "[img] ",
+          email = "@ ",
+          hyperlink = "↗ ",
+          wiki = { icon = "[[ " },
+        },
+      })
       vim.keymap.set("n", "<leader>cm", "<cmd>RenderMarkdown toggle<cr>",
         { desc = "Markdown: toggle in-buffer rendering" })
     end,
@@ -1077,7 +1100,8 @@ require("lazy").setup({
 --   > / A  continue / abort the in-progress operation
 --   c      commit staged        C  Commit All (stage everything, then commit)
 --   a      amend last commit
---   b      new branch           m  merge branch-under-cursor into current
+--   b      new branch           R  rename branch (local / remote / both)
+--   m      merge branch-under-cursor into current
 --   d      delete branch / remove worktree (context-sensitive, confirm)
 --   W      new worktree
 --   F / P  pull / push          f  fetch
@@ -1192,7 +1216,8 @@ local GitPanel = (function()
 
     -- local branches
     local fmt = '%(HEAD)%00%(refname:short)%00%(objectname:short)%00' ..
-                '%(upstream:short)%00%(upstream:trackshort)%00%(worktreepath)%00%(contents:subject)'
+                '%(upstream:short)%00%(upstream:remotename)%00%(upstream:remoteref)%00' ..
+                '%(upstream:trackshort)%00%(worktreepath)%00%(contents:subject)'
     local br = git({ 'for-each-ref', '--sort=-committerdate', '--format=' .. fmt, 'refs/heads' },
       { allow_fail = true })
     if br.code == 0 then
@@ -1202,9 +1227,12 @@ local GitPanel = (function()
         if f[2] and f[2] ~= '' then
           m.branches[#m.branches + 1] = {
             current = (f[1] == '*'), name = f[2], sha = f[3],
-            upstream = (f[4] ~= '' and f[4]) or nil, track = f[5] or '',
-            worktree = (f[6] ~= '' and f[6]) or nil,  -- folder holding this branch
-            subject = f[7] or '',
+            upstream = (f[4] ~= '' and f[4]) or nil,
+            remote = (f[5] ~= '' and f[5]) or nil,
+            remote_ref = (f[6] ~= '' and f[6]) or nil,
+            track = f[7] or '',
+            worktree = (f[8] ~= '' and f[8]) or nil,  -- folder holding this branch
+            subject = f[9] or '',
           }
         end
       end
@@ -1507,7 +1535,8 @@ local GitPanel = (function()
           row = row .. '  ⊘ ' .. fn.fnamemodify(b.worktree, ':t')
         end
         local lnum = emit(row,
-          { kind = 'branch', value = b.name, current = b.current, worktree = b.worktree })
+          { kind = 'branch', value = b.name, current = b.current, worktree = b.worktree,
+            upstream = b.upstream, remote = b.remote, remote_ref = b.remote_ref })
         if b.current then span(lnum, 5, 7 + #b.name, 'GitPanelBranchCurrent')
         elseif b.worktree then span(lnum, 7 + #b.name, -1, 'GitPanelHint') end
       end
@@ -2039,6 +2068,225 @@ local GitPanel = (function()
       M.refresh()
     end)
   end
+
+  local function rename_local_branch(old_name, new_name)
+    if old_name == new_name then return true end
+    local ok, res = run({ 'branch', '-m', '--', old_name, new_name }, { quiet = true })
+    if not ok then
+      vim.notify('git branch -m:\n' .. chomp(res.stderr), vim.log.levels.ERROR)
+    end
+    return ok
+  end
+
+  -- A Git remote has no atomic "rename branch" command. Safely emulate it by
+  -- creating the new ref, deleting the old ref with a lease, then updating the
+  -- local branch/upstream. If a host rejects deletion (commonly because the old
+  -- branch is its default or is protected), leave the local/upstream untouched;
+  -- the newly-created remote ref makes the operation safe to retry after the
+  -- repository setting is changed.
+  local function rename_remote_branch(it, new_name, rename_local)
+    local old_local = it.value
+    local remote = it.remote
+    local old_remote = it.remote_ref and it.remote_ref:match('^refs/heads/(.+)$')
+    if not remote or remote == '.' or not old_remote then
+      return vim.notify('GitPanel: "' .. old_local .. '" has no tracked remote branch; ' ..
+        'rename it locally, then use P to publish it', vim.log.levels.INFO)
+    end
+
+    local local_ref = 'refs/heads/' .. old_local
+    local old_ref = 'refs/heads/' .. old_remote
+    local new_ref = 'refs/heads/' .. new_name
+
+    -- If only the local name differs, the remote is already named correctly.
+    if old_remote == new_name then
+      if rename_local and old_local ~= new_name then
+        if not rename_local_branch(old_local, new_name) then M.refresh(); return end
+        local ok, res = run({ 'branch', '--set-upstream-to=' .. remote .. '/' .. new_name,
+          '--', new_name }, { quiet = true })
+        if not ok then
+          vim.notify('Branch renamed locally, but its upstream could not be set:\n' ..
+            chomp(res.stderr), vim.log.levels.WARN)
+        else
+          vim.notify('GitPanel: renamed local branch ' .. old_local .. ' -> ' .. new_name,
+            vim.log.levels.INFO)
+        end
+      else
+        vim.notify('GitPanel: remote branch is already named ' .. remote .. '/' .. new_name,
+          vim.log.levels.INFO)
+      end
+      M.refresh()
+      return
+    end
+
+    -- Check this before touching the remote so a Both operation cannot become
+    -- remote-only merely because the requested local target already exists.
+    if rename_local and old_local ~= new_name then
+      local exists = git({ 'show-ref', '--verify', '--quiet', 'refs/heads/' .. new_name },
+        { allow_fail = true })
+      if exists.code == 0 then
+        return vim.notify('GitPanel: local branch already exists: ' .. new_name,
+          vim.log.levels.ERROR)
+      end
+    end
+
+    local local_sha_res = git({ 'rev-parse', '--verify', local_ref }, { allow_fail = true })
+    if local_sha_res.code ~= 0 then
+      return vim.notify('GitPanel: local branch no longer exists: ' .. old_local,
+        vim.log.levels.WARN)
+    end
+    local local_sha = chomp(local_sha_res.stdout)
+
+    -- Ask the server for exact ref names; remote-tracking refs may be stale.
+    local ls = git({ 'ls-remote', '--heads', '--refs', remote, old_ref, new_ref },
+      { allow_fail = true })
+    if ls.code ~= 0 then
+      return vim.notify('git ls-remote ' .. remote .. ':\n' .. chomp(ls.stderr),
+        vim.log.levels.ERROR)
+    end
+    local heads = {}
+    for line in (ls.stdout or ''):gmatch('[^\n]+') do
+      local sha, ref = line:match('^(%x+)%s+(refs/heads/.+)$')
+      if sha and ref then heads[ref] = sha end
+    end
+    local old_sha, new_sha = heads[old_ref], heads[new_ref]
+
+    -- An existing target is accepted only when it is the same ref we are about
+    -- to copy (or a copy left by an earlier, partially-completed rename).
+    if new_sha and new_sha ~= local_sha and new_sha ~= old_sha then
+      return vim.notify('GitPanel: refusing to overwrite existing remote branch ' ..
+        remote .. '/' .. new_name, vim.log.levels.ERROR)
+    end
+
+    if old_sha then
+      -- Fetch the source tip and require the selected local branch to contain it.
+      -- This prevents deleting commits that exist only on the remote.
+      local fetched = git({ 'fetch', '--no-tags', remote, old_ref }, { allow_fail = true })
+      if fetched.code ~= 0 then
+        return vim.notify('git fetch ' .. remote .. '/' .. old_remote .. ':\n' ..
+          chomp(fetched.stderr), vim.log.levels.ERROR)
+      end
+      local tip = git({ 'rev-parse', '--verify', 'FETCH_HEAD' }, { allow_fail = true })
+      if tip.code ~= 0 then
+        return vim.notify('GitPanel: could not verify the remote source branch',
+          vim.log.levels.ERROR)
+      end
+      old_sha = chomp(tip.stdout)
+      local contains = git({ 'merge-base', '--is-ancestor', old_sha, local_ref },
+        { allow_fail = true })
+      if contains.code ~= 0 then
+        return vim.notify('GitPanel: refusing to rename ' .. remote .. '/' .. old_remote ..
+          ' because it has commits missing from local branch "' .. old_local ..
+          '". Pull/merge that branch, then retry.', vim.log.levels.ERROR)
+      end
+    end
+
+    if new_sha ~= local_sha then
+      -- A lease with an empty expected value guarantees that a concurrently
+      -- created target is not overwritten. For a retry, lease its known SHA.
+      local expected = new_sha or ''
+      local ok, res = run({ 'push', '--porcelain',
+        '--force-with-lease=' .. new_ref .. ':' .. expected,
+        remote, local_ref .. ':' .. new_ref }, { quiet = true })
+      if not ok then
+        return vim.notify('GitPanel: could not create ' .. remote .. '/' .. new_name ..
+          '; the old branch was left untouched.\n' .. chomp(res.stderr), vim.log.levels.ERROR)
+      end
+    end
+
+    if old_sha then
+      -- The lease prevents deletion if somebody advanced the source branch
+      -- after our fetch. The new ref remains as a safe copy if deletion fails.
+      local ok, res = run({ 'push', '--porcelain',
+        '--force-with-lease=' .. old_ref .. ':' .. old_sha,
+        remote, ':' .. old_ref }, { quiet = true })
+      if not ok then
+        vim.notify('GitPanel: created ' .. remote .. '/' .. new_name .. ', but the server ' ..
+          'refused to delete ' .. remote .. '/' .. old_remote .. '.\n' ..
+          'Nothing was renamed locally and its upstream still points to the old branch. ' ..
+          'If it is the default/protected branch, change that repository setting, then ' ..
+          'press R again with the same new name.\n' .. chomp(res.stderr), vim.log.levels.WARN)
+        M.refresh()
+        return
+      end
+    end
+
+    local local_name = old_local
+    if rename_local and old_local ~= new_name then
+      if not rename_local_branch(old_local, new_name) then
+        -- The remote move is already complete; preserve a useful upstream on
+        -- the still-old local name and report the recoverable partial result.
+        run({ 'branch', '--set-upstream-to=' .. remote .. '/' .. new_name,
+          '--', old_local }, { quiet = true })
+        vim.notify('GitPanel: remote branch is now ' .. remote .. '/' .. new_name ..
+          ', but the local rename failed. Its upstream was moved to the new remote branch.',
+          vim.log.levels.WARN)
+        M.refresh()
+        return
+      end
+      local_name = new_name
+    end
+
+    local upstream_ok, upstream_res = run({
+      'branch', '--set-upstream-to=' .. remote .. '/' .. new_name, '--', local_name,
+    }, { quiet = true })
+    if not upstream_ok then
+      vim.notify('GitPanel: remote rename completed, but setting the upstream failed:\n' ..
+        chomp(upstream_res.stderr), vim.log.levels.WARN)
+    else
+      local local_part = (rename_local and old_local ~= new_name)
+        and ('local ' .. old_local .. ' -> ' .. new_name .. ' and ') or ''
+      vim.notify('GitPanel: renamed ' .. local_part .. 'remote ' .. remote .. '/' ..
+        old_remote .. ' -> ' .. remote .. '/' .. new_name, vim.log.levels.INFO)
+    end
+    -- Refresh origin/HEAD (or equivalent) when the server advertises one.
+    git({ 'remote', 'set-head', remote, '--auto' }, { allow_fail = true })
+    M.refresh()
+  end
+
+  function M.rename_branch()
+    local it = cur_item()
+    if not (it and it.kind == 'branch') then
+      return vim.notify('GitPanel: move the cursor onto a branch to rename it',
+        vim.log.levels.INFO)
+    end
+    local old_name = it.value
+    vim.ui.input({ prompt = 'Rename branch "' .. old_name .. '" to: ', default = old_name },
+      function(new_name)
+        new_name = new_name and new_name:match('^%s*(.-)%s*$') or nil
+        if not new_name or new_name == '' then
+          return vim.notify('GitPanel: branch rename cancelled', vim.log.levels.INFO)
+        end
+        local valid = git({ 'check-ref-format', '--branch', new_name }, { allow_fail = true })
+        if valid.code ~= 0 then
+          return vim.notify('Invalid branch name "' .. new_name .. '":\n' ..
+            chomp(valid.stderr), vim.log.levels.ERROR)
+        end
+        local remote_branch = it.remote_ref and it.remote_ref:match('^refs/heads/(.+)$')
+        local has_remote = it.remote and it.remote ~= '.' and remote_branch
+        if has_remote then
+          local pick = fn.confirm(
+            'Rename branch?\n\n  local:  ' .. old_name .. ' -> ' .. new_name ..
+            '\n  remote: ' .. it.remote .. '/' .. remote_branch .. ' -> ' ..
+            it.remote .. '/' .. new_name ..
+            '\n\nRemote rename pushes the new ref and deletes the old ref.',
+            '&Both (local + remote)\n&Local only\n&Remote only\n&Cancel', 4)
+          if pick == 1 then return rename_remote_branch(it, new_name, true) end
+          if pick == 3 then return rename_remote_branch(it, new_name, false) end
+          if pick ~= 2 then return end
+        end
+
+        if old_name == new_name then
+          return vim.notify('GitPanel: branch is already named ' .. new_name,
+            vim.log.levels.INFO)
+        end
+        if rename_local_branch(old_name, new_name) then
+          vim.notify('GitPanel: renamed local branch ' .. old_name .. ' -> ' .. new_name,
+            vim.log.levels.INFO)
+        end
+        M.refresh()
+      end)
+  end
+
   function M.delete_branch()
     local it = cur_item()
     if not (it and it.kind == 'branch') then
@@ -2162,6 +2410,8 @@ local GitPanel = (function()
     '  a       amend last commit',
     '',
     '  <CR>    (on a branch) checkout      b   new branch',
+    '  R       rename branch (choose local only, remote only, or both)',
+    '          remote default/protected branches may require a host setting change',
     '  m       merge branch under cursor into current',
     '  d       delete branch / remove worktree (context-sensitive)',
     '  W       new worktree',
@@ -2207,6 +2457,7 @@ local GitPanel = (function()
     k('C', M.commit_all, 'Commit All')
     k('a', M.amend, 'amend')
     k('b', M.new_branch, 'new branch')
+    k('R', M.rename_branch, 'rename branch (local / remote)')
     k('m', M.merge, 'merge branch into current')
     k('d', function()
       local it = cur_item()

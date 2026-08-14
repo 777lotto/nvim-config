@@ -24,7 +24,7 @@ trouble · which-key · spectre.
 | node + npm | `pyright`, `ts_ls`, `html`, `cssls`, prettier, markdownlint-cli2 | `brew install node` | see Node note ↓ |
 | python3 | pyright runtime / providers | preinstalled | `apt install python3` |
 | unzip | Mason unpacks some servers | preinstalled | `apt install unzip` |
-| A Nerd Font | icons (devicons/lualine/bufferline) | in your terminal | in your **local** terminal (see clipboard note) |
+| Nerd Fonts Symbols Only *(fallback)* | file/Git/UI icons without changing the text face | install locally; keep your preferred monospace font selected | install on your **local** display machine (see clipboard note) |
 
 **Debian one-liner (current stable, *trixie* / Debian 13):**
 
@@ -43,8 +43,8 @@ Neovim `v0.12.2` installed under `~/.local/opt`:
 
 ```sh
 git clone --branch v0.12.2 --depth 1 \
-  https://github.com/neovim/neovim.git ~/Templates/neovim
-make -C ~/Templates/neovim CMAKE_BUILD_TYPE=Release \
+  https://github.com/neovim/neovim.git ~/works/neovim
+make -C ~/works/neovim CMAKE_BUILD_TYPE=Release \
   CMAKE_INSTALL_PREFIX="$HOME/.local/opt/neovim/v0.12.2" install
 mkdir -p "$HOME/.local/bin"
 ln -s "$HOME/.local/opt/neovim/v0.12.2/bin/nvim" "$HOME/.local/bin/nvim"
@@ -106,7 +106,9 @@ format · `<leader>sr` search/replace (spectre) · `<leader>t…` bufferline (ta
 ## Platform notes
 
 Tested on macOS and Debian Linux (not Windows). On Debian, watch the Neovim version (apt is too
-old) and install a Nerd Font in your local terminal.
+old). Keep your preferred monospace font as the terminal's primary font and install **Nerd Fonts
+Symbols Only** as a fallback for icons; a fully patched text font is unnecessary. When using SSH,
+fonts belong on the local machine displaying the terminal, not on the remote host.
 
 ## Repo layout
 
