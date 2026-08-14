@@ -383,7 +383,32 @@ require("lazy").setup({
    "nvim-tree/nvim-tree.lua",
    dependencies = { "nvim-tree/nvim-web-devicons" },
    config = function()
+     local function on_attach(bufnr)
+       local api = require("nvim-tree.api")
+
+       -- Keep nvim-tree's complete default keymap, then make every terminal
+       -- representation of Enter perform the same open/expand action. Some
+       -- terminal/SSH combinations send LF or keypad Enter instead of CR.
+       api.config.mappings.default_on_attach(bufnr)
+       local opts = {
+         buffer = bufnr,
+         desc = "nvim-tree: Open / expand",
+         noremap = true,
+         silent = true,
+         nowait = true,
+       }
+       for _, lhs in ipairs({ "<CR>", "<NL>", "<kEnter>" }) do
+         vim.keymap.set("n", lhs, api.node.open.edit, opts)
+       end
+     end
+
      require("nvim-tree").setup({
+       on_attach = on_attach,
+       renderer = {
+         -- Dotfiles stay visible, but mute both their names and icons so they
+         -- remain visually distinct from ordinary files and directories.
+         highlight_hidden = "all",
+       },
        filters = {
          dotfiles = false,
        },
@@ -976,30 +1001,7 @@ require("lazy").setup({
     dependencies = { "nvim-treesitter/nvim-treesitter", "nvim-tree/nvim-web-devicons" },
     ft = { "markdown", "markdown.mdx" },
     config = function()
-      require("render-markdown").setup({
-        -- The plugin defaults use boxed heading numbers and several abstract
-        -- Material Design glyphs. Keep Nerd Font icons where they convey real
-        -- information (file types, Git state, known web sites), but use plain,
-        -- readable markers for Markdown structure.
-        heading = {
-          sign = false,
-          icons = { "# ", "## ", "### ", "#### ", "##### ", "###### " },
-        },
-        checkbox = {
-          unchecked = { icon = "[ ] " },
-          checked = { icon = "[x] " },
-          custom = {
-            todo = { rendered = "[-] " },
-          },
-        },
-        link = {
-          footnote = { icon = "^ " },
-          image = "[img] ",
-          email = "@ ",
-          hyperlink = "↗ ",
-          wiki = { icon = "[[ " },
-        },
-      })
+      require("render-markdown").setup({})
       vim.keymap.set("n", "<leader>cm", "<cmd>RenderMarkdown toggle<cr>",
         { desc = "Markdown: toggle in-buffer rendering" })
     end,

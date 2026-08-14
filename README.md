@@ -24,7 +24,7 @@ trouble · which-key · spectre.
 | node + npm | `pyright`, `ts_ls`, `html`, `cssls`, prettier, markdownlint-cli2 | `brew install node` | see Node note ↓ |
 | python3 | pyright runtime / providers | preinstalled | `apt install python3` |
 | unzip | Mason unpacks some servers | preinstalled | `apt install unzip` |
-| Nerd Fonts Symbols Only *(fallback)* | file/Git/UI icons without changing the text face | install locally; keep your preferred monospace font selected | install on your **local** display machine (see clipboard note) |
+| A Nerd Font | icons (devicons/lualine/bufferline) | in your terminal | in your **local** terminal (see clipboard note) |
 
 **Debian one-liner (current stable, *trixie* / Debian 13):**
 
@@ -106,9 +106,7 @@ format · `<leader>sr` search/replace (spectre) · `<leader>t…` bufferline (ta
 ## Platform notes
 
 Tested on macOS and Debian Linux (not Windows). On Debian, watch the Neovim version (apt is too
-old). Keep your preferred monospace font as the terminal's primary font and install **Nerd Fonts
-Symbols Only** as a fallback for icons; a fully patched text font is unnecessary. When using SSH,
-fonts belong on the local machine displaying the terminal, not on the remote host.
+old) and install a Nerd Font in your local terminal.
 
 ## Repo layout
 
