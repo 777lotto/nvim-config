@@ -1,114 +1,227 @@
-# Neovim config
+# Neovim configuration
 
-A single-file (`init.lua`) IDE setup for **JavaScript/TypeScript, HTML/CSS, Python, Markdown, and Lua**.
-Requires **Neovim ≥ 0.12.0** (LuaJIT). Managed with [lazy.nvim](https://github.com/folke/lazy.nvim); tools/LSPs via [Mason](https://github.com/mason-org/mason.nvim). Leader is `<Space>`.
+A reproducible, keyboard-first Neovim IDE configuration for macOS and Debian
+Linux. It uses Neovim's current Lua APIs, lazy.nvim for plugins, Mason for
+external tools, and a committed lockfile for repeatable installs.
 
-## Features
+Requires Neovim 0.12 or newer. The leader key is `<Space>`.
 
-Catppuccin theme · Telescope (find/grep) · nvim-tree (float) · bufferline · lualine ·
-nvim-cmp + LuaSnip · LSP via Mason (`lua_ls`, `pyright`, `ts_ls`, `html`, `cssls`, `marksman`) ·
-conform.nvim (prettier) + nvim-lint (markdownlint-cli2) · Treesitter · gitsigns / neogit /
-diffview / lazygit · a dependency-free custom **GitPanel** (`<leader>gg`) · toggleterm (`<C-\>`) ·
-trouble · which-key · spectre.
+## Highlights
+
+- LSP completion, navigation, refactoring, hover help, and diagnostics.
+- Treesitter highlighting, indentation, text objects, and structural movement.
+- Telescope search, nvim-tree and Oil navigation, bufferline, lualine, and
+  which-key discovery.
+- Diagnostics shown as signs, underlines, virtual text, current-line virtual
+  lines, floating detail, native location/quickfix lists, and Trouble panels.
+- Project-aware Prettier formatting through conform.nvim.
+- Markdown rendering, Marksman, Prettier, and markdownlint-cli2.
+- Git signs, Diffview, Neogit, Lazygit, and the dependency-free custom
+  [GitPanel](local-plugins/git-panel.nvim/README.md).
+- OSC 52 clipboard yanking during SSH sessions and native clipboard integration
+  on local desktops.
+
+## Language coverage
+
+| Language | Structure / highlighting | LSP | Formatter / linter |
+| --- | --- | --- | --- |
+| Lua | Treesitter | `lua_ls` | — |
+| JavaScript, JSX | Treesitter | `ts_ls` | Prettier |
+| TypeScript, TSX | Treesitter | `ts_ls` | Prettier |
+| HTML | Treesitter | `html` | Prettier |
+| CSS | Treesitter | `cssls` | Prettier |
+| JSON, JSONC | Treesitter | `jsonls` + SchemaStore | Prettier |
+| Python | Treesitter | `pyright` | — |
+| Markdown, MDX | Treesitter + render-markdown | `marksman` | Prettier + markdownlint-cli2 |
+| XML | Treesitter | — | — |
+
+Prettier is also configured for JSON5, SCSS, Less, Vue, GraphQL, Handlebars,
+Angular HTML, and YAML. It is deliberately not assigned to Lua, Python, C, XML,
+or plain text because Prettier does not parse those languages. Those can receive
+their own formatters later (for example StyLua or Ruff) without changing the
+Prettier policy.
 
 ## Requirements
 
-| Need | Why | macOS | Debian |
-|------|-----|-------|--------|
-| Neovim ≥ 0.12.0 | config + nvim-treesitter `main` | `brew install neovim` | **apt build is too old** — build a tagged stable release from source into a versioned user prefix (see below) |
-| git, curl | lazy.nvim / Mason | preinstalled / brew | `apt install git curl ca-certificates` |
-| tree-sitter CLI ≥ 0.26.1 | Treesitter parser builds | installed by Mason (`tree-sitter-cli`) | installed by Mason; Debian 13's apt version is too old |
-| C compiler | Treesitter parsers | Xcode CLT | `apt install build-essential` |
-| ripgrep | Telescope live-grep | `brew install ripgrep` | `apt install ripgrep` |
-| fd *(optional)* | Telescope file finder (falls back to `rg`/`find`) | `brew install fd` | `apt install fd-find` → binary is **`fdfind`** |
-| node + npm | `pyright`, `ts_ls`, `html`, `cssls`, prettier, markdownlint-cli2 | `brew install node` | see Node note ↓ |
-| python3 | pyright runtime / providers | preinstalled | `apt install python3` |
-| unzip | Mason unpacks some servers | preinstalled | `apt install unzip` |
-| A Nerd Font | icons (devicons/lualine/bufferline) | in your terminal | in your **local** terminal (see clipboard note) |
+| Need | Purpose | macOS | Debian |
+| --- | --- | --- | --- |
+| Neovim 0.12+ | Editor and current Treesitter APIs | Homebrew or upstream build | Current upstream build |
+| Git and curl | Config, lazy.nvim, Mason | Xcode tools / Homebrew | `apt install git curl ca-certificates` |
+| C compiler | Treesitter parser builds | Xcode Command Line Tools | `apt install build-essential` |
+| Node 20+ and npm | Web LSPs, Prettier, markdownlint | `brew install node` | Debian 13 packages or NodeSource |
+| ripgrep | Telescope live grep | `brew install ripgrep` | `apt install ripgrep` |
+| Python 3 | Python tooling/providers | system or Homebrew | `apt install python3` |
+| unzip and tar | Mason packages | system | `apt install unzip tar` |
+| Nerd Font | File/type icons | Configure the local terminal | Configure the local terminal |
 
-**Debian one-liner (current stable, *trixie* / Debian 13):**
+Mason installs the required tree-sitter CLI, LSP servers, Prettier, and
+markdownlint-cli2. A C compiler is still needed to build parsers.
 
-```sh
-sudo apt update && sudo apt install -y \
-  git curl ca-certificates build-essential cmake ninja-build gettext \
-  ripgrep fd-find nodejs npm python3 unzip lazygit \
-  xclip wl-clipboard fontconfig
-```
+## Install
 
-### Isolated Neovim source build
-
-Build an exact release tag rather than the moving `master` or `stable` branch. This keeps the
-installed runtime removable and makes upgrades/rollbacks explicit. The current tested route is
-Neovim `v0.12.2` installed under `~/.local/opt`:
+On a fresh machine:
 
 ```sh
-git clone --branch v0.12.2 --depth 1 \
-  https://github.com/neovim/neovim.git ~/works/neovim
-make -C ~/works/neovim CMAKE_BUILD_TYPE=Release \
-  CMAKE_INSTALL_PREFIX="$HOME/.local/opt/neovim/v0.12.2" install
-mkdir -p "$HOME/.local/bin"
-ln -s "$HOME/.local/opt/neovim/v0.12.2/bin/nvim" "$HOME/.local/bin/nvim"
-nvim --version
+git clone https://github.com/777lotto/nvim-config.git \
+  "${XDG_CONFIG_HOME:-$HOME/.config}/nvim"
+"${XDG_CONFIG_HOME:-$HOME/.config}/nvim/bootstrap.sh"
 ```
 
-Do not run `sudo make install`: only the build prerequisites are system packages; Neovim itself
-stays under the user-owned prefix. `~/.local/bin` must be on `PATH`.
+The installer follows the repository's GitHub default branch unless
+`NVIM_CONFIG_BRANCH` is set explicitly. It is safe to rerun: it pulls an
+existing checkout, restores plugins from `lazy-lock.json`, installs Mason
+tools, and builds Treesitter parsers.
 
-### Node version note
-`ts_ls` (typescript-language-server 5.x) requires **Node ≥ 20**.
-- **Debian 13 (trixie, current stable):** apt Node is 20.x — fine. `lazygit` is also `apt install`-able.
-- **Debian 12 (bookworm):** apt Node is 18 → install Node 20 from [NodeSource](https://github.com/nodesource/distributions), and install `lazygit` from its [GitHub release](https://github.com/jesseduffield/lazygit/releases) (not in bookworm apt).
-
-`lua_ls` and `marksman` are standalone binaries and need **no** Node.
-
-## Quick start (fresh machine)
+To install a particular branch:
 
 ```sh
-NVIM_CONFIG_REPO=<your-repo-url> bash bootstrap.sh
+NVIM_CONFIG_BRANCH=my-branch ~/.config/nvim/bootstrap.sh
 ```
 
-`bootstrap.sh` is idempotent. It verifies Neovim ≥ 0.12.0, clones/updates the repo into
-`~/.config/nvim` (backing up any pre-existing non-repo config), then runs headlessly:
-`Lazy! restore` (plugins at pinned commits) → `MasonToolsInstallSync` (tree-sitter-cli,
-prettier, markdownlint-cli2) → synchronous parser installation → `MasonInstall` (LSP servers).
+For a manual install, clone to `~/.config/nvim`, open Neovim, run
+`:Lazy restore`, `:MasonToolsInstall`, and `:checkhealth`.
 
-**Manual install:** clone the repo to `~/.config/nvim`, launch `nvim` (lazy.nvim
-self-bootstraps), then `:Lazy restore`, `:MasonToolsInstall`, restart Neovim, and run
-`:TSUpdate` followed by `:checkhealth`.
+## Repository layout
+
+```text
+.
+├── init.lua                         # intentionally tiny startup entrypoint
+├── lua/
+│   ├── config/
+│   │   ├── options.lua              # editor options and clipboard policy
+│   │   ├── keymaps.lua              # global mappings and edit commands
+│   │   ├── diagnostics.lua          # one diagnostic presentation policy
+│   │   ├── autocmds.lua             # general editor automation
+│   │   └── lazy.lua                 # lazy.nvim bootstrap and plugin import
+│   └── plugins/                     # lazy.nvim specs grouped by concern
+│       ├── ui.lua
+│       ├── navigation.lua
+│       ├── treesitter.lua
+│       ├── lsp.lua
+│       ├── diagnostics.lua
+│       ├── languages.lua
+│       ├── editing.lua
+│       ├── git.lua
+│       └── ...
+├── local-plugins/
+│   └── git-panel.nvim/              # reusable, independently publishable plugin
+├── docs/
+│   ├── architecture.md
+│   ├── repository-strategy.md
+│   └── troubleshooting.md
+├── lazy-lock.json                   # exact plugin commits
+├── bootstrap.sh
+└── CHANGELOG.md
+```
+
+`init.lua` only establishes startup order. lazy.nvim automatically merges the
+plugin specs returned by every file under `lua/plugins/`, so adding a feature
+does not require editing a central plugin table.
+
+See [Architecture and UI layers](docs/architecture.md) for how themes,
+highlight groups, Treesitter, LSP, linting, diagnostics, and renderers interact.
+
+## Diagnostics
+
+Diagnostics are available through several complementary views:
+
+| View | Use |
+| --- | --- |
+| Sign column + underline | Persistent severity/location cue |
+| Virtual text | Compact message beside each affected line |
+| Current-line virtual lines | Full message below the line being inspected |
+| `<leader>xf` | Rounded floating details at the cursor |
+| `<leader>xl` | Current-buffer location list |
+| `<leader>xq` | Project quickfix list |
+| `<leader>xb` | Current-buffer Trouble panel |
+| `<leader>xx` | Project Trouble panel |
+
+## Formatting
+
+conform.nvim runs Prettier on save only for filetypes mapped to Prettier.
+`<leader>cf` formats the current buffer or visual selection manually. A
+project-local `node_modules/.bin/prettier` takes precedence over Mason's
+fallback, so repositories can control their own Prettier version and config.
+
+Formatting and linting are separate: a formatter rewrites layout; a linter
+reports questionable or invalid code as diagnostics.
+
+## Sessions and quitting
+
+The `persistence.nvim` session commands remember the working directory, open
+buffers, windows, and tab layout. They do not save unsaved file contents and do
+not affect Git.
+
+| Key | Action |
+| --- | --- |
+| `<leader>qq` | Quit the current window |
+| `<leader>qa` | Quit all Neovim windows |
+| `<leader>qs` | Restore the saved session for the current directory |
+| `<leader>ql` | Restore the most recently used session |
+| `<leader>qd` | Stop persistence from saving this particular session |
+
+The session mappings remain because they solve a different problem from
+quitting and are safely grouped under the same discoverable `q` prefix.
+
+## Git workflows
+
+- `<leader>gg`: custom GitPanel tab.
+- `<leader>gG`: custom GitPanel split.
+- `<leader>gd`: working-tree Diffview.
+- `<leader>gn`: Neogit power-user popups.
+- `<leader>gl`: Lazygit.
+- `<leader>gh` / `<leader>gf`: repository / current-file history.
+
+GitPanel now lives in a normal plugin package with a lightweight
+`plugin/git-panel.lua` command layer and its implementation under
+`lua/git_panel/`. It can be split into a separate repository without asking
+users to extract code from this config.
+
+## Themes and rendered files
+
+Catppuccin currently provides the colorscheme. lualine uses `theme = "auto"`,
+so it follows colorscheme changes made at runtime. render-markdown.nvim owns
+Markdown-specific decorations but expresses them through highlight groups and
+normally follows the active colorscheme; changing the theme does not require
+rewriting the renderer.
+
+Neovim applies `:highlight` and `nvim_set_hl()` changes immediately, so a
+live theme workshop with sample buffers is feasible. The architecture document
+describes how that plugin should be separated from the colorscheme itself.
 
 ## Reproducibility
 
-`lazy-lock.json` pins **every plugin to an exact commit** and **is committed**. Reproduce a
-machine with `:Lazy restore` (**not** `:Lazy sync` — sync updates plugins *and* rewrites the
-lockfile, silently drifting your "reproducible" install).
+`lazy-lock.json` pins plugin commits and belongs in Git. Use `:Lazy restore`
+to reproduce those versions. Use `:Lazy update` only when intentionally
+upgrading, then test and commit the resulting lockfile.
 
-**Update workflow:** `:Lazy update` → commit the regenerated `lazy-lock.json` → push. Other
-machines `git pull` then `:Lazy restore` to land on identical versions. Roll back a bad update
-by restoring an older `lazy-lock.json` and running `:Lazy restore`.
+Mason's `ensure_installed` lists guarantee which tools are present but do not
+pin their versions.
 
-> Caveat: Mason pins *which* tools install (`ensure_installed`) but not their versions — Mason
-> always fetches the latest server/formatter release.
+## Platform policy
 
-## Clipboard / SSH
+The runtime configuration is shared across macOS and Debian. Platform-specific
+behavior belongs in small conditionals or the bootstrap script, not permanent OS
+branches. The recommended migration from the current `debian` / `MacOS`
+history to one `main` branch is documented in
+[Repository strategy](docs/repository-strategy.md).
 
-When `$SSH_TTY` is set, yanks route to the **local** terminal via OSC 52 (Konsole-friendly);
-paste stays on the terminal's own paste (e.g. `Ctrl+Shift+V`). On a **local Linux GUI** the
-config uses the system clipboard, which needs a provider: **`xclip`/`xsel` (X11)** or
-**`wl-clipboard` (Wayland)** — both are in the apt line above.
+## Discoverability
 
-## Keymaps
+Press `<leader>?` for all mappings or `<leader>sk` to search them. Useful
+starting points are `<leader>ff` (files), `<leader>fg` (grep), `<leader>fe`
+(file explorer), `<C-\>` (terminal), `<leader>sr` (project replace), and
+`<leader>u` (undo tree).
 
-Leader = `<Space>`; press `<leader>?` for the full which-key list. Highlights: `<leader>ff`/`<leader>fg`
-files/grep · `<leader>e` file tree · `<C-\>` floating terminal · `<leader>gg` custom Git panel ·
-`<leader>gl` lazygit · `<leader>gn` neogit · `<leader>xx` diagnostics (trouble) · `<leader>cf`
-format · `<leader>sr` search/replace (spectre) · `<leader>t…` bufferline (tab bar).
+Common terminal, LSP, and clipboard checks are collected in
+[Troubleshooting](docs/troubleshooting.md).
 
-## Platform notes
+## Contributing and releases
 
-Tested on macOS and Debian Linux (not Windows). On Debian, watch the Neovim version (apt is too
-old) and install a Nerd Font in your local terminal.
+Development and release recommendations—including branch consolidation, tags,
+GitHub Releases, CI, rulesets, and extracting GitPanel—live in
+[Repository strategy](docs/repository-strategy.md). User-visible changes are
+tracked in [CHANGELOG.md](CHANGELOG.md).
 
-## Repo layout
-
-`init.lua` (the whole config) · `lazy-lock.json` (pinned plugins, committed) · `.gitignore` ·
-`bootstrap.sh` · `README.md`.
+A license has not yet been selected. Choose one before advertising either this
+configuration or GitPanel for public reuse.

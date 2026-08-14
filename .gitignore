@@ -1,8 +1,8 @@
 # =============================================================================
 # .gitignore for ~/.config/nvim  (this directory IS the git repo)
 #
-# COMMIT:  init.lua, lazy-lock.json, .gitignore, bootstrap.sh, README.md
-# IGNORE:  the stale backup, OS junk, and any Neovim runtime/generated state.
+# COMMIT:  init.lua, lua/, local-plugins/, lazy-lock.json, documentation, scripts
+# IGNORE:  stale backups, OS junk, and any Neovim runtime/generated state.
 # =============================================================================
 
 # --- OS / editor junk --------------------------------------------------------
