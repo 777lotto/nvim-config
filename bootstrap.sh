@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# bootstrap.sh — provision this Neovim config on a fresh machine (macOS or Debian).
+# bootstrap.sh — provision this Neovim config on a fresh Debian machine.
 # Idempotent: safe to re-run. Clones/updates the repo into ~/.config/nvim, then
 # installs plugins pinned by lazy-lock.json, builds Treesitter parsers, and
 # installs the Mason tools & LSP servers — all headlessly and synchronously.

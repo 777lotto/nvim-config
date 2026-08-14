@@ -96,7 +96,8 @@ end,
   config = function()
     require("toggleterm").setup({
       -- Toggle the floating terminal with Ctrl-\ (a real control byte, so it
-      -- survives SSH + tmux + Konsole). Works in normal AND terminal mode, so
+      -- survives common terminal and SSH layers). It works in normal AND
+      -- terminal mode, so
       -- the same chord dismisses the float from inside it. <esc> still drops
       -- to normal mode (its <C-\><C-n> RHS is non-recursive, so no conflict).
       open_mapping = [[<c-\>]],

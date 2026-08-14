@@ -7,10 +7,11 @@ At the time of the modularization audit, GitHub's default branch is `debian`,
 no version tags. The branch difference mostly represents feature age rather
 than necessary operating-system divergence.
 
-The config itself already handles the few real platform differences at runtime,
-including desktop clipboard providers and case-sensitive Git path comparisons.
-Maintaining two permanent OS branches would therefore duplicate fixes and make
-the README, releases, and default installation ambiguous.
+The active environment is now Debian-only: an XFCE Debian client and a headless
+Debian server. The config still uses portable Neovim APIs and automatic
+clipboard selection, but macOS is historical rather than an actively tested
+target. Maintaining permanent OS branches would duplicate fixes and make the
+README, releases, and default installation ambiguous.
 
 ## Recommended branch model
 
@@ -24,8 +25,9 @@ main
 ```
 
 Feature and fix branches should be short-lived and merged through pull requests.
-macOS and Debian behavior should be tested from the same commit. Put unavoidable
-differences behind a small platform check or in `bootstrap.sh`.
+Test local XFCE use and headless Debian/SSH use from the same commit. Keep
+environment differences in `lua/config/environment.lua` or `bootstrap.sh`
+instead of creating permanent platform branches.
 
 The installer now follows GitHub's default branch, so changing the default later
 will not break fresh machines.
@@ -39,7 +41,7 @@ Do this only after the current modular work is committed and pushed:
 3. In GitHub Settings, change the default branch to `main`.
 4. Update any rules, badges, Actions, and open pull requests that name
    `debian`.
-5. Test a completely fresh clone on both operating systems.
+5. Test a fresh clone locally and on a clean headless Debian environment.
 6. Leave `debian` available for a short transition, then delete the stale
    `debian` and `MacOS` branches only after confirming no unique commits are
    being lost.
@@ -82,7 +84,7 @@ independently with semantic versions and document its minimum Neovim version.
 Release checklist:
 
 1. update `CHANGELOG.md`;
-2. run the headless checks on macOS and Linux;
+2. run the headless checks on Debian and test the XFCE-specific client path;
 3. update `lazy-lock.json` intentionally;
 4. create an annotated `vX.Y.Z` tag;
 5. draft a GitHub Release from the tag with upgrade notes and screenshots;
@@ -109,7 +111,8 @@ Before the first release:
 
 ## CI and branch protection
 
-Add a GitHub Actions matrix for `ubuntu-latest` and `macos-latest` that:
+Add a Linux GitHub Actions workflow, optionally running the configuration in a
+Debian stable container, that:
 
 1. installs the supported Neovim release;
 2. checks Bash syntax for `bootstrap.sh`;

@@ -5,8 +5,8 @@
 `init.lua` is an ordered entrypoint:
 
 ```text
-options → keymaps → diagnostic policy → autocmds → lazy.nvim
-                                                   └─ imports lua/plugins/*.lua
+environment policy → options → keymaps → diagnostic policy → autocmds → lazy.nvim
+                                                                        └─ imports lua/plugins/*.lua
 ```
 
 The `lua/config/` modules control Neovim itself. The `lua/plugins/` modules
@@ -18,6 +18,25 @@ This separation keeps three jobs distinct:
 - configuration chooses behavior for this setup;
 - plugin specifications install and configure third-party packages;
 - plugin packages expose reusable commands and Lua APIs.
+
+## Environment boundaries
+
+`lua/config/environment.lua` is the single place for behavior that depends on
+how Neovim was launched. It currently detects SSH sessions, selects the
+clipboard policy, and exposes `:EnvironmentInfo` for inspecting inherited
+desktop, terminal, session, and SSH-agent variables.
+
+The default clipboard mode is automatic: local sessions leave provider
+selection to Neovim, while SSH sessions use copy-only OSC 52. The
+`NVIM_CLIPBOARD` environment variable can override that decision with `native`
+or `osc52`. Clipboard reads over OSC 52 are deliberately disabled; paste is
+handled by the client terminal instead.
+
+This module does not try to detect or launch an external desktop terminal or
+file manager. ToggleTerm uses Neovim's configured shell, and nvim-tree and Oil
+are internal editor interfaces, so all three are portable. Thunar and the
+`.desktop` entry run before Neovim starts and must receive the correct XFCE
+session environment independently.
 
 ## How the UI layers fit together
 

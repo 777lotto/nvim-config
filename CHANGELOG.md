@@ -14,6 +14,8 @@ versioning for release organization.
 - Diagnostic virtual text, current-line virtual lines, floating details,
   location lists, and quickfix lists.
 - Prettier coverage for all configured filetypes supported by Prettier.
+- Automatic environment policy with `NVIM_CLIPBOARD` overrides and
+  `:EnvironmentInfo` diagnostics.
 
 ### Changed
 
@@ -21,3 +23,7 @@ versioning for release organization.
 - Quit mappings are explicit: `<leader>qq` and `<leader>qa`.
 - The bootstrap script follows the repository's default branch.
 - Trailing-whitespace cleanup preserves Markdown hard line breaks.
+- Runtime and troubleshooting documentation now target the Debian XFCE client
+  and headless Debian server instead of the former KDE/macOS environment.
+- SSH clipboard integration is documented as copy-only OSC 52 pending
+  end-to-end server validation.

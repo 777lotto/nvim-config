@@ -1,8 +1,10 @@
 # Neovim configuration
 
-A reproducible, keyboard-first Neovim IDE configuration for macOS and Debian
-Linux. It uses Neovim's current Lua APIs, lazy.nvim for plugins, Mason for
-external tools, and a committed lockfile for repeatable installs.
+A reproducible, keyboard-first Neovim IDE configuration for Debian Linux. The
+current client/development machine runs XFCE on Debian; the deployment target is
+a headless Debian server accessed over SSH. The config uses Neovim's current Lua
+APIs, lazy.nvim for plugins, Mason for external tools, and a committed lockfile
+for repeatable installs.
 
 Requires Neovim 0.12 or newer. The leader key is `<Space>`.
 
@@ -18,8 +20,26 @@ Requires Neovim 0.12 or newer. The leader key is `<Space>`.
 - Markdown rendering, Marksman, Prettier, and markdownlint-cli2.
 - Git signs, Diffview, Neogit, Lazygit, and the dependency-free custom
   [GitPanel](local-plugins/git-panel.nvim/README.md).
-- OSC 52 clipboard yanking during SSH sessions and native clipboard integration
-  on local desktops.
+- Automatic clipboard policy: native X11 integration on the local XFCE client
+  and copy-only OSC 52 when Neovim is running over SSH.
+
+## Supported environment
+
+The active topology is:
+
+```text
+Debian XFCE client (Thunar + Xfce Terminal + xclip)
+                         │
+                         └── SSH ──> headless Debian server running Neovim
+```
+
+KDE, Konsole, and macOS are not current runtime targets. The repository retains
+an older `MacOS` branch only as history while the branch layout is consolidated.
+
+Neovim's terminal and file explorers remain desktop-independent: ToggleTerm
+uses Neovim's configured shell, while nvim-tree and Oil run inside Neovim. The
+desktop launcher used by Thunar is a separate XFCE concern because it creates
+the process before this configuration loads.
 
 ## Language coverage
 
@@ -43,23 +63,24 @@ Prettier policy.
 
 ## Requirements
 
-| Need | Purpose | macOS | Debian |
-| --- | --- | --- | --- |
-| Neovim 0.12+ | Editor and current Treesitter APIs | Homebrew or upstream build | Current upstream build |
-| Git and curl | Config, lazy.nvim, Mason | Xcode tools / Homebrew | `apt install git curl ca-certificates` |
-| C compiler | Treesitter parser builds | Xcode Command Line Tools | `apt install build-essential` |
-| Node 20+ and npm | Web LSPs, Prettier, markdownlint | `brew install node` | Debian 13 packages or NodeSource |
-| ripgrep | Telescope live grep | `brew install ripgrep` | `apt install ripgrep` |
-| Python 3 | Python tooling/providers | system or Homebrew | `apt install python3` |
-| unzip and tar | Mason packages | system | `apt install unzip tar` |
-| Nerd Font | File/type icons | Configure the local terminal | Configure the local terminal |
+| Need | Purpose | Debian setup |
+| --- | --- | --- |
+| Neovim 0.12+ | Editor and current Treesitter APIs | Current upstream build |
+| Git and curl | Config, lazy.nvim, Mason | `apt install git curl ca-certificates` |
+| C compiler | Treesitter parser builds | `apt install build-essential` |
+| Node 20+ and npm | Web LSPs, Prettier, markdownlint | Debian 13 packages or NodeSource |
+| ripgrep | Telescope live grep | `apt install ripgrep` |
+| Python 3 | Python tooling/providers | `apt install python3` |
+| unzip and tar | Mason packages | `apt install unzip tar` |
+| Xfce Terminal and xclip | Client terminal and local X11 clipboard | `apt install xfce4-terminal xclip` on the XFCE client |
+| Nerd Font | File/type icons | Configure Xfce Terminal on the client |
 
 Mason installs the required tree-sitter CLI, LSP servers, Prettier, and
 markdownlint-cli2. A C compiler is still needed to build parsers.
 
 ## Install
 
-On a fresh machine:
+On a fresh Debian machine:
 
 ```sh
 git clone https://github.com/777lotto/nvim-config.git \
@@ -88,7 +109,8 @@ For a manual install, clone to `~/.config/nvim`, open Neovim, run
 ├── init.lua                         # intentionally tiny startup entrypoint
 ├── lua/
 │   ├── config/
-│   │   ├── options.lua              # editor options and clipboard policy
+│   │   ├── environment.lua          # environment detection and clipboard policy
+│   │   ├── options.lua              # environment-independent editor options
 │   │   ├── keymaps.lua              # global mappings and edit commands
 │   │   ├── diagnostics.lua          # one diagnostic presentation policy
 │   │   ├── autocmds.lua             # general editor automation
@@ -198,12 +220,22 @@ upgrading, then test and commit the resulting lockfile.
 Mason's `ensure_installed` lists guarantee which tools are present but do not
 pin their versions.
 
-## Platform policy
+## Environment policy
 
-The runtime configuration is shared across macOS and Debian. Platform-specific
-behavior belongs in small conditionals or the bootstrap script, not permanent OS
-branches. The recommended migration from the current `debian` / `MacOS`
-history to one `main` branch is documented in
+`lua/config/environment.lua` keeps machine-dependent behavior in one place.
+The default `NVIM_CLIPBOARD=auto` policy selects Neovim's native provider on a
+local desktop and copy-only OSC 52 when `SSH_TTY` or `SSH_CONNECTION` indicates
+an SSH session. Set `NVIM_CLIPBOARD=native` or `NVIM_CLIPBOARD=osc52` to override
+that decision for a particular launch. Run `:EnvironmentInfo` to see the
+desktop, terminal, SSH agent socket, and clipboard policy Neovim inherited.
+
+Automatic detection is intentionally limited to behavior Neovim controls.
+Thunar launchers and graphical-session variables such as `SSH_AUTH_SOCK` must be
+configured in XFCE before Neovim starts. See [Troubleshooting](docs/troubleshooting.md)
+for the launcher and Java Card checks.
+
+The recommended migration from the current `debian` / historical `MacOS`
+branches to one `main` branch is documented in
 [Repository strategy](docs/repository-strategy.md).
 
 ## Discoverability
