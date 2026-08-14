@@ -67,6 +67,7 @@ Prettier policy.
 | --- | --- | --- |
 | Neovim 0.12+ | Editor and current Treesitter APIs | Current upstream build |
 | Git and curl | Config, lazy.nvim, Mason | `apt install git curl ca-certificates` |
+| GitHub CLI (optional) | Create and publish a remote from GitPanel | `apt install gh`, then `gh auth login` |
 | C compiler | Treesitter parser builds | `apt install build-essential` |
 | Node 20+ and npm | Web LSPs, Prettier, markdownlint | Debian 13 packages or NodeSource |
 | ripgrep | Telescope live grep | `apt install ripgrep` |
@@ -197,7 +198,9 @@ quitting and are safely grouped under the same discoverable `q` prefix.
 GitPanel now lives in a normal plugin package with a lightweight
 `plugin/git-panel.lua` command layer and its implementation under
 `lua/git_panel/`. It can be split into a separate repository without asking
-users to extract code from this config.
+users to extract code from this config. In a local-only repository, `P` can
+create and push a GitHub repository through the optional authenticated `gh`
+CLI, or attach an existing remote URL for another Git host.
 
 ## Themes and rendered files
 

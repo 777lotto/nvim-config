@@ -43,6 +43,7 @@ log "Neovim $ver OK."
 for t in rg node npm python3 cc unzip curl tar; do
   command -v "$t" >/dev/null || warn "'$t' missing — some features/installs may fail. Debian: sudo apt install ripgrep nodejs npm python3 build-essential unzip curl tar"
 done
+command -v gh >/dev/null || warn "'gh' missing — GitPanel cannot create GitHub repositories directly. Optional: sudo apt install gh; gh auth login"
 
 # ---- 1. clone or update the config (idempotent) -----------------------------
 if [ -d "$CONFIG_DIR/.git" ]; then

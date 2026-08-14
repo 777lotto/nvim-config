@@ -16,6 +16,8 @@ versioning for release organization.
 - Prettier coverage for all configured filetypes supported by Prettier.
 - Automatic environment policy with `NVIM_CLIPBOARD` overrides and
   `:EnvironmentInfo` diagnostics.
+- GitPanel first-push publishing: create a GitHub repository with optional
+  `gh`, or attach an existing remote URL and establish upstream tracking.
 
 ### Changed
 
@@ -27,3 +29,5 @@ versioning for release organization.
   and headless Debian server instead of the former KDE/macOS environment.
 - SSH clipboard integration is documented as copy-only OSC 52 pending
   end-to-end server validation.
+- GitPanel accepts CR, LF, and keypad Enter locally, matching the terminal-safe
+  Enter handling already used by nvim-tree.
