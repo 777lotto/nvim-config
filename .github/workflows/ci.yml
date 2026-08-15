@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - bet
+      - bluff
+  pull_request:
+    branches:
+      - bet
+      - bluff
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  promotion-source:
+    name: promotion-source
+    if: github.event_name == 'pull_request' && github.base_ref == 'bet'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require bluff as the production promotion source
+        env:
+          HEAD_BRANCH: ${{ github.head_ref }}
+        run: |
+          if [[ "$HEAD_BRANCH" != "bluff" ]]; then
+            echo "Pull requests into bet must promote the persistent bluff branch." >&2
+            exit 1
+          fi
+
+  quality:
+    name: quality
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+
+      - name: Check shell syntax
+        run: bash -n bootstrap.sh
+
+      - name: Run ShellCheck
+        run: shellcheck bootstrap.sh
+
+      - name: Reject whitespace errors
+        run: git diff --check HEAD^ HEAD
+
+  debian-smoke:
+    name: debian-smoke
+    runs-on: ubuntu-24.04
+    container: debian:13-slim
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install test prerequisites
+        run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends ca-certificates curl git gzip tar xz-utils
+
+      - name: Install pinned Neovim
+        env:
+          NVIM_SHA256: 31cf85945cb600d96cdf69f88bc68bec814acbff50863c5546adef3a1bcef260
+          NVIM_URL: https://github.com/neovim/neovim/releases/download/v0.12.2/nvim-linux-x86_64.tar.gz
+        run: |
+          curl --fail --location --retry 3 "$NVIM_URL" --output /tmp/nvim.tar.gz
+          echo "$NVIM_SHA256  /tmp/nvim.tar.gz" | sha256sum --check --strict
+          tar --extract --gzip --file /tmp/nvim.tar.gz --directory /opt
+          ln --symbolic /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
+          nvim --version | head -n 1
+
+      - name: Compile every Lua file
+        run: nvim --headless --clean -l scripts/ci/check-lua.lua .
+
+      - name: Smoke-test local desktop policy
+        run: nvim --headless --clean -l scripts/ci/smoke-core.lua . native
+
+      - name: Smoke-test headless SSH policy
+        env:
+          SSH_TTY: /dev/pts/0
+        run: nvim --headless --clean -l scripts/ci/smoke-core.lua . osc52

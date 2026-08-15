@@ -31,7 +31,7 @@ command -v nvim >/dev/null || die "Neovim not found. Install >= 0.12.0 first. On
 # nvim-treesitter's main branch requires Neovim >= 0.12.0.
 ver="$(nvim --version | sed -nE '1s/^NVIM v([0-9]+\.[0-9]+\.[0-9]+).*/\1/p')"
 [ -n "$ver" ] || die "Could not parse the installed Neovim version."
-IFS=. read -r major minor patch <<< "$ver"
+IFS=. read -r major minor _ <<< "$ver"
 if (( major == 0 && minor < 12 )); then
   die "Neovim $ver found; this config needs >= 0.12.0."
 fi

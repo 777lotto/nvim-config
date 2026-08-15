@@ -1,0 +1,62 @@
+name: Feature request
+description: Propose a focused improvement to the configuration
+title: "[Feature]: "
+labels:
+  - "type:feature"
+  - "status:needs-triage"
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Bootstrap and installation
+        - Environment and platform behavior
+        - LSP, completion, or diagnostics
+        - Editing and navigation
+        - UI and themes
+        - Plugin management
+        - GitPanel
+        - Documentation
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform scope
+      options:
+        - Portable / all platforms
+        - Debian desktop
+        - Debian headless / SSH
+        - macOS (experimental)
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Explain the workflow gap before proposing an implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe how the improvement should behave from a user's perspective.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I checked existing issues and the roadmap for similar work.
+          required: true
+        - label: This request does not contain credentials or private machine information.
+          required: true

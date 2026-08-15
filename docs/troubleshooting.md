@@ -23,14 +23,16 @@ for the complete launcher syntax.
 Thunar and `.desktop` launchers inherit the graphical login environment; they
 do not source interactive `.bashrc` setup before starting Neovim. Run
 `:EnvironmentInfo` inside Neovim to inspect what the process actually received.
-For Java Card SSH authentication, its `SSH_AUTH_SOCK` must match:
+For Java Card SSH authentication, the desired `SSH_AUTH_SOCK` is reported by:
 
 ```sh
 gpgconf --list-dirs agent-ssh-socket
 ```
 
 The expected socket resolves below `$XDG_RUNTIME_DIR/gnupg`, not `/tmp/ssh-*`.
-The session-wide setting lives in
+When `gpgconf` is available, this configuration sets Neovim's environment to
+that socket before starting child Git, SSH, or terminal processes. The
+session-wide setting for every graphical application lives in
 `~/.config/environment.d/99-ssh-agent.conf`:
 
 ```ini
@@ -38,9 +40,10 @@ SSH_AUTH_SOCK=${XDG_RUNTIME_DIR}/gnupg/S.gpg-agent.ssh
 ```
 
 After changing that file, log out of XFCE completely and log back in. Existing
-Thunar, terminal, and Neovim processes retain their old environment until they
-are restarted. Do not solve this only in the Neovim launcher: Git in every
-graphical application should use the same Java Card agent.
+Thunar and terminal processes retain their old environment until they are
+restarted. The Neovim safeguard fixes its child processes, but it does not
+change sibling graphical applications; Git in those applications should use
+the same Java Card agent.
 
 ## “Did not detect DSR response from terminal”
 

@@ -71,7 +71,25 @@ local function setup_osc52_copy()
   }
 end
 
+-- Route ssh operations spawned from Neovim (git push/fetch, :terminal)
+-- through gpg-agent's SSH socket, which serves the OpenPGP card auth key.
+-- ~/.bashrc does this only for interactive shells; a desktop-launched Neovim
+-- otherwise inherits XFCE's keyless ssh-agent and every push fails with
+-- "Permission denied (publickey)".
+local function route_ssh_through_gpg_agent()
+  if vim.fn.executable("gpgconf") ~= 1 then
+    return
+  end
+
+  local sock = vim.fn.systemlist({ "gpgconf", "--list-dirs", "agent-ssh-socket" })[1]
+  if is_set(sock) and vim.uv.fs_stat(sock) then
+    vim.env.SSH_AUTH_SOCK = sock
+    M.ssh_auth_sock = sock
+  end
+end
+
 function M.setup()
+  route_ssh_through_gpg_agent()
   local mode = requested_clipboard_mode()
   if mode == "auto" then
     mode = M.is_ssh and "osc52" or "native"

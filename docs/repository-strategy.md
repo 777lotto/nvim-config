@@ -1,147 +1,125 @@
 # Repository strategy
 
-## Current state
+## Branch model
 
-At the time of the modularization audit, GitHub's default branch is `debian`,
-`MacOS` is an older ancestor, no `main` branch exists, and the repository has
-no version tags. The branch difference mostly represents feature age rather
-than necessary operating-system divergence.
-
-The active environment is now Debian-only: an XFCE Debian client and a headless
-Debian server. The config still uses portable Neovim APIs and automatic
-clipboard selection, but macOS is historical rather than an actively tested
-target. Maintaining permanent OS branches would duplicate fixes and make the
-README, releases, and default installation ambiguous.
-
-## Recommended branch model
-
-Use one protected default branch named `main`:
+All repositories owned by `777lotto` use the same persistent branches:
 
 ```text
-main
-├── feature/theme-workshop
-├── feature/json-support
-└── fix/git-panel-rename
+bet                         production and GitHub default
+└── bluff                   working integration / staging
+    ├── feature/...
+    ├── fix/...
+    └── agent/...
 ```
 
-Feature and fix branches should be short-lived and merged through pull requests.
-Test local XFCE use and headless Debian/SSH use from the same commit. Keep
-environment differences in `lua/config/environment.lua` or `bootstrap.sh`
-instead of creating permanent platform branches.
+Short-lived branches start from `bluff` and return through pull requests.
+Tested batches are promoted through a `bluff` → `bet` pull request. Direct
+feature pull requests into `bet` are rejected by the promotion-source CI check.
 
-The installer now follows GitHub's default branch, so changing the default later
-will not break fresh machines.
+Operating systems are not represented by branches. Keep environment-dependent
+behavior in `lua/config/environment.lua` or `bootstrap.sh`, classify work with
+`platform:*` labels, and test supported combinations in GitHub Actions.
 
-## Safe consolidation sequence
+## Historical branch migration
 
-Do this only after the current modular work is committed and pushed:
+The former `MacOS` branch is an ancestor of the old `debian` branch and has no
+unique commits. Its state is preserved by the signed annotated tag
+`archive/macos-before-unification`. `bet` and `bluff` were created at the tested
+`debian` tip; the old branches remain temporarily available for rollback.
 
-1. Preserve the old Mac state with an annotated archive tag.
-2. Create `main` at the tested `debian` tip and push it.
-3. In GitHub Settings, change the default branch to `main`.
-4. Update any rules, badges, Actions, and open pull requests that name
-   `debian`.
-5. Test a fresh clone locally and on a clean headless Debian environment.
-6. Leave `debian` available for a short transition, then delete the stale
-   `debian` and `MacOS` branches only after confirming no unique commits are
-   being lost.
+Do not delete historical branches until fresh production and integration clones
+have been exercised on the real desktop and headless machines.
 
-Example local commands for the non-destructive part:
+## Pull-request flow
 
-```sh
-git fetch origin
-git tag -a archive/macos-before-unification origin/MacOS \
-  -m "Preserve the former macOS configuration branch"
-git push origin archive/macos-before-unification
+Ordinary work:
 
-git branch main origin/debian
-git push -u origin main
-```
+1. update local `bluff`;
+2. create a focused branch;
+3. commit with verified signatures;
+4. open a pull request into `bluff`;
+5. require CI before merge.
 
-Changing the GitHub default branch requires repository administration in the
-web settings. GitHub documents the process in
-[Changing the default branch](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-branches-in-your-repository/changing-the-default-branch).
+Production promotion:
 
-Do not delete either old branch as part of the same blind operation. The archive
-tag and fresh-clone tests make the cleanup recoverable and reviewable.
+1. confirm `bluff` is green;
+2. update `CHANGELOG.md` when the batch is release-worthy;
+3. open a `bluff` → `bet` pull request;
+4. require the promotion-source and CI checks;
+5. merge without deleting the persistent `bluff` branch.
 
 ## Tags and releases
 
-Use annotated tags as immutable milestones and GitHub Releases as the
-human-facing page for each milestone.
+Use signed annotated tags as immutable milestones and GitHub Releases as their
+human-facing descriptions.
 
-A sensible first sequence is:
-
-- `v0.1.0`: modular configuration, extracted GitPanel, JSON support, expanded
-  diagnostics, and broad Prettier coverage;
-- `v0.2.0`: live theme workshop or another substantial user-facing feature;
-- patch releases for fixes that do not materially change configuration usage.
-
-For a personal config, these versions are snapshots rather than a compatibility
-promise. If GitPanel moves to its own repository, version that plugin
-independently with semantic versions and document its minimum Neovim version.
+- `nvim-config` starts at `v0.1.0` after GitPanel is published and the GitHub
+  foundation is active.
+- `git-panel.nvim` is versioned independently and starts at `v0.1.0`.
+- Patch releases contain compatible fixes; minor releases represent meaningful
+  user-facing additions.
 
 Release checklist:
 
 1. update `CHANGELOG.md`;
-2. run the headless checks on Debian and test the XFCE-specific client path;
-3. update `lazy-lock.json` intentionally;
-4. create an annotated `vX.Y.Z` tag;
-5. draft a GitHub Release from the tag with upgrade notes and screenshots;
-6. test the release archive on a clean config directory.
-
-GitHub Releases can attach notes and files to a tag; see
-[Managing releases](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository).
+2. run CI and test the XFCE path on the actual client;
+3. review `lazy-lock.json` intentionally;
+4. promote `bluff` into `bet`;
+5. create and push a signed `vX.Y.Z` tag from `bet`;
+6. publish GitHub release notes and test a clean archive/bootstrap.
 
 ## GitHub presentation
 
-Before the first release:
+The repository landing page should contain:
 
-- choose and commit a license; MIT is common for a reusable config/plugin, but
-  this is an owner decision;
-- add a clear repository description, topics such as `neovim`, `lua`,
-  `dotfiles`, `lsp`, and `treesitter`, and a social-preview image;
-- add one screenshot or short recording of GitPanel and the normal editor UI;
-- keep installation, requirements, language coverage, structure, and keymaps in
-  the main README;
-- keep architecture and maintainer workflow in `docs/`;
-- use the changelog for user-visible changes;
-- add issue forms for bug reports and feature requests once outside users are
-  expected.
+- a precise description and relevant discovery topics;
+- CI, Neovim-version, release, and license badges;
+- a support matrix that distinguishes Debian desktop, Debian SSH, and
+  experimental macOS behavior;
+- structured issue forms and a pull-request checklist;
+- an MIT license, contribution guide, security policy, and code of conduct;
+- a screenshot or social-preview card showing the editor and GitPanel.
 
-## CI and branch protection
+Keep user installation and feature documentation in `README.md`, architecture
+and maintainer policy in `docs/`, and user-visible changes in `CHANGELOG.md`.
 
-Add a Linux GitHub Actions workflow, optionally running the configuration in a
-Debian stable container, that:
+## CI and repository rules
 
-1. installs the supported Neovim release;
-2. checks Bash syntax for `bootstrap.sh`;
-3. parses every Lua file;
-4. restores locked plugins;
-5. launches the config headlessly with parser/tool installation disabled;
-6. optionally runs focused GitPanel tests in a temporary Git repository.
+The baseline workflow has two stable checks:
 
-Once that workflow is stable, protect `main` with a GitHub ruleset that blocks
-force pushes/deletion and requires the CI status check for pull requests.
-Requiring a review is useful when there are multiple maintainers but adds little
-to a one-person repository.
+- `quality`: Bash syntax, ShellCheck, and whitespace validation;
+- `debian-smoke`: pinned Neovim, Lua compilation, local clipboard policy, and
+  simulated SSH/OSC 52 policy inside Debian 13.
 
-GitHub explains the available controls in
-[About rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets)
-and [available rules](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets).
+The `bet` ruleset should block deletion and force pushes, require verified
+signatures, require pull requests, and require both CI checks plus a successful
+promotion-source check. The `bluff` ruleset should block deletion and force
+pushes and require verified signatures and CI for pull requests.
+
+No approving review is required while the project has one maintainer. GitHub
+Environments are reserved for actual deployment or release secrets; they are
+not used to classify operating systems.
+
+## GitHub Project
+
+The public account-level **Neovim Workspace** Project is the cross-repository
+planning surface for `nvim-config` and `git-panel.nvim`. Repository and labels
+remain the source of truth for ownership, platform, type, and area. Project
+fields add only planning state such as Status, Priority, Size, and Target date.
+
+Recommended views are an all-work status board, repository-filtered Config and
+GitPanel boards, Debian/macOS label views, and a release roadmap.
 
 ## Extracting GitPanel
 
-`local-plugins/git-panel.nvim/` now has the standard reusable layout. To
-publish it:
+`local-plugins/git-panel.nvim/` uses a normal Neovim plugin package layout. Its
+publication sequence is:
 
-1. select a license;
-2. split or copy that directory into a new repository named
-   `git-panel.nvim`;
-3. add a minimal headless test workflow;
-4. create `v0.1.0`;
-5. replace this config's local `dir` spec with
-   `"777lotto/git-panel.nvim"`.
-
-Keeping it local until its public API and license are settled avoids publishing
-an accidental compatibility promise.
+1. add the MIT license, tests, CI, issue forms, and contribution guidance;
+2. preserve subdirectory history with `git subtree split`;
+3. publish `777lotto/git-panel.nvim` with `bet` and `bluff` branches;
+4. release `v0.1.0` from `bet`;
+5. replace the config's local `dir` specification with
+   `"777lotto/git-panel.nvim"`;
+6. let `lazy-lock.json` continue pinning the resolved plugin commit;
+7. cross-link both repositories and add them to Neovim Workspace.
