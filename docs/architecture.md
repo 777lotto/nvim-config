@@ -10,8 +10,8 @@ environment policy → options → keymaps → diagnostic policy → autocmds �
 ```
 
 The `lua/config/` modules control Neovim itself. The `lua/plugins/` modules
-return lazy.nvim specifications grouped by concern. Reusable code belongs under
-`local-plugins/`, not inside either kind of config module.
+return lazy.nvim specifications grouped by concern. Reusable packages belong in
+their own repositories, not inside either kind of config module.
 
 This separation keeps three jobs distinct:
 

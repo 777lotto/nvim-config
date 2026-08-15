@@ -23,7 +23,7 @@ Requires Neovim 0.12 or newer. The leader key is `<Space>`.
 - Project-aware Prettier formatting through conform.nvim.
 - Markdown rendering, Marksman, Prettier, and markdownlint-cli2.
 - Git signs, Diffview, Neogit, Lazygit, and the dependency-free custom
-  [GitPanel](local-plugins/git-panel.nvim/README.md).
+  [GitPanel](https://github.com/777lotto/git-panel.nvim).
 - Automatic clipboard policy: native X11 integration on the local XFCE client
   and copy-only OSC 52 when Neovim is running over SSH.
 
@@ -140,8 +140,6 @@ For a manual install, clone to `~/.config/nvim`, open Neovim, run
 │       ├── editing.lua
 │       ├── git.lua
 │       └── ...
-├── local-plugins/
-│   └── git-panel.nvim/              # reusable, independently publishable plugin
 ├── docs/
 │   ├── architecture.md
 │   ├── repository-strategy.md
@@ -224,12 +222,11 @@ bufferline bar and can run concurrently with each other and with the float.
 - `<leader>gl`: Lazygit.
 - `<leader>gh` / `<leader>gf`: repository / current-file history.
 
-GitPanel now lives in a normal plugin package with a lightweight
-`plugin/git-panel.lua` command layer and its implementation under
-`lua/git_panel/`. It can be split into a separate repository without asking
-users to extract code from this config. In a local-only repository, `P` can
-create and push a GitHub repository through the optional authenticated `gh`
-CLI, or attach an existing remote URL for another Git host.
+[git-panel.nvim](https://github.com/777lotto/git-panel.nvim) is developed and
+released independently, while `lazy-lock.json` pins the exact tested commit for
+this configuration. In a local-only repository, `P` can create and push a
+GitHub repository through the optional authenticated `gh` CLI, or attach an
+existing remote URL for another Git host.
 
 ## Project search and replace
 
