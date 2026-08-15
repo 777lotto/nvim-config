@@ -1,0 +1,81 @@
+name: Bug report
+description: Report a reproducible problem with the configuration
+title: "[Bug]: "
+labels:
+  - "type:bug"
+  - "status:needs-triage"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to provide a complete reproduction.
+        For suspected vulnerabilities, use the private Security reporting flow instead.
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Debian 13 desktop / XFCE
+        - Debian 13 headless / SSH
+        - macOS (experimental)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: nvim-version
+    attributes:
+      label: Neovim version
+      description: Paste the first line of `nvim --version`.
+      placeholder: NVIM v0.12.2
+    validations:
+      required: true
+  - type: input
+    id: revision
+    attributes:
+      label: Configuration revision
+      description: Commit SHA, tag, or branch name.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment details
+      description: Paste `:EnvironmentInfo` and relevant terminal/desktop details. Remove private hostnames and paths.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest reliable sequence that shows the problem.
+      placeholder: |
+        1. Start Neovim with ...
+        2. Open ...
+        3. Press ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and logs
+      description: Include relevant `:messages`, `:checkhealth`, or stack output. Redact secrets.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I reproduced this on the current `bet` or `bluff` branch.
+          required: true
+        - label: I checked existing issues for the same problem.
+          required: true
+        - label: I removed credentials and private machine information from the report.
+          required: true

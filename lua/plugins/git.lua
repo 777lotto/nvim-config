@@ -35,11 +35,11 @@ return {
     -- both compared against HEAD. This is the staged + unstaged overlay.
     { "<leader>gd", "<cmd>DiffviewOpen<cr>", desc = "Diff: working tree (staged + unstaged)" },
     -- Review a whole branch/rev. Prompts so nothing is hardcoded; try a bare
-    -- branch ("main") or a merge-base range ("origin/main...HEAD", PR-style).
+    -- branch ("bet") or a merge-base range ("origin/bet...HEAD", PR-style).
     {
       "<leader>gD",
       function()
-        vim.ui.input({ prompt = "Diff against (branch / rev, e.g. main or origin/main...HEAD): " }, function(rev)
+        vim.ui.input({ prompt = "Diff against (branch / rev, e.g. bet or origin/bet...HEAD): " }, function(rev)
           if rev and rev ~= "" then vim.cmd("DiffviewOpen " .. rev) end
         end)
       end,
