@@ -18,6 +18,8 @@ versioning for release organization.
   `:EnvironmentInfo` diagnostics.
 - GitPanel first-push publishing: create a GitHub repository with optional
   `gh`, or attach an existing remote URL and establish upstream tracking.
+- GitHub community health files, structured issue forms, and Debian CI.
+- Signed `bet` / `bluff` production and integration branch workflow.
 - Independent terminal buffers on `<leader>tt` and an explicit
   `:FloatTerminal` command for the persistent `<C-\>` floating terminal.
 
@@ -26,6 +28,8 @@ versioning for release organization.
 - lualine now follows runtime colorscheme changes with `theme = "auto"`.
 - Quit mappings are explicit: `<leader>qq` and `<leader>qa`.
 - The bootstrap script follows the repository's default branch.
+- Git and SSH processes launched by Neovim use the GPG agent's Java Card socket
+  when `gpgconf` reports an available socket.
 - Trailing-whitespace cleanup preserves Markdown hard line breaks.
 - Runtime and troubleshooting documentation now target the Debian XFCE client
   and headless Debian server instead of the former KDE/macOS environment.
@@ -38,3 +42,5 @@ versioning for release organization.
   its `<leader>sr` mappings. The cursor-word search mappings were removed.
 - Telescope now tracks its latest stable release for compatibility with
   Neovim 0.12 and the rewritten `nvim-treesitter` API.
+- Repository documentation now uses the account-wide `bet` production and
+  `bluff` integration convention instead of OS-named long-lived branches.

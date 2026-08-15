@@ -1,7 +1,11 @@
 # Neovim configuration
 
+[![CI](https://github.com/777lotto/nvim-config/actions/workflows/ci.yml/badge.svg?branch=bet)](https://github.com/777lotto/nvim-config/actions/workflows/ci.yml)
+[![Neovim](https://img.shields.io/badge/Neovim-0.12%2B-57A143?logo=neovim&logoColor=white)](https://neovim.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A reproducible, keyboard-first Neovim IDE configuration for Debian Linux. The
-current client/development machine runs XFCE on Debian; the deployment target is
+current client/development machine runs XFCE on Debian; the remote runtime is
 a headless Debian server accessed over SSH. The config uses Neovim's current Lua
 APIs, lazy.nvim for plugins, Mason for external tools, and a committed lockfile
 for repeatable installs.
@@ -25,6 +29,12 @@ Requires Neovim 0.12 or newer. The leader key is `<Space>`.
 
 ## Supported environment
 
+| Platform | Status | CI |
+| --- | --- | --- |
+| Debian 13 desktop / XFCE | Supported | Core policy smoke test |
+| Debian 13 headless / SSH | Supported | OSC 52 / SSH policy smoke test |
+| macOS | Historical / experimental | Not currently blocking releases |
+
 The active topology is:
 
 ```text
@@ -33,8 +43,9 @@ Debian XFCE client (Thunar + Xfce Terminal + xclip)
                          └── SSH ──> headless Debian server running Neovim
 ```
 
-KDE, Konsole, and macOS are not current runtime targets. The repository retains
-an older `MacOS` branch only as history while the branch layout is consolidated.
+KDE, Konsole, and macOS are not current runtime targets. The former macOS state
+is preserved by the signed `archive/macos-before-unification` tag while portable
+behavior continues to live in the same production codebase.
 
 Neovim's terminal and file explorers remain desktop-independent: ToggleTerm
 uses Neovim's configured shell, while nvim-tree and Oil run inside Neovim. The
@@ -94,10 +105,12 @@ The installer follows the repository's GitHub default branch unless
 existing checkout, restores plugins from `lazy-lock.json`, installs Mason
 tools, and builds Treesitter parsers.
 
-To install a particular branch:
+The account-wide branch convention is `bet` for production and `bluff` for
+integration. Fresh clones therefore receive `bet`; to test the current staging
+state explicitly:
 
 ```sh
-NVIM_CONFIG_BRANCH=my-branch ~/.config/nvim/bootstrap.sh
+NVIM_CONFIG_BRANCH=bluff ~/.config/nvim/bootstrap.sh
 ```
 
 For a manual install, clone to `~/.config/nvim`, open Neovim, run
@@ -107,6 +120,7 @@ For a manual install, clone to `~/.config/nvim`, open Neovim, run
 
 ```text
 .
+├── .github/                         # CI, issue forms, and PR guidance
 ├── init.lua                         # intentionally tiny startup entrypoint
 ├── lua/
 │   ├── config/
@@ -132,6 +146,7 @@ For a manual install, clone to `~/.config/nvim`, open Neovim, run
 │   ├── architecture.md
 │   ├── repository-strategy.md
 │   └── troubleshooting.md
+├── scripts/ci/                      # dependency-light validation scripts
 ├── lazy-lock.json                   # exact plugin commits
 ├── bootstrap.sh
 └── CHANGELOG.md
@@ -256,12 +271,12 @@ that decision for a particular launch. Run `:EnvironmentInfo` to see the
 desktop, terminal, SSH agent socket, and clipboard policy Neovim inherited.
 
 Automatic detection is intentionally limited to behavior Neovim controls.
-Thunar launchers and graphical-session variables such as `SSH_AUTH_SOCK` must be
-configured in XFCE before Neovim starts. See [Troubleshooting](docs/troubleshooting.md)
-for the launcher and Java Card checks.
+When `gpgconf` is available, Neovim routes child Git and SSH processes through
+the GPG agent's Java Card socket. A session-wide `SSH_AUTH_SOCK` setting is still
+recommended so other XFCE applications inherit the same agent. See
+[Troubleshooting](docs/troubleshooting.md) for the launcher and Java Card checks.
 
-The recommended migration from the current `debian` / historical `MacOS`
-branches to one `main` branch is documented in
+Production, integration, release, and platform policy are documented in
 [Repository strategy](docs/repository-strategy.md).
 
 ## Discoverability
@@ -281,5 +296,5 @@ GitHub Releases, CI, rulesets, and extracting GitPanel—live in
 [Repository strategy](docs/repository-strategy.md). User-visible changes are
 tracked in [CHANGELOG.md](CHANGELOG.md).
 
-A license has not yet been selected. Choose one before advertising either this
-configuration or GitPanel for public reuse.
+Contributions are welcome under the workflow in [CONTRIBUTING.md](CONTRIBUTING.md).
+The configuration is available under the [MIT License](LICENSE).
