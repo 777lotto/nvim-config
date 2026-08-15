@@ -69,8 +69,8 @@ jobs:
 
       - name: Install pinned Neovim
         env:
-          NVIM_SHA256: 31cf85945cb600d96cdf69f88bc68bec814acbff50863c5546adef3a1bcef260
-          NVIM_URL: https://github.com/neovim/neovim/releases/download/v0.12.2/nvim-linux-x86_64.tar.gz
+          NVIM_SHA256: 012bf3fcac5ade43914df3f174668bf64d05e049a4f032a388c027b1ebd78628
+          NVIM_URL: https://github.com/neovim/neovim/releases/download/v0.12.4/nvim-linux-x86_64.tar.gz
         run: |
           curl --fail --location --retry 3 "$NVIM_URL" --output /tmp/nvim.tar.gz
           echo "$NVIM_SHA256  /tmp/nvim.tar.gz" | sha256sum --check --strict

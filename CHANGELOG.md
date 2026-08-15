@@ -5,6 +5,8 @@ versioning for release organization.
 
 ## Unreleased
 
+## 0.1.0 - 2026-08-15
+
 ### Added
 
 - Modular `lua/config/` and category-based `lua/plugins/` layout.
@@ -47,3 +49,6 @@ versioning for release organization.
   `bluff` integration convention instead of OS-named long-lived branches.
 - The configuration consumes the published `777lotto/git-panel.nvim` plugin;
   its implementation, tests, and releases now live in the standalone repository.
+
+[Unreleased]: https://github.com/777lotto/nvim-config/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/777lotto/nvim-config/releases/tag/v0.1.0
