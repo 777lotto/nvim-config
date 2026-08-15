@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/777lotto/nvim-config/actions/workflows/ci.yml/badge.svg?branch=bet)](https://github.com/777lotto/nvim-config/actions/workflows/ci.yml)
 [![Neovim](https://img.shields.io/badge/Neovim-0.12%2B-57A143?logo=neovim&logoColor=white)](https://neovim.io/)
+[![Release](https://img.shields.io/github/v/release/777lotto/nvim-config)](https://github.com/777lotto/nvim-config/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A reproducible, keyboard-first Neovim IDE configuration for Debian Linux. The
@@ -288,10 +289,14 @@ Common terminal, LSP, and clipboard checks are collected in
 
 ## Contributing and releases
 
-Development and release recommendations—including branch consolidation, tags,
-GitHub Releases, CI, rulesets, and extracting GitPanel—live in
+Development and release recommendations—including branches, signed tags,
+GitHub Releases, CI, rulesets, and the published GitPanel integration—live in
 [Repository strategy](docs/repository-strategy.md). User-visible changes are
 tracked in [CHANGELOG.md](CHANGELOG.md).
 
 Contributions are welcome under the workflow in [CONTRIBUTING.md](CONTRIBUTING.md).
+Actionable work is tracked in [Issues](https://github.com/777lotto/nvim-config/issues)
+and the public [Neovim Workspace](https://github.com/users/777lotto/projects/5).
+Questions, setup showcases, and exploratory ideas belong in
+[Discussions](https://github.com/777lotto/nvim-config/discussions).
 The configuration is available under the [MIT License](LICENSE).

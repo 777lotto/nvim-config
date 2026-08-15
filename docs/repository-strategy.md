@@ -53,9 +53,9 @@ Production promotion:
 Use signed annotated tags as immutable milestones and GitHub Releases as their
 human-facing descriptions.
 
-- `nvim-config` starts at `v0.1.0` after GitPanel is published and the GitHub
-  foundation is active.
-- `git-panel.nvim` is versioned independently and starts at `v0.1.0`.
+- `nvim-config` v0.1.0 records the GitHub foundation and published GitPanel
+  integration.
+- `git-panel.nvim` is versioned independently and began at `v0.1.0`.
 - Patch releases contain compatible fixes; minor releases represent meaningful
   user-facing additions.
 
