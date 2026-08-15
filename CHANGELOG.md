@@ -20,6 +20,7 @@ versioning for release organization.
   `gh`, or attach an existing remote URL and establish upstream tracking.
 - GitHub community health files, structured issue forms, and Debian CI.
 - Signed `bet` / `bluff` production and integration branch workflow.
+- Standalone GitPanel licensing, community files, cross-version tests, and CI.
 - Independent terminal buffers on `<leader>tt` and an explicit
   `:FloatTerminal` command for the persistent `<C-\>` floating terminal.
 
