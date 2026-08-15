@@ -1,9 +1,6 @@
-local config_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h:h")
-
 return {
 {
-  dir = config_root .. "/local-plugins/git-panel.nvim",
-  name = "git-panel.nvim",
+  "777lotto/git-panel.nvim",
   cmd = { "GitPanel", "GitPanelSplit" },
   keys = {
     { "<leader>gg", "<cmd>GitPanel<cr>", desc = "Git panel (custom dashboard)" },
@@ -65,7 +62,7 @@ return {
 
 -- ---------------------------------------------------------------------------
 -- NEOGIT — Magit-style popups on <leader>gn (kept as a power-user fallback;
--- the local GitPanel plugin owns <leader>gg). A status
+-- the custom GitPanel plugin owns <leader>gg). A status
 -- buffer with SEPARATE, labeled, foldable sections: Untracked files /
 -- Unstaged changes / Staged changes / Recent commits. Inside it:
 --   <tab>  expand/collapse a file's inline diff

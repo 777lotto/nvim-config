@@ -110,16 +110,16 @@ fields add only planning state such as Status, Priority, Size, and Target date.
 Recommended views are an all-work status board, repository-filtered Config and
 GitPanel boards, Debian/macOS label views, and a release roadmap.
 
-## Extracting GitPanel
+## Published GitPanel
 
-`local-plugins/git-panel.nvim/` uses a normal Neovim plugin package layout. Its
-publication sequence is:
+[git-panel.nvim](https://github.com/777lotto/git-panel.nvim) is an independent
+public repository with preserved subdirectory history, its own `bet` and
+`bluff` branches, tests, CI, community files, and signed releases. This config
+consumes `"777lotto/git-panel.nvim"` as a normal lazy.nvim dependency and keeps
+the resolved commit in `lazy-lock.json`.
 
-1. add the MIT license, tests, CI, issue forms, and contribution guidance;
-2. preserve subdirectory history with `git subtree split`;
-3. publish `777lotto/git-panel.nvim` with `bet` and `bluff` branches;
-4. release `v0.1.0` from `bet`;
-5. replace the config's local `dir` specification with
-   `"777lotto/git-panel.nvim"`;
-6. let `lazy-lock.json` continue pinning the resolved plugin commit;
-7. cross-link both repositories and add them to Neovim Workspace.
+Plugin implementation, issues, releases, and user documentation belong in the
+plugin repository. This repository owns only the lazy.nvim integration, key
+mappings, and compatibility validation for the complete editor configuration.
+Both repositories share the Neovim Workspace Project for cross-repository
+planning.

@@ -155,7 +155,7 @@ end,
     -- =====================================================================
     -- LAZYGIT — full-screen Git TUI on <leader>gl (worktrees + fast stage /
     -- commit / push / pull). The richer, categorized Git UI now lives on
-    -- <leader>gg (the local GitPanel plugin); Neogit's
+    -- <leader>gg (the custom GitPanel plugin); Neogit's
     -- popups remain available on <leader>gn. Lazygit
     -- opens as a transient full-screen float; press `q` inside lazygit to
     -- quit and the window closes (close_on_exit wipes it, so it never
