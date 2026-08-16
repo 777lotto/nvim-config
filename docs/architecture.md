@@ -64,7 +64,7 @@ LSP + linters ──> diagnostic items ──> signs / underline / virtual text
 | LSP features | Completion, hover, definitions, references, rename, code actions, symbols, and diagnostics |
 | Linters | Additional diagnostics based on style, correctness, or project rules |
 | Diagnostic renderer | Chooses where diagnostic data appears; it does not discover errors itself |
-| Plugins | Add UI and their own groups/extmarks, such as Git signs or rendered Markdown |
+| Plugins | Add UI and their own groups/extmarks, such as indent guides or rendered Markdown |
 
 Precedence can vary by extmark priority and group links. If one token looks
 wrong, inspect it with `:Inspect` and inspect the final group with
