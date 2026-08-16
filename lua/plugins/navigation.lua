@@ -151,45 +151,6 @@ end,
         vim.keymap.set("t", "<esc>", [[<C-\><C-n>]], { buffer = event.buf })
       end,
     })
-
-    -- =====================================================================
-    -- LAZYGIT — full-screen Git TUI on <leader>gl (worktrees + fast stage /
-    -- commit / push / pull). The richer, categorized Git UI now lives on
-    -- <leader>gg (the custom GitPanel plugin); Neogit's
-    -- popups remain available on <leader>gn. Lazygit
-    -- opens as a transient full-screen float; press `q` inside lazygit to
-    -- quit and the window closes (close_on_exit wipes it, so it never
-    -- lingers as a buffer).
-    -- =====================================================================
-    local Terminal = require("toggleterm.terminal").Terminal
-    local lazygit = Terminal:new({
-      cmd = "lazygit",
-      direction = "float",
-      hidden = true,
-      float_opts = {
-        -- Full screen: lazygit draws its own panels/borders, so border="none"
-        -- here avoids a doubled frame. See the <C-\> terminal above for
-        -- why width=columns / height=lines-cmdheight / row,col=0 is correct.
-        border = "none",
-        width = function() return vim.o.columns end,
-        height = function() return vim.o.lines - vim.o.cmdheight end,
-        row = 0,
-        col = 0,
-      },
-      on_open = function(term)
-        vim.cmd("startinsert!")
-        -- Let lazygit handle <esc> itself (back/cancel). Drop the global
-        -- terminal <esc> mapping for THIS buffer so it passes through.
-        vim.schedule(function()
-          pcall(vim.keymap.del, "t", "<esc>", { buffer = term.bufnr })
-        end)
-      end,
-    })
-    vim.keymap.set("n", "<leader>gl", function() lazygit:toggle() end,
-      { desc = "Lazygit (worktrees + fast Git ops)", noremap = true, silent = true })
-    -- Also expose a plain command, easy to test: just run `:Lazygit`
-    vim.api.nvim_create_user_command("Lazygit", function() lazygit:toggle() end,
-      { desc = "Open the lazygit Git panel" })
   end
 },
 }
