@@ -23,8 +23,8 @@ Requires Neovim 0.12 or newer. The leader key is `<Space>`.
   lines, floating detail, native location/quickfix lists, and Trouble panels.
 - Project-aware Prettier formatting through conform.nvim.
 - Markdown rendering, Marksman, Prettier, and markdownlint-cli2.
-- Git signs, Diffview, Neogit, Lazygit, and the dependency-free custom
-  [GitPanel](https://github.com/777lotto/git-panel.nvim).
+- A dependency-free custom
+  [GitPanel](https://github.com/777lotto/git-panel.nvim) for Git workflows.
 - Automatic clipboard policy: native X11 integration on the local XFCE client
   and copy-only OSC 52 when Neovim is running over SSH.
 
@@ -218,10 +218,6 @@ bufferline bar and can run concurrently with each other and with the float.
 
 - `<leader>gg`: custom GitPanel tab.
 - `<leader>gG`: custom GitPanel split.
-- `<leader>gd`: working-tree Diffview.
-- `<leader>gn`: Neogit power-user popups.
-- `<leader>gl`: Lazygit.
-- `<leader>gh` / `<leader>gf`: repository / current-file history.
 
 [git-panel.nvim](https://github.com/777lotto/git-panel.nvim) is developed and
 released independently, while `lazy-lock.json` pins the exact tested commit for

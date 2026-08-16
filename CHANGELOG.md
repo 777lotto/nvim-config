@@ -5,6 +5,12 @@ versioning for release organization.
 
 ## Unreleased
 
+### Changed
+
+- Git workflows now use the dependency-free GitPanel exclusively; the
+  Gitsigns, Diffview, Neogit, and Lazygit integrations and their keymaps were
+  removed.
+
 ## 0.1.0 - 2026-08-15
 
 ### Added
