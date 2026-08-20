@@ -64,8 +64,8 @@ return {
   end,
 },
 
--- Linting (markdownlint-cli2). Runs on read/save/leave-insert; diagnostics
--- show inline and in your existing Trouble panel (<leader>xx).
+-- Linting (markdownlint-cli2). Runs on read and after save, so Prettier can
+-- normalize Markdown before the linter reports layout diagnostics.
 {
   "mfussenegger/nvim-lint",
   event = { "BufReadPre", "BufNewFile" },
@@ -75,7 +75,7 @@ return {
       markdown = { "markdownlint-cli2" },
     }
     local grp = vim.api.nvim_create_augroup("nvim-lint-markdown", { clear = true })
-    vim.api.nvim_create_autocmd({ "BufWritePost", "BufReadPost", "InsertLeave" }, {
+    vim.api.nvim_create_autocmd({ "BufWritePost", "BufReadPost" }, {
       group = grp,
       callback = function()
         require("lint").try_lint()
