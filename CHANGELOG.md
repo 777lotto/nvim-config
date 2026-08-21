@@ -5,11 +5,30 @@ versioning for release organization.
 
 ## Unreleased
 
+### Added
+
+- `nvim-config doctor`, `update`, and `sync` commands for health checks,
+  fast-forward-only whole-config updates, and explicit dependency
+  reconciliation without rerunning the installer.
+- Asynchronous `:NvimConfigUpdate` and `:NvimConfigDoctor` commands with an
+  in-editor maintenance report.
+- A centralized Neovim, Node, Mason, LSP, and Treesitter compatibility
+  manifest plus latest-tested dependency automation.
+- MCP Buff on its production `bet` branch, restricted to the documented
+  loopback endpoint.
+
 ### Changed
 
 - Git workflows now use the dependency-free GitPanel exclusively; the
   Gitsigns, Diffview, Neogit, and Lazygit integrations and their keymaps were
   removed.
+- GitPanel now resolves to the responsive repository dashboard promoted to its
+  production `bet` branch.
+- `bootstrap.sh` is installation-only; existing checkouts use the safer
+  clean-worktree, configured-upstream updater.
+- Node 22 is the supported floor, Node 24 is the recommended default, and Node
+  26 is the forward-compatibility canary. CI exercises the latest releases of
+  the managed Node-backed tools on all three lanes.
 
 ## 0.1.0 - 2026-08-15
 
