@@ -1,5 +1,34 @@
 # Troubleshooting
 
+## Configuration update is refused
+
+Run `nvim-config doctor` first. `nvim-config update` deliberately stops when
+the checkout has uncommitted/untracked files, is detached, has no upstream, or
+has diverged from its upstream. It will not stash, reset, switch branches,
+rewrite remotes, or modify SSH/network configuration on your behalf.
+
+For ordinary public installs, keep the checkout on production `bet`, preserve
+any local edits on a separate branch, and retry after the worktree is clean.
+If the branch has diverged, inspect it with GitPanel or standard Git commands
+and reconcile it explicitly rather than forcing the updater through the state.
+
+## Node is below the supported floor
+
+The current floor is Node 22 and the recommended release line is Node 24. The
+repository's `.nvmrc` selects the recommended major without freezing an aging
+patch release:
+
+```sh
+nvm install
+nvm use
+nvim-config doctor
+```
+
+Other version managers can select Node 24 directly. The config does not install
+or replace the system Node runtime automatically. Once the runtime passes the
+doctor, `nvim-config sync --latest` refreshes the unpinned Mason tools and
+Treesitter parsers; plugin commits remain controlled by `lazy-lock.json`.
+
 ## XFCE and Thunar launch behavior
 
 The supported desktop is XFCE on Debian. Thunar should launch Neovim in Xfce

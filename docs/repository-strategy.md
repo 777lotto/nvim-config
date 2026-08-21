@@ -85,14 +85,17 @@ and maintainer policy in `docs/`, and user-visible changes in `CHANGELOG.md`.
 
 ## CI and repository rules
 
-The baseline workflow has two stable checks:
+The baseline workflow has these stable checks:
 
 - `quality`: Bash syntax, ShellCheck, and whitespace validation;
 - `debian-smoke`: pinned Neovim, Lua compilation, local clipboard policy, and
-  simulated SSH/OSC 52 policy inside Debian 13.
+  simulated SSH/OSC 52 policy inside Debian 13;
+- `toolchain`: latest Node-backed tools on Node 22 (floor), Node 24
+  (recommended), and Node 26 (canary), plus centralized-manifest validation;
+- `bootstrap`: the real installer in isolated XDG directories on Node 24.
 
 The `bet` ruleset should block deletion and force pushes, require verified
-signatures, require pull requests, and require both CI checks plus a successful
+signatures, require pull requests, and require the CI checks plus a successful
 promotion-source check. The `bluff` ruleset should block deletion and force
 pushes and require verified signatures and CI for pull requests.
 
@@ -110,7 +113,7 @@ fields add only planning state such as Status, Priority, Size, and Target date.
 Recommended views are an all-work status board, repository-filtered Config and
 GitPanel boards, Debian/macOS label views, and a release roadmap.
 
-## Published GitPanel
+## Published plugins
 
 [git-panel.nvim](https://github.com/777lotto/git-panel.nvim) is an independent
 public repository with preserved subdirectory history, its own `bet` and
@@ -123,3 +126,10 @@ plugin repository. This repository owns only the lazy.nvim integration, key
 mappings, and compatibility validation for the complete editor configuration.
 Both repositories share the Neovim Workspace Project for cross-repository
 planning.
+
+[MCP Buff](https://github.com/777lotto/mcp-buff) follows the same production
+`bet` and integration `bluff` model. This config consumes its `bet` branch and
+keeps its resolved commit in `lazy-lock.json`; its endpoint remains loopback
+only. Plugin release workflows may dispatch a focused dependency refresh here,
+but the resulting lock change still enters through `bluff` and the normal
+production promotion.

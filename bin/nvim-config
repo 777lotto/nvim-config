@@ -1,0 +1,274 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+nvim_config_source="${BASH_SOURCE[0]}"
+while [ -h "$nvim_config_source" ]; do
+  nvim_config_dir="$(cd -P "$(dirname "$nvim_config_source")" >/dev/null 2>&1 && pwd)"
+  nvim_config_source="$(readlink "$nvim_config_source")"
+  [[ "$nvim_config_source" != /* ]] && nvim_config_source="$nvim_config_dir/$nvim_config_source"
+done
+nvim_config_bin_dir="$(cd -P "$(dirname "$nvim_config_source")" >/dev/null 2>&1 && pwd)"
+NVIM_CONFIG_ROOT="${NVIM_CONFIG_DIR:-$(cd "$nvim_config_bin_dir/.." && pwd -P)}"
+
+nvim_config_color=1
+for nvim_config_arg in "$@"; do
+  if [ "$nvim_config_arg" = "--no-color" ]; then nvim_config_color=0; fi
+done
+
+if [ "$nvim_config_color" -eq 1 ] && [ -t 1 ]; then
+  nvim_config_green='\033[1;32m'
+  nvim_config_yellow='\033[1;33m'
+  nvim_config_red='\033[1;31m'
+  nvim_config_reset='\033[0m'
+else
+  nvim_config_green=''; nvim_config_yellow=''; nvim_config_red=''; nvim_config_reset=''
+fi
+
+log()  { printf '%b==>%b %s\n' "$nvim_config_green" "$nvim_config_reset" "$*"; }
+warn() { printf '%b!!%b  %s\n' "$nvim_config_yellow" "$nvim_config_reset" "$*" >&2; }
+die()  { printf '%bXX%b  %s\n' "$nvim_config_red" "$nvim_config_reset" "$*" >&2; exit 1; }
+
+usage() {
+  cat <<'EOF'
+Usage: nvim-config <command> [--no-color]
+
+Commands:
+  update          Fetch the configured upstream, fast-forward, and reconcile
+                  only dependency classes affected by the pulled files.
+  sync            Restore the committed plugin lock and install missing tools.
+  sync --latest   Restore plugins, update Mason tools, and update parsers.
+  doctor          Check repository state and supported runtime versions.
+  help            Show this help.
+
+Environment:
+  NVIM_CONFIG_DIR Override the repository/config directory.
+EOF
+}
+
+manifest_get() {
+  nvim --headless --clean -l "$NVIM_CONFIG_ROOT/scripts/toolchain.lua" \
+    "$NVIM_CONFIG_ROOT" get "$1" "$2"
+}
+
+version_at_least() {
+  local nvim_config_actual=$1 nvim_config_required=$2
+  local nvim_config_a_major nvim_config_a_minor nvim_config_a_patch
+  local nvim_config_r_major nvim_config_r_minor nvim_config_r_patch
+  IFS=. read -r nvim_config_a_major nvim_config_a_minor nvim_config_a_patch <<< "$nvim_config_actual"
+  IFS=. read -r nvim_config_r_major nvim_config_r_minor nvim_config_r_patch <<< "$nvim_config_required"
+  nvim_config_a_major=${nvim_config_a_major:-0}; nvim_config_a_minor=${nvim_config_a_minor:-0}
+  nvim_config_a_patch=${nvim_config_a_patch:-0}; nvim_config_r_major=${nvim_config_r_major:-0}
+  nvim_config_r_minor=${nvim_config_r_minor:-0}; nvim_config_r_patch=${nvim_config_r_patch:-0}
+  (( nvim_config_a_major > nvim_config_r_major )) ||
+    (( nvim_config_a_major == nvim_config_r_major && nvim_config_a_minor > nvim_config_r_minor )) ||
+    (( nvim_config_a_major == nvim_config_r_major && nvim_config_a_minor == nvim_config_r_minor && nvim_config_a_patch >= nvim_config_r_patch ))
+}
+
+doctor() {
+  local nvim_config_failures=0
+  local nvim_config_manifest_available=0
+  log "Configuration: $NVIM_CONFIG_ROOT"
+
+  if ! command -v git >/dev/null 2>&1; then
+    warn "git is required"
+    nvim_config_failures=$((nvim_config_failures + 1))
+  else
+    log "Git: $(git --version)"
+  fi
+  if ! command -v nvim >/dev/null 2>&1; then
+    warn "Neovim is required"
+    nvim_config_failures=$((nvim_config_failures + 1))
+  else
+    local nvim_config_nvim_version nvim_config_nvim_minimum
+    nvim_config_nvim_version="$(nvim --version | sed -nE '1s/^NVIM v([0-9]+\.[0-9]+\.[0-9]+).*/\1/p')"
+    nvim_config_nvim_minimum="$(manifest_get neovim minimum)"
+    nvim_config_manifest_available=1
+    if [ -z "$nvim_config_nvim_version" ] || ! version_at_least "$nvim_config_nvim_version" "$nvim_config_nvim_minimum"; then
+      warn "Neovim ${nvim_config_nvim_version:-unknown} is below the required $nvim_config_nvim_minimum"
+      nvim_config_failures=$((nvim_config_failures + 1))
+    else
+      log "Neovim: $nvim_config_nvim_version (minimum $nvim_config_nvim_minimum)"
+    fi
+  fi
+
+  if ! command -v node >/dev/null 2>&1; then
+    warn "Node is required for the web-language toolchain"
+    nvim_config_failures=$((nvim_config_failures + 1))
+  else
+    local nvim_config_node_version nvim_config_node_major nvim_config_node_minimum nvim_config_node_recommended
+    nvim_config_node_version="$(node --version)"
+    nvim_config_node_major="${nvim_config_node_version#v}"; nvim_config_node_major="${nvim_config_node_major%%.*}"
+    if ! [[ "$nvim_config_node_major" =~ ^[0-9]+$ ]]; then
+      warn "Could not parse Node version: $nvim_config_node_version"
+      nvim_config_failures=$((nvim_config_failures + 1))
+    elif [ "$nvim_config_manifest_available" -eq 0 ]; then
+      log "Node: $nvim_config_node_version (compatibility check skipped without Neovim)"
+    else
+      nvim_config_node_minimum="$(manifest_get node minimum_major)"
+      nvim_config_node_recommended="$(manifest_get node recommended_major)"
+      if (( nvim_config_node_major < nvim_config_node_minimum )); then
+        warn "Node $nvim_config_node_version is below the supported floor v$nvim_config_node_minimum"
+        nvim_config_failures=$((nvim_config_failures + 1))
+      elif (( nvim_config_node_major < nvim_config_node_recommended )); then
+        warn "Node $nvim_config_node_version is supported; v$nvim_config_node_recommended is recommended"
+      else
+        log "Node: $nvim_config_node_version (recommended v$nvim_config_node_recommended)"
+      fi
+    fi
+  fi
+
+  if command -v npm >/dev/null 2>&1; then
+    log "npm: $(npm --version)"
+  else
+    warn "npm is required"
+    nvim_config_failures=$((nvim_config_failures + 1))
+  fi
+  for nvim_config_tool in rg python3 cc unzip curl tar; do
+    command -v "$nvim_config_tool" >/dev/null 2>&1 || warn "$nvim_config_tool is missing; some features or installs may fail"
+  done
+
+  if command -v git >/dev/null 2>&1 && git -C "$NVIM_CONFIG_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    local nvim_config_branch nvim_config_upstream
+    nvim_config_branch="$(git -C "$NVIM_CONFIG_ROOT" symbolic-ref --quiet --short HEAD || true)"
+    nvim_config_upstream="$(git -C "$NVIM_CONFIG_ROOT" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)"
+    if [ -z "$nvim_config_branch" ]; then
+      warn "Checkout: detached HEAD; update will refuse"
+    elif [ -z "$nvim_config_upstream" ]; then
+      warn "Checkout: $nvim_config_branch has no upstream; update will refuse"
+    else
+      log "Checkout: $nvim_config_branch -> $nvim_config_upstream"
+    fi
+    if [ -n "$(git -C "$NVIM_CONFIG_ROOT" status --porcelain --untracked-files=all)" ]; then
+      warn "worktree has local changes; update will refuse until it is clean"
+    else
+      log "Worktree: clean"
+    fi
+  else
+    warn "$NVIM_CONFIG_ROOT is not a Git worktree"
+    nvim_config_failures=$((nvim_config_failures + 1))
+  fi
+
+  if [ "$nvim_config_failures" -gt 0 ]; then
+    die "$nvim_config_failures required check(s) failed"
+  fi
+  log "Doctor passed"
+}
+
+run_nvim() {
+  NVIM_CONFIG_ROOT="$NVIM_CONFIG_ROOT" NVIM_TOOLCHAIN_SYNC=1 NVIM_TREESITTER_SKIP_INSTALL=1 \
+    nvim --headless -u "$NVIM_CONFIG_ROOT/init.lua" "$@"
+}
+
+sync_plugins() {
+  log "Restoring tested plugin commits and cleaning retired plugins"
+  run_nvim "+Lazy! restore" "+Lazy! clean" +qa
+}
+
+sync_mason() {
+  local nvim_config_mode=$1
+  if [ "$nvim_config_mode" = "latest" ]; then
+    log "Updating managed Mason packages to current registry versions"
+    run_nvim "+MasonToolsUpdateSync" +qa
+  else
+    log "Installing missing managed Mason packages"
+    run_nvim "+MasonToolsInstallSync" +qa
+  fi
+}
+
+sync_parsers() {
+  local nvim_config_mode=$1
+  if ! command -v cc >/dev/null 2>&1; then
+    warn "No C compiler; skipping Treesitter parser synchronization"
+    return
+  fi
+  local nvim_config_method=install
+  [ "$nvim_config_mode" = "latest" ] && nvim_config_method=update
+  log "${nvim_config_method^}ing managed Treesitter parsers"
+  run_nvim "+lua local t=require('config.toolchain'); local ok=require('nvim-treesitter').${nvim_config_method}(t.parsers):wait(300000); if not ok then vim.cmd('cquit 1') end" +qa
+}
+
+sync_all() {
+  local nvim_config_mode=$1
+  sync_plugins
+  sync_mason "$nvim_config_mode"
+  sync_parsers "$nvim_config_mode"
+}
+
+sync_changed() {
+  local nvim_config_before=$1
+  local nvim_config_changed
+  nvim_config_changed="$(git -C "$NVIM_CONFIG_ROOT" diff --name-only "$nvim_config_before..HEAD")"
+  if [ -z "$nvim_config_changed" ]; then
+    log "Already current; no dependency reconciliation needed"
+    return
+  fi
+
+  if printf '%s\n' "$nvim_config_changed" | grep -Eq '^(init\.lua|lazy-lock\.json|lua/config/lazy\.lua|lua/plugins/)'; then
+    sync_plugins
+  fi
+  if printf '%s\n' "$nvim_config_changed" | grep -Eq '^(lua/config/toolchain\.lua|lua/plugins/(languages|lsp)\.lua)'; then
+    sync_mason latest
+  fi
+  if printf '%s\n' "$nvim_config_changed" | grep -Eq '^(lua/config/toolchain\.lua|lua/plugins/treesitter\.lua)'; then
+    sync_parsers latest
+  fi
+}
+
+post_update() {
+  local nvim_config_before=$1
+  sync_changed "$nvim_config_before"
+  doctor
+  log "Update complete. Restart Neovim to load the new configuration."
+}
+
+update_config() {
+  command -v git >/dev/null 2>&1 || die "git is required"
+  git -C "$NVIM_CONFIG_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "not a Git worktree: $NVIM_CONFIG_ROOT"
+  [ -z "$(git -C "$NVIM_CONFIG_ROOT" status --porcelain --untracked-files=all)" ] ||
+    die "worktree is not clean; commit, stash, or remove local changes before updating"
+
+  local nvim_config_branch nvim_config_upstream nvim_config_remote nvim_config_before
+  nvim_config_branch="$(git -C "$NVIM_CONFIG_ROOT" symbolic-ref --quiet --short HEAD)" ||
+    die "detached HEAD cannot be updated safely"
+  nvim_config_upstream="$(git -C "$NVIM_CONFIG_ROOT" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null)" ||
+    die "branch $nvim_config_branch has no upstream"
+  nvim_config_remote="$(git -C "$NVIM_CONFIG_ROOT" config --get "branch.$nvim_config_branch.remote")" ||
+    die "branch $nvim_config_branch has no configured remote"
+  nvim_config_before="$(git -C "$NVIM_CONFIG_ROOT" rev-parse HEAD)"
+
+  log "Fetching configured upstream $nvim_config_upstream"
+  if [ "$nvim_config_remote" != "." ]; then git -C "$NVIM_CONFIG_ROOT" fetch --prune "$nvim_config_remote"; fi
+
+  if git -C "$NVIM_CONFIG_ROOT" merge-base --is-ancestor HEAD '@{upstream}'; then
+    git -C "$NVIM_CONFIG_ROOT" merge --ff-only '@{upstream}'
+  elif git -C "$NVIM_CONFIG_ROOT" merge-base --is-ancestor '@{upstream}' HEAD; then
+    warn "local branch is ahead of $nvim_config_upstream; no local commits were changed"
+  else
+    die "local and upstream histories diverged; reconcile them manually"
+  fi
+
+  local -a nvim_config_post_args=()
+  [ "$nvim_config_color" -eq 0 ] && nvim_config_post_args+=(--no-color)
+  exec "$NVIM_CONFIG_ROOT/bin/nvim-config" _post-update "$nvim_config_before" "${nvim_config_post_args[@]}"
+}
+
+nvim_config_action=${1:-help}
+shift || true
+case "$nvim_config_action" in
+  update) update_config ;;
+  _post-update) post_update "${1:?previous revision is required}" ;;
+  sync)
+    nvim_config_sync_mode=install
+    for nvim_config_arg in "$@"; do
+      case "$nvim_config_arg" in
+        --latest) nvim_config_sync_mode=latest ;;
+        --no-color) ;;
+        *) die "unknown sync option: $nvim_config_arg" ;;
+      esac
+    done
+    sync_all "$nvim_config_sync_mode"
+    ;;
+  doctor) doctor ;;
+  help|-h|--help) usage ;;
+  *) usage >&2; die "unknown command: $nvim_config_action" ;;
+esac

@@ -128,7 +128,7 @@ Language support is deliberately layered rather than hidden in one large table:
 3. add only a documented formatter mapping in
    `lua/plugins/languages.lua`;
 4. add a linter there if the language benefits from one;
-5. mirror Mason and parser changes in `bootstrap.sh`;
+5. update the centralized inventory in `lua/config/toolchain.lua`;
 6. open a representative file and verify `:Inspect`, `:LspInfo`,
    `:ConformInfo`, and `:checkhealth`.
 

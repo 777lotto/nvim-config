@@ -43,10 +43,10 @@ jobs:
           fetch-depth: 2
 
       - name: Check shell syntax
-        run: bash -n bootstrap.sh
+        run: bash -n bootstrap.sh bin/nvim-config
 
       - name: Run ShellCheck
-        run: shellcheck bootstrap.sh
+        run: shellcheck bootstrap.sh bin/nvim-config
 
       - name: Reject whitespace errors
         run: git diff --check HEAD^ HEAD
@@ -88,3 +88,103 @@ jobs:
         env:
           SSH_TTY: /dev/pts/0
         run: nvim --headless --clean -l scripts/ci/smoke-core.lua . osc52
+
+  toolchain-compatibility:
+    name: toolchain (Node ${{ matrix.node }} · ${{ matrix.channel }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - node: 22
+            channel: floor
+          - node: 24
+            channel: recommended
+          - node: 26
+            channel: canary
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install tested Neovim
+        env:
+          NVIM_VERSION: v0.12.4
+          NVIM_SHA256: 012bf3fcac5ade43914df3f174668bf64d05e049a4f032a388c027b1ebd78628
+        run: |
+          mkdir --parents "$RUNNER_TEMP/nvim"
+          curl --fail --location --retry 3 \
+            "https://github.com/neovim/neovim/releases/download/$NVIM_VERSION/nvim-linux-x86_64.tar.gz" \
+            --output "$RUNNER_TEMP/nvim.tar.gz"
+          echo "$NVIM_SHA256  $RUNNER_TEMP/nvim.tar.gz" | sha256sum --check --strict
+          tar --extract --gzip --strip-components=1 \
+            --file "$RUNNER_TEMP/nvim.tar.gz" --directory "$RUNNER_TEMP/nvim"
+          echo "$RUNNER_TEMP/nvim/bin" >> "$GITHUB_PATH"
+
+      - name: Validate centralized toolchain policy
+        run: |
+          nvim --headless --clean -l scripts/toolchain.lua . validate
+          test "$(nvim --headless --clean -l scripts/toolchain.lua . get node minimum_major)" = "22"
+          test "$(nvim --headless --clean -l scripts/toolchain.lua . get node recommended_major)" = "24"
+          test "$(nvim --headless --clean -l scripts/toolchain.lua . get node canary_major)" = "26"
+          NVIM_CONFIG_DIR="$GITHUB_WORKSPACE" bin/nvim-config doctor --no-color
+
+      - name: Exercise latest Node-backed tools
+        run: |
+          npx --yes prettier@latest --version
+          npx --yes markdownlint-cli2@latest --version
+          npx --yes pyright@latest --version
+          npx --yes typescript-language-server@latest --version
+
+      - name: Exercise safe whole-config updater
+        if: matrix.channel == 'recommended'
+        run: bash scripts/ci/test-update.sh
+
+  bootstrap-smoke:
+    name: bootstrap (Node 24 recommended)
+    runs-on: ubuntu-24.04
+    env:
+      XDG_CONFIG_HOME: ${{ runner.temp }}/nvim-config-xdg/config
+      XDG_DATA_HOME: ${{ runner.temp }}/nvim-config-xdg/data
+      XDG_CACHE_HOME: ${{ runner.temp }}/nvim-config-xdg/cache
+      XDG_STATE_HOME: ${{ runner.temp }}/nvim-config-xdg/state
+      XDG_BIN_HOME: ${{ runner.temp }}/nvim-config-xdg/bin
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install recommended Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install tested Neovim
+        env:
+          NVIM_VERSION: v0.12.4
+          NVIM_SHA256: 012bf3fcac5ade43914df3f174668bf64d05e049a4f032a388c027b1ebd78628
+        run: |
+          mkdir --parents "$RUNNER_TEMP/nvim"
+          curl --fail --location --retry 3 \
+            "https://github.com/neovim/neovim/releases/download/$NVIM_VERSION/nvim-linux-x86_64.tar.gz" \
+            --output "$RUNNER_TEMP/nvim.tar.gz"
+          echo "$NVIM_SHA256  $RUNNER_TEMP/nvim.tar.gz" | sha256sum --check --strict
+          tar --extract --gzip --strip-components=1 \
+            --file "$RUNNER_TEMP/nvim.tar.gz" --directory "$RUNNER_TEMP/nvim"
+          echo "$RUNNER_TEMP/nvim/bin" >> "$GITHUB_PATH"
+
+      - name: Prepare isolated config checkout
+        run: |
+          mkdir --parents "$XDG_CONFIG_HOME/nvim"
+          cp --archive "$GITHUB_WORKSPACE/." "$XDG_CONFIG_HOME/nvim/"
+
+      - name: Run the real installer
+        run: "$XDG_CONFIG_HOME/nvim/bootstrap.sh"
+
+      - name: Verify installed config and CLI
+        run: |
+          "$XDG_BIN_HOME/nvim-config" doctor --no-color
+          nvim --headless +qa
