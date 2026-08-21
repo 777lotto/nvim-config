@@ -147,15 +147,17 @@ jobs:
   bootstrap-smoke:
     name: bootstrap (Node 24 recommended)
     runs-on: ubuntu-24.04
-    env:
-      XDG_CONFIG_HOME: ${{ runner.temp }}/nvim-config-xdg/config
-      XDG_DATA_HOME: ${{ runner.temp }}/nvim-config-xdg/data
-      XDG_CACHE_HOME: ${{ runner.temp }}/nvim-config-xdg/cache
-      XDG_STATE_HOME: ${{ runner.temp }}/nvim-config-xdg/state
-      XDG_BIN_HOME: ${{ runner.temp }}/nvim-config-xdg/bin
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+
+      - name: Configure isolated XDG directories
+        run: |
+          echo "XDG_CONFIG_HOME=$RUNNER_TEMP/nvim-config-xdg/config" >> "$GITHUB_ENV"
+          echo "XDG_DATA_HOME=$RUNNER_TEMP/nvim-config-xdg/data" >> "$GITHUB_ENV"
+          echo "XDG_CACHE_HOME=$RUNNER_TEMP/nvim-config-xdg/cache" >> "$GITHUB_ENV"
+          echo "XDG_STATE_HOME=$RUNNER_TEMP/nvim-config-xdg/state" >> "$GITHUB_ENV"
+          echo "XDG_BIN_HOME=$RUNNER_TEMP/nvim-config-xdg/bin" >> "$GITHUB_ENV"
 
       - name: Install recommended Node
         uses: actions/setup-node@v7
