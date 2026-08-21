@@ -261,6 +261,11 @@ this configuration. In a local-only repository, `P` can create and push a
 GitHub repository through the optional authenticated `gh` CLI, or attach an
 existing remote URL for another Git host.
 
+When `~/.local/bin/gh-app` is executable, GitPanel uses that repository-scoped
+App wrapper for GitHub API data and comments, and uses the public `signed_git`
+backend for pull-request merges through the existing signed Git/SSH setup.
+Other installations retain the standard `gh` API backend.
+
 ## Brokered write review
 
 - `<leader>mb`: open MCP Buff's Cloudflare write-ticket review panel.
