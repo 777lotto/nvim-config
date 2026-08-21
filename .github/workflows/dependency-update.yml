@@ -1,0 +1,105 @@
+name: Dependency refresh
+
+on:
+  schedule:
+    - cron: "17 9 * * 1"
+  workflow_dispatch:
+    inputs:
+      plugin:
+        description: Plugin to refresh (all uses every lazy.nvim dependency)
+        type: choice
+        required: true
+        default: all
+        options:
+          - all
+          - git-panel.nvim
+          - mcp-buff
+  repository_dispatch:
+    types:
+      - plugin-release
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: dependency-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: refresh tested lock
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out integration branch
+        uses: actions/checkout@v7
+        with:
+          ref: bluff
+          fetch-depth: 0
+
+      - name: Install recommended Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install tested Neovim
+        env:
+          NVIM_VERSION: v0.12.4
+          NVIM_SHA256: 012bf3fcac5ade43914df3f174668bf64d05e049a4f032a388c027b1ebd78628
+        run: |
+          mkdir --parents "$RUNNER_TEMP/nvim"
+          curl --fail --location --retry 3 \
+            "https://github.com/neovim/neovim/releases/download/$NVIM_VERSION/nvim-linux-x86_64.tar.gz" \
+            --output "$RUNNER_TEMP/nvim.tar.gz"
+          echo "$NVIM_SHA256  $RUNNER_TEMP/nvim.tar.gz" | sha256sum --check --strict
+          tar --extract --gzip --strip-components=1 \
+            --file "$RUNNER_TEMP/nvim.tar.gz" --directory "$RUNNER_TEMP/nvim"
+          echo "$RUNNER_TEMP/nvim/bin" >> "$GITHUB_PATH"
+
+      - name: Refresh requested plugin commits
+        env:
+          DISPATCH_PLUGIN: ${{ github.event.client_payload.plugin }}
+          INPUT_PLUGIN: ${{ inputs.plugin }}
+          NVIM_CONFIG_ROOT: ${{ github.workspace }}
+          NVIM_TOOLCHAIN_SYNC: "1"
+          NVIM_TREESITTER_SKIP_INSTALL: "1"
+        run: |
+          plugin="${INPUT_PLUGIN:-${DISPATCH_PLUGIN:-all}}"
+          case "$plugin" in
+            all)
+              nvim --headless -u init.lua "+Lazy! update" +qa
+              ;;
+            git-panel.nvim|mcp-buff)
+              nvim --headless -u init.lua "+Lazy! update $plugin" +qa
+              ;;
+            *)
+              echo "Unsupported dependency refresh target: $plugin" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Validate refreshed configuration
+        run: |
+          nvim --headless --clean -l scripts/ci/check-lua.lua .
+          nvim --headless --clean -l scripts/toolchain.lua . validate
+          bash -n bootstrap.sh bin/nvim-config
+          git diff --check
+
+      - name: Open integration pull request
+        uses: peter-evans/create-pull-request@v8.1.1
+        with:
+          token: ${{ secrets.DEPENDENCY_UPDATE_TOKEN || github.token }}
+          base: bluff
+          branch: agent/dependency-refresh
+          delete-branch: true
+          commit-message: "chore(deps): refresh tested plugin lock"
+          title: "chore(deps): refresh tested plugin lock"
+          body: |
+            Automated latest-tested dependency refresh.
+
+            The lockfile keeps installs reproducible; CI validates the refreshed
+            commits across the supported Node floor, recommended release, and
+            canary release before this enters bluff.
+          labels: |
+            type:maintenance
+            area:automation

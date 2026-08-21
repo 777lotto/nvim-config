@@ -45,15 +45,7 @@ return {
     },
   },
   config = function()
-    local parsers = {
-      "c", "lua", "vim", "vimdoc", "query", "javascript", "typescript",
-      "tsx", "python", "html", "xml", "css", "json", "markdown", "markdown_inline",
-    }
-    local filetypes = {
-      "c", "lua", "vim", "help", "query", "javascript", "javascriptreact",
-      "typescript", "typescriptreact", "python", "html", "xml", "css", "json", "jsonc",
-      "markdown",
-    }
+    local toolchain = require("config.toolchain")
 
     local treesitter = require("nvim-treesitter")
     treesitter.setup()
@@ -66,7 +58,7 @@ return {
 
     local function install_parsers()
       if vim.env.NVIM_TREESITTER_SKIP_INSTALL ~= "1" and has_supported_cli() then
-        treesitter.install(parsers)
+        treesitter.install(toolchain.parsers)
       end
     end
 
@@ -83,7 +75,7 @@ return {
     -- nvim-treesitter's indentexpr instead of the removed configs.setup modules.
     vim.api.nvim_create_autocmd("FileType", {
       group = group,
-      pattern = filetypes,
+      pattern = toolchain.parser_filetypes,
       callback = function(event)
         if pcall(vim.treesitter.start, event.buf) then
           vim.bo[event.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"

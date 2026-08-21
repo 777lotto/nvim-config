@@ -18,6 +18,7 @@ return {
     "hrsh7th/cmp-nvim-lsp",
   },
   config = function()
+    local toolchain = require("config.toolchain")
     -- Make nvim-cmp's enhanced capabilities the default for EVERY server.
     -- Neovim 0.11 + mason-lspconfig v2 enable servers via automatic_enable /
     -- vim.lsp.enable(), so the old per-server `handlers` block no longer runs.
@@ -38,12 +39,10 @@ return {
       },
     })
 
-    -- ensure_installed pins the servers Mason should auto-install on a fresh
-    -- machine. automatic_enable (default true in v2) then enables each one.
+    -- Unversioned server names mean the newest Mason registry releases. The
+    -- config updater refreshes them; CI covers the supported Node range.
     require("mason-lspconfig").setup({
-      ensure_installed = {
-        "lua_ls", "pyright", "ts_ls", "html", "cssls", "jsonls", "marksman",
-      },
+      ensure_installed = vim.env.NVIM_TOOLCHAIN_SYNC == "1" and {} or toolchain.lsp_servers,
     })
 
     -- SETUP KEYMAPS (LspAttach Autocommand)

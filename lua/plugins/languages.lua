@@ -15,8 +15,12 @@ return {
   "WhoIsSethDaniel/mason-tool-installer.nvim",
   dependencies = { "williamboman/mason.nvim" },
   config = function()
+    local toolchain = require("config.toolchain")
     require("mason-tool-installer").setup({
-      ensure_installed = { "tree-sitter-cli", "prettier", "markdownlint-cli2" },
+      ensure_installed = toolchain.mason_packages,
+      -- Headless bootstrap/update commands perform one deliberate synchronous
+      -- pass instead of racing the ordinary startup installer.
+      run_on_start = vim.env.NVIM_TOOLCHAIN_SYNC ~= "1",
     })
   end,
 },
