@@ -100,4 +100,6 @@ jobs:
             The lockfile keeps installs reproducible; CI validates the refreshed
             commits across the supported Node floor, recommended release, and
             canary release before this enters bluff.
-          labels: dependencies
+          labels: |
+            type:maintenance
+            area:automation
