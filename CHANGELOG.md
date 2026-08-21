@@ -19,6 +19,9 @@ versioning for release organization.
 
 ### Changed
 
+- GitPanel uses the repository-scoped `gh-app` API wrapper and locally signed
+  Git merges when the workstation helper is installed, while other installs
+  retain the standard `gh` API backend.
 - Git workflows now use the dependency-free GitPanel exclusively; the
   Gitsigns, Diffview, Neogit, and Lazygit integrations and their keymaps were
   removed.
