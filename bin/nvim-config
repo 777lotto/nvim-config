@@ -155,8 +155,9 @@ doctor() {
 }
 
 run_nvim() {
-  NVIM_CONFIG_ROOT="$NVIM_CONFIG_ROOT" NVIM_TOOLCHAIN_SYNC=1 NVIM_TREESITTER_SKIP_INSTALL=1 \
-    nvim --headless -u "$NVIM_CONFIG_ROOT/init.lua" "$@"
+  local nvim_config_init="$NVIM_CONFIG_ROOT/init.lua"
+  env NVIM_CONFIG_ROOT="$NVIM_CONFIG_ROOT" NVIM_TOOLCHAIN_SYNC=1 NVIM_TREESITTER_SKIP_INSTALL=1 \
+    nvim --headless -u "$nvim_config_init" "$@"
 }
 
 sync_plugins() {

@@ -10,9 +10,17 @@ nvim_config_publisher="$nvim_config_test_root/publisher"
 nvim_config_consumer="$nvim_config_test_root/consumer"
 
 git init --bare --initial-branch=bet "$nvim_config_remote" >/dev/null
-git clone --quiet --no-local "$nvim_config_source_root" "$nvim_config_publisher"
-git -C "$nvim_config_publisher" checkout --quiet -B bet
-git -C "$nvim_config_publisher" remote set-url origin "$nvim_config_remote"
+mkdir --parents "$nvim_config_publisher"
+git -C "$nvim_config_source_root" archive --format=tar HEAD |
+  tar --extract --file=- --directory="$nvim_config_publisher"
+git -C "$nvim_config_publisher" init --quiet --initial-branch=bet
+git -C "$nvim_config_publisher" add .
+git -C "$nvim_config_publisher" \
+  -c user.name='nvim-config CI' \
+  -c user.email='ci@example.invalid' \
+  -c commit.gpgsign=false \
+  commit --quiet --message='test: seed updater fixture'
+git -C "$nvim_config_publisher" remote add origin "$nvim_config_remote"
 git -C "$nvim_config_publisher" push --quiet --set-upstream origin bet
 git clone --quiet --branch bet "$nvim_config_remote" "$nvim_config_consumer"
 
