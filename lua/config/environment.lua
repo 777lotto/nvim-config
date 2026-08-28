@@ -56,37 +56,59 @@ local function clipboard_bridge_path()
 end
 
 local function setup_bridge_copy(path)
-  local cached = { {}, "" }
-  local function copy_to_bridge(lines, regtype)
-    cached = { vim.deepcopy(lines), regtype }
-    vim.system({ path }, { stdin = table.concat(lines, "\n"), text = true }, function(result)
-      if result.code ~= 0 then
-        vim.schedule(function()
-          vim.notify(
-            "Toughbook clipboard copy failed: "
-              .. (is_set(result.stderr) and result.stderr or ("exit " .. result.code)),
-            vim.log.levels.WARN,
-            { title = "Clipboard bridge" }
-          )
-        end)
-      end
+  local cached = {
+    ["+"] = { {}, "" },
+    ["*"] = { {}, "" },
+  }
+
+  local function report_failure(reason)
+    vim.schedule(function()
+      vim.notify(
+        "Toughbook clipboard copy failed: " .. reason,
+        vim.log.levels.WARN,
+        { title = "Clipboard bridge" }
+      )
     end)
   end
-  local function paste_cached()
+
+  local function copy_to_bridge(register)
+    return function(lines, regtype)
+      cached[register] = { vim.deepcopy(lines), regtype }
+      -- vim.system raises synchronously when the helper cannot be spawned at
+      -- all, so an absent or non-executable binary never reaches on_exit. An
+      -- explicit NVIM_CLIPBOARD=bridge must degrade to a warning, not throw on
+      -- every yank.
+      local spawned, spawn_error = pcall(vim.system, { path }, {
+        stdin = table.concat(lines, "\n"),
+        text = true,
+      }, function(result)
+        if result.code ~= 0 then
+          report_failure(is_set(result.stderr) and result.stderr or ("exit " .. result.code))
+        end
+      end)
+      if not spawned then
+        report_failure(tostring(spawn_error))
+      end
+    end
+  end
+
+  local function paste_cached(register)
     -- Preserve ordinary `p` after a yank without allowing the remote host to
     -- read arbitrary contents from the Toughbook clipboard.
-    return { vim.deepcopy(cached[1]), cached[2] }
+    return function()
+      return { vim.deepcopy(cached[register][1]), cached[register][2] }
+    end
   end
 
   vim.g.clipboard = {
     name = "Toughbook bridge (copy only)",
     copy = {
-      ["+"] = copy_to_bridge,
-      ["*"] = copy_to_bridge,
+      ["+"] = copy_to_bridge("+"),
+      ["*"] = copy_to_bridge("*"),
     },
     paste = {
-      ["+"] = paste_cached,
-      ["*"] = paste_cached,
+      ["+"] = paste_cached("+"),
+      ["*"] = paste_cached("*"),
     },
   }
 end

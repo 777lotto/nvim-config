@@ -86,35 +86,71 @@ local function resolved_policy(helper_present, ssh, requested)
   return reloaded.clipboard_mode, type(vim.g.clipboard) == "table" and vim.g.clipboard.name or nil
 end
 
-for _, case in ipairs({
-  { helper = true, ssh = true, expected = "bridge" },
-  { helper = false, ssh = true, expected = "osc52" },
-  { helper = true, ssh = false, expected = "native" },
-  { helper = false, ssh = false, expected = "native" },
-  { helper = true, ssh = true, requested = "osc52", expected = "osc52" },
-  { helper = true, ssh = true, requested = "native", expected = "native" },
-  { helper = false, ssh = true, requested = "bridge", expected = "bridge" },
-  { helper = false, ssh = false, requested = "bridge", expected = "bridge" },
-}) do
-  local mode, provider = resolved_policy(case.helper, case.ssh, case.requested)
-  local description = ("helper=%s ssh=%s requested=%s"):format(
-    tostring(case.helper),
-    tostring(case.ssh),
-    tostring(case.requested)
-  )
-  assert(
-    mode == case.expected,
-    ("clipboard policy (%s): expected %s, got %s"):format(description, case.expected, mode)
-  )
-  assert(
-    provider == expected_providers[case.expected],
-    ("clipboard provider (%s): expected %s, got %s"):format(
-      description,
-      tostring(expected_providers[case.expected]),
-      tostring(provider)
+-- Exercise the provider itself, not just the name it registered. A copy-only
+-- provider must accept a yank even when the helper cannot be spawned, and each
+-- register must serve back exactly what was last sent to *that* register.
+local function assert_round_trip(description)
+  local provider = vim.g.clipboard
+  if type(provider) ~= "table" then
+    return
+  end
+  for _, register in ipairs({ "+", "*" }) do
+    local sent = { register .. " payload" }
+    local copied, copy_error = pcall(provider.copy[register], sent, "v")
+    assert(copied, ("clipboard copy to %q (%s) raised: %s"):format(register, description, tostring(copy_error)))
+  end
+  for _, register in ipairs({ "+", "*" }) do
+    local pasted = provider.paste[register]()
+    assert(
+      type(pasted) == "table" and type(pasted[1]) == "table",
+      ("clipboard paste from %q (%s) returned no register payload"):format(register, description)
     )
-  )
+    assert(
+      pasted[1][1] == register .. " payload",
+      ("clipboard paste from %q (%s): expected %q, got %q"):format(
+        register,
+        description,
+        register .. " payload",
+        tostring(pasted[1][1])
+      )
+    )
+  end
 end
+
+-- pcall so the isolated homes and the real environment are restored even when
+-- a case fails.
+local matrix_ok, matrix_error = pcall(function()
+  for _, case in ipairs({
+    { helper = true, ssh = true, expected = "bridge" },
+    { helper = false, ssh = true, expected = "osc52" },
+    { helper = true, ssh = false, expected = "native" },
+    { helper = false, ssh = false, expected = "native" },
+    { helper = true, ssh = true, requested = "osc52", expected = "osc52" },
+    { helper = true, ssh = true, requested = "native", expected = "native" },
+    { helper = false, ssh = true, requested = "bridge", expected = "bridge" },
+    { helper = false, ssh = false, requested = "bridge", expected = "bridge" },
+  }) do
+    local mode, provider = resolved_policy(case.helper, case.ssh, case.requested)
+    local description = ("helper=%s ssh=%s requested=%s"):format(
+      tostring(case.helper),
+      tostring(case.ssh),
+      tostring(case.requested)
+    )
+    assert(
+      mode == case.expected,
+      ("clipboard policy (%s): expected %s, got %s"):format(description, case.expected, mode)
+    )
+    assert(
+      provider == expected_providers[case.expected],
+      ("clipboard provider (%s): expected %s, got %s"):format(
+        description,
+        tostring(expected_providers[case.expected]),
+        tostring(provider)
+      )
+    )
+    assert_round_trip(description)
+  end
+end)
 
 for _, home in pairs(homes) do
   vim.fn.delete(home, "rf")
@@ -123,5 +159,6 @@ vim.env.HOME = original_home
 vim.env.SSH_TTY = original_ssh_tty
 vim.env.SSH_CONNECTION = original_ssh_connection
 vim.env.NVIM_CLIPBOARD = original_requested
+assert(matrix_ok, matrix_error)
 
 print("Clipboard policy matrix passed with and without the bridge helper")
