@@ -122,12 +122,12 @@ config and its plugins from working checkouts at the same time.
 
 `dev/` is a gitignored directory at the repository root. lazy.nvim's dev mode
 is configured in `lua/config/lazy.lua` to look there for any plugin whose spec
-matches `777lotto`:
+matches `777lotto`, except during a maintenance run:
 
 ```lua
 dev = {
   path = (vim.env.NVIM_CONFIG_ROOT or vim.fn.stdpath("config")) .. "/dev",
-  patterns = { "777lotto" },
+  patterns = vim.env.NVIM_TOOLCHAIN_SYNC == "1" and {} or { "777lotto" },
   fallback = true,
 }
 ```
