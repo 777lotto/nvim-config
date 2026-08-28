@@ -68,7 +68,52 @@ Release checklist:
 5. create and push a signed `vX.Y.Z` tag from `bet`;
 6. publish GitHub release notes and test a clean archive/bootstrap.
 
-### Dev plane
+## GitHub presentation
+
+The repository landing page should contain:
+
+- a precise description and relevant discovery topics;
+- CI, Neovim-version, release, and license badges;
+- a support matrix that distinguishes Debian desktop, Debian SSH, and
+  experimental macOS behavior;
+- structured issue forms and a pull-request checklist;
+- an MIT license, contribution guide, security policy, and code of conduct;
+- a screenshot or social-preview card showing the editor and GitPanel.
+
+Keep user installation and feature documentation in `README.md`, architecture
+and maintainer policy in `docs/`, and user-visible changes in `CHANGELOG.md`.
+
+## CI and repository rules
+
+The baseline workflow has these stable checks:
+
+- `quality`: Bash syntax, ShellCheck, and whitespace validation;
+- `debian-smoke`: pinned Neovim, Lua compilation, local clipboard policy, and
+  simulated SSH/OSC 52 policy inside Debian 13;
+- `toolchain`: latest Node-backed tools on Node 22 (floor), Node 24
+  (recommended), and Node 26 (canary), plus centralized-manifest validation;
+- `bootstrap`: the real installer in isolated XDG directories on Node 24.
+
+The `bet` ruleset should block deletion and force pushes, require verified
+signatures, require pull requests, and require the CI checks plus a successful
+promotion-source check. The `bluff` ruleset should block deletion and force
+pushes and require verified signatures and CI for pull requests.
+
+No approving review is required while the project has one maintainer. GitHub
+Environments are reserved for actual deployment or release secrets; they are
+not used to classify operating systems.
+
+## GitHub Project
+
+The public account-level **Neovim Workspace** Project is the cross-repository
+planning surface for `nvim-config` and `git-panel.nvim`. Repository and labels
+remain the source of truth for ownership, platform, type, and area. Project
+fields add only planning state such as Status, Priority, Size, and Target date.
+
+Recommended views are an all-work status board, repository-filtered Config and
+GitPanel boards, Debian/macOS label views, and a release roadmap.
+
+## Dev plane
 
 Plugins stay independent repositories: their own history, CI, releases, and a
 resolved commit in this repository's `lazy-lock.json`. Nothing below changes
@@ -116,50 +161,14 @@ as present, which is what lets both layouts coexist.
 `https://github.com/777lotto`. A machine that reaches GitHub through a broker
 or mirror sets that variable instead of editing the script.
 
-## GitHub presentation
-
-The repository landing page should contain:
-
-- a precise description and relevant discovery topics;
-- CI, Neovim-version, release, and license badges;
-- a support matrix that distinguishes Debian desktop, Debian SSH, and
-  experimental macOS behavior;
-- structured issue forms and a pull-request checklist;
-- an MIT license, contribution guide, security policy, and code of conduct;
-- a screenshot or social-preview card showing the editor and GitPanel.
-
-Keep user installation and feature documentation in `README.md`, architecture
-and maintainer policy in `docs/`, and user-visible changes in `CHANGELOG.md`.
-
-## CI and repository rules
-
-The baseline workflow has these stable checks:
-
-- `quality`: Bash syntax, ShellCheck, and whitespace validation;
-- `debian-smoke`: pinned Neovim, Lua compilation, local clipboard policy, and
-  simulated SSH/OSC 52 policy inside Debian 13;
-- `toolchain`: latest Node-backed tools on Node 22 (floor), Node 24
-  (recommended), and Node 26 (canary), plus centralized-manifest validation;
-- `bootstrap`: the real installer in isolated XDG directories on Node 24.
-
-The `bet` ruleset should block deletion and force pushes, require verified
-signatures, require pull requests, and require the CI checks plus a successful
-promotion-source check. The `bluff` ruleset should block deletion and force
-pushes and require verified signatures and CI for pull requests.
-
-No approving review is required while the project has one maintainer. GitHub
-Environments are reserved for actual deployment or release secrets; they are
-not used to classify operating systems.
-
-## GitHub Project
-
-The public account-level **Neovim Workspace** Project is the cross-repository
-planning surface for `nvim-config` and `git-panel.nvim`. Repository and labels
-remain the source of truth for ownership, platform, type, and area. Project
-fields add only planning state such as Status, Priority, Size, and Target date.
-
-Recommended views are an all-work status board, repository-filtered Config and
-GitPanel boards, Debian/macOS label views, and a release roadmap.
+Dev mode is deliberately off during maintenance. lazy.nvim treats a plugin
+resolved outside its own root as local and omits local plugins from the
+lockfile it writes, so a `nvim-config sync` on a machine with `dev/` populated
+would delete exactly those plugins' committed pins. Every `bin/nvim-config` run
+and the dependency-refresh workflow already set `NVIM_TOOLCHAIN_SYNC`, and
+`lua/config/lazy.lua` disables dev matching when it is set: maintenance
+resolves those plugins from their pins and rewrites `lazy-lock.json`
+faithfully, exactly as it does on a machine with no `dev/` at all.
 
 ## Published plugins
 

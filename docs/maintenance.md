@@ -41,6 +41,11 @@ it, and every task has a documented direct equivalent.
 | `mise run plugins:check` | compile-check every `dev/` plugin that has Lua |
 | `mise run test-sync` | `update`, then `plugins:pull`, then `doctor` |
 
+Always use the explicit `mise run <task>` form. Mise ships its own top-level
+`doctor` and `sync` subcommands, so a bare `mise doctor` or `mise sync` runs
+Mise's command rather than this repository's task, and exits 0 without
+indicating that anything was shadowed.
+
 ### Manual testing loop
 
 To exercise integration-branch config against integration-branch plugins:
@@ -55,9 +60,15 @@ at startup, so a running session keeps the checkouts it loaded with.
 
 `plugins:pull` refuses loudly on a dirty or diverged checkout rather than
 touching your work; resolve those in the plugin's own repository. `dev/` is
-gitignored and never enters a commit here, and none of these tasks write
-`lazy-lock.json`: a dependency pin still moves only through the documented
-dependency-refresh flow.
+gitignored and never enters a commit here.
+
+A dependency pin still moves only through the documented dependency-refresh
+flow. `update` and `sync` do rewrite `lazy-lock.json` through lazy.nvim, as
+they always have, but they write the same content on a machine with `dev/`
+populated as on one without it: `bin/nvim-config` sets `NVIM_TOOLCHAIN_SYNC`,
+and `lua/config/lazy.lua` turns dev matching off when it is set. Without that
+guard lazy.nvim would treat each dev plugin as local and drop its pin from the
+lockfile entirely.
 
 ## Version policy
 

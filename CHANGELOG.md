@@ -27,7 +27,8 @@ versioning for release organization.
 - lazy.nvim dev mode for this account's own plugins. When `dev/` holds a
   checkout or symlink for a `777lotto` plugin it is loaded from there;
   `fallback = true` keeps every machine without `dev/` resolving from the
-  committed `lazy-lock.json` pins.
+  committed `lazy-lock.json` pins, and dev matching is off during
+  `nvim-config` maintenance runs so they never rewrite a dev plugin's pin.
 
 ### Changed
 

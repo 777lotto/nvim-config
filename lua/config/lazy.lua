@@ -22,9 +22,16 @@ require("lazy").setup("plugins", {
   -- either is published. dev/ is gitignored and absent on every ordinary
   -- install; fallback keeps those machines resolving from the GitHub pins in
   -- lazy-lock.json.
+  --
+  -- Maintenance runs opt out. lazy.nvim treats a plugin resolved outside its
+  -- root as local and omits local plugins from the lockfile it writes, so a
+  -- `nvim-config sync` on a machine with dev/ populated would silently delete
+  -- exactly those plugins' committed pins. NVIM_TOOLCHAIN_SYNC already marks
+  -- every bin/nvim-config run and the dependency refresh; with dev matching
+  -- off they resolve from the pins and rewrite the lock faithfully.
   dev = {
     path = (vim.env.NVIM_CONFIG_ROOT or vim.fn.stdpath("config")) .. "/dev",
-    patterns = { "777lotto" },
+    patterns = vim.env.NVIM_TOOLCHAIN_SYNC == "1" and {} or { "777lotto" },
     fallback = true,
   },
 })

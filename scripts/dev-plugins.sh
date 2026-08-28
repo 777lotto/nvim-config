@@ -5,7 +5,15 @@
 # real clones or symlinks to canonical ones, and is never committed.
 set -euo pipefail
 
-dev_plugins_root="$(cd -P "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Resolve a symlink to this script the way bin/nvim-config does, so a shim on
+# PATH still finds the repository the script actually lives in.
+dev_plugins_source="${BASH_SOURCE[0]}"
+while [ -h "$dev_plugins_source" ]; do
+  dev_plugins_dirname="$(cd -P "$(dirname "$dev_plugins_source")" >/dev/null 2>&1 && pwd)"
+  dev_plugins_source="$(readlink "$dev_plugins_source")"
+  [[ "$dev_plugins_source" != /* ]] && dev_plugins_source="$dev_plugins_dirname/$dev_plugins_source"
+done
+dev_plugins_root="$(cd -P "$(dirname "$dev_plugins_source")/.." && pwd)"
 dev_plugins_dir="$dev_plugins_root/dev"
 dev_plugins_base="${NVIM_DEV_GIT_BASE:-https://github.com/777lotto}"
 dev_plugins_branch="${NVIM_DEV_GIT_BRANCH:-bluff}"
@@ -31,8 +39,14 @@ dev_plugins_present() {
   [ -e "$1" ] || [ -L "$1" ]
 }
 
+# dev/ lives inside this repository's own working tree, so `rev-parse` alone
+# would happily walk up out of an empty or half-cloned entry and answer for the
+# config repository instead. Require the entry to be a checkout root.
 dev_plugins_is_repo() {
-  git -C "$1" rev-parse --git-dir >/dev/null 2>&1
+  local top
+  top="$(git -C "$1" rev-parse --show-toplevel 2>/dev/null)" || return 1
+  [ -n "$top" ] || return 1
+  [ "$(cd -P "$1" >/dev/null 2>&1 && pwd)" = "$(cd -P "$top" >/dev/null 2>&1 && pwd)" ]
 }
 
 dev_plugins_clone() {
@@ -45,7 +59,7 @@ dev_plugins_clone() {
       continue
     fi
     log "$name: cloning $dev_plugins_base/$name.git ($dev_plugins_branch)"
-    git clone --branch "$dev_plugins_branch" "$dev_plugins_base/$name.git" "$path"
+    git clone --branch "$dev_plugins_branch" -- "$dev_plugins_base/$name.git" "$path"
   done
 }
 
