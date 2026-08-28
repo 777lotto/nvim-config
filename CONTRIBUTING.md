@@ -22,7 +22,8 @@ Do not target `bet` directly for ordinary changes.
 5. Run the local checks:
 
    ```sh
-   bash -n bootstrap.sh bin/nvim-config
+   bash -n bootstrap.sh bin/nvim-config scripts/ci/*.sh
+   shellcheck bootstrap.sh bin/nvim-config scripts/ci/*.sh
    nvim --headless --clean -l scripts/ci/check-lua.lua .
    nvim --headless --clean -l scripts/toolchain.lua . validate
    nvim --headless --clean -l scripts/ci/smoke-core.lua . native
@@ -30,7 +31,11 @@ Do not target `bet` directly for ordinary changes.
      -l scripts/ci/smoke-core.lua . osc52
    # Run on the recommended Node release from a committed checkout:
    bash scripts/ci/test-update.sh
+   git diff --check
    ```
+
+   The updater integration command also runs the focused Mise query/range tests
+   with isolated Bash, TOML, and KDL parsers and a Mise-free startup smoke test.
 
 6. Sign human commits using a GitHub-verified GPG, SSH, or S/MIME signature.
    Approved dependency-refresh automation may use its GitHub bot identity.

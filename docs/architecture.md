@@ -5,8 +5,9 @@
 `init.lua` is an ordered entrypoint:
 
 ```text
-environment policy → options → keymaps → diagnostic policy → autocmds → lazy.nvim
-                                                                        └─ imports lua/plugins/*.lua
+environment policy → Mise query predicate → options → keymaps → diagnostics
+                                                               → autocmds → lazy.nvim
+                                                                            └─ imports lua/plugins/*.lua
 ```
 
 The `lua/config/` modules control Neovim itself. The `lua/plugins/` modules
@@ -37,6 +38,21 @@ file manager. ToggleTerm uses Neovim's configured shell, and nvim-tree and Oil
 are internal editor interfaces, so all three are portable. Thunar and the
 `.desktop` entry run before Neovim starts and must receive the correct XFCE
 session environment independently.
+
+## Mise query boundary
+
+`lua/config/mise.lua` registers the `is-mise?` predicate before lazy.nvim can
+load a Treesitter query. It classifies only Mise's default TOML configuration
+names and grouped configuration/fragment paths; it does not shell out to Mise,
+and ordinary TOML remains unaffected. Query extensions live under
+`after/queries/`: TOML `run` values can inject their script language, while
+Bash file-task directives inject TOML or KDL. Bash is the only file-task source
+language enabled because it is the established task convention; other source
+languages should be added only with a concrete repository convention.
+
+The Bash, TOML, and KDL parsers and their activating filetypes remain in
+`lua/config/toolchain.lua`, alongside every other managed parser. This keeps
+bootstrap, updates, interactive startup, and headless validation synchronized.
 
 ## How the UI layers fit together
 

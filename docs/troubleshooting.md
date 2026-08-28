@@ -111,6 +111,19 @@ Run `:ConformInfo`. For a Prettier-supported file, it should show either the
 project-local Prettier binary or Mason's fallback. Plain text, Lua, Python, C,
 and XML are intentionally not assigned to Prettier.
 
+## Mise embedded highlighting does not appear
+
+Run `:set filetype?` and `:Inspect`. Mise TOML should use the `toml` filetype,
+and Bash file tasks should use `sh`. If Neovim reports a missing Bash, TOML, or
+KDL parser, run `nvim-config sync`; use `nvim-config sync --latest` when the
+installed parser or its upstream queries are stale.
+
+The `run` injection is intentionally restricted to Mise's default config names,
+environment/local variants, grouped `mise` / `.mise` config paths, and their
+non-hidden `conf.d` TOML fragments. A generic `config.toml` or `settings.toml`
+with a `run` key is not a Mise config and stays plain TOML. The `mise`
+executable is optional and is not a `nvim-config doctor` check.
+
 ## Clipboard on the XFCE client and over SSH
 
 The default `NVIM_CLIPBOARD=auto` policy has two paths:

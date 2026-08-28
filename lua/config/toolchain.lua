@@ -18,13 +18,13 @@ M.node = {
 M.parsers = {
   "c", "lua", "vim", "vimdoc", "query", "javascript", "typescript",
   "tsx", "python", "html", "xml", "css", "json", "markdown",
-  "markdown_inline",
+  "markdown_inline", "bash", "toml", "kdl",
 }
 
 M.parser_filetypes = {
   "c", "lua", "vim", "help", "query", "javascript", "javascriptreact",
   "typescript", "typescriptreact", "python", "html", "xml", "css", "json",
-  "jsonc", "markdown",
+  "jsonc", "markdown", "sh", "toml", "kdl",
 }
 
 -- mason-lspconfig uses Neovim LSP server names.

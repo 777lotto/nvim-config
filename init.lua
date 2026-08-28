@@ -3,6 +3,7 @@
 -- plugin specifications under lua/plugins, and reusable local plugins under
 -- local-plugins/.
 require("config.environment").setup()
+require("config.mise").setup()
 require("config.options")
 require("config.keymaps")
 require("config.diagnostics")

@@ -32,6 +32,11 @@ resolution.
 - Treesitter parsers, Mason package names, and LSP server names are centralized
   so bootstrap, startup, CI, and docs cannot silently drift.
 
+The managed parser list includes Bash, TOML, and KDL for the optional Mise
+query extensions. `nvim-config sync` installs any missing parser, while
+`nvim-config sync --latest` refreshes parsers and their upstream queries. These
+operations do not install or invoke Mise itself.
+
 lazy.nvim dependencies use exact commits in `lazy-lock.json`. This is the
 latest-tested model: automation proposes current commits, CI tests them, and
 merging the PR advances the reproducible lock. Mason entries intentionally have

@@ -47,4 +47,6 @@ if NVIM_CONFIG_DIR="$nvim_config_consumer" \
   exit 1
 fi
 
+bash "$nvim_config_source_root/scripts/ci/test-mise.sh" "$nvim_config_source_root"
+
 printf '%s\n' "Whole-config updater integration passed"
