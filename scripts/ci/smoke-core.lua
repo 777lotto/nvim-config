@@ -5,6 +5,7 @@ vim.opt.runtimepath:prepend(vim.fn.fnamemodify(root, ":p"))
 
 local environment = require("config.environment")
 environment.setup()
+require("config.mise").setup()
 require("config.options")
 require("config.keymaps")
 require("config.diagnostics")
@@ -17,6 +18,7 @@ assert(toolchain.node.recommended_major == 24, "unexpected recommended Node rele
 assert(toolchain.node.canary_major == 26, "unexpected Node canary release")
 assert(#toolchain.parsers >= 10, "Treesitter parser inventory is incomplete")
 assert(#toolchain.mason_packages >= 10, "Mason package inventory is incomplete")
+assert(vim.list_contains(vim.treesitter.query.list_predicates(), "is-mise?"), "Mise query predicate is missing")
 
 local operations = assert(loadfile(root .. "/lua/plugins/operations.lua"))()
 local mcp_buff = assert(operations[1], "MCP Buff plugin spec is missing")

@@ -16,6 +16,8 @@ versioning for release organization.
   manifest plus latest-tested dependency automation.
 - MCP Buff on its production `bet` branch, restricted to the documented
   loopback endpoint.
+- Optional Mise-aware Treesitter injections for config `run` scripts and Bash
+  file-task MISE/USAGE directives, with managed Bash, TOML, and KDL parsers.
 
 ### Changed
 

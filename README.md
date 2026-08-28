@@ -70,12 +70,31 @@ the process before this configuration loads.
 | Python | Treesitter | `pyright` | — |
 | Markdown, MDX | Treesitter + render-markdown | `marksman` | Prettier + markdownlint-cli2 |
 | XML | Treesitter | — | — |
+| Bash / shell | Treesitter + Mise file-task injections | — | — |
+| TOML | Treesitter + Mise `run` injections | — | — |
+| KDL | Treesitter (including embedded Mise usage specs) | — | — |
 
 Prettier is also configured for JSON5, SCSS, Less, Vue, GraphQL, Handlebars,
 Angular HTML, and YAML. It is deliberately not assigned to Lua, Python, C, XML,
 or plain text because Prettier does not parse those languages. Those can receive
 their own formatters later (for example StyLua or Ruff) without changing the
 Prettier policy.
+
+### Optional Mise highlighting
+
+Mise configuration receives syntax-aware embedded highlighting without making
+Mise an editor dependency. Single-line `run` strings and multiline strings
+without a shebang use Bash; multiline `env` and direct-interpreter shebangs use
+the named language. The predicate recognizes Mise's default project, local,
+environment, grouped `config.toml`, and non-hidden `conf.d/*.toml` paths. A
+generic TOML file with a `run` key is intentionally left as TOML.
+
+Bash file tasks highlight `#MISE`, `#[MISE]`, and `# [MISE]` bodies as TOML,
+and the corresponding `USAGE` forms as KDL. Consecutive USAGE directives are
+parsed as one multi-node KDL region on Neovim 0.12. Mise itself remains an
+optional external command: startup, bootstrap, and `nvim-config doctor` do not
+invoke or require it. The managed Bash, TOML, and KDL parsers are installed by
+bootstrap or `nvim-config sync` and updated by `nvim-config sync --latest`.
 
 ## Requirements
 
@@ -151,10 +170,12 @@ refreshing unpinned Mason tools and parsers without changing plugin lock policy.
 ```text
 .
 ├── .github/                         # CI, issue forms, and PR guidance
+├── after/queries/                   # query extensions for embedded languages
 ├── init.lua                         # intentionally tiny startup entrypoint
 ├── lua/
 │   ├── config/
 │   │   ├── environment.lua          # environment detection and clipboard policy
+│   │   ├── mise.lua                 # Mise path predicate; no CLI dependency
 │   │   ├── options.lua              # environment-independent editor options
 │   │   ├── keymaps.lua              # global mappings and edit commands
 │   │   ├── diagnostics.lua          # one diagnostic presentation policy
