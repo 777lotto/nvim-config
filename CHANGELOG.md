@@ -47,6 +47,12 @@ versioning for release organization.
   the managed Node-backed tools on all three lanes.
 - The copy-only clipboard providers now serve `p` from the text they last sent
   instead of an empty register. Neither provider reads the client clipboard.
+- The tested `git-panel.nvim` pin advances to its current `bet` head, which
+  carries the locally signed Git merge backend this configuration already
+  selects when the workstation `gh-app` helper is installed.
+- `lazy-lock.json` is stored in lazy.nvim's own key order, so a plain
+  `nvim-config sync` no longer leaves the worktree dirty with a `mcp-buff`
+  reorder that changes no pin.
 
 ## 0.1.0 - 2026-08-15
 
