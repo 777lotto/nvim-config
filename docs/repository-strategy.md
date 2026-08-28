@@ -68,6 +68,54 @@ Release checklist:
 5. create and push a signed `vX.Y.Z` tag from `bet`;
 6. publish GitHub release notes and test a clean archive/bootstrap.
 
+### Dev plane
+
+Plugins stay independent repositories: their own history, CI, releases, and a
+resolved commit in this repository's `lazy-lock.json`. Nothing below changes
+that. `dev/` is on-disk organization for a maintainer who wants to run the
+config and its plugins from working checkouts at the same time.
+
+`dev/` is a gitignored directory at the repository root. lazy.nvim's dev mode
+is configured in `lua/config/lazy.lua` to look there for any plugin whose spec
+matches `777lotto`:
+
+```lua
+dev = {
+  path = (vim.env.NVIM_CONFIG_ROOT or vim.fn.stdpath("config")) .. "/dev",
+  patterns = { "777lotto" },
+  fallback = true,
+}
+```
+
+`fallback = true` is the guarantee that matters for everyone else: a machine
+with no `dev/` directory, or one missing a particular plugin, resolves that
+plugin from its `lazy-lock.json` pin exactly as before. Dev mode is opt-in by
+the presence of a directory, never by configuration a user has to undo.
+
+Each entry may be a real clone or a symlink to a canonical one. A standalone
+machine runs `mise run plugins:clone` and gets real clones on `bluff`. A
+workstation that already keeps canonical clones elsewhere symlinks them in, so
+one checkout serves both the coordination clone and the editor:
+
+```text
+dev/
+├── git-panel.nvim      -> ../../git-panel.nvim
+├── mcp-buff            -> ../../mcp-buff
+├── UX-foundation.nvim  -> ../../ux-foundation.nvim
+├── UX-styling.nvim     -> ../../ux-styling.nvim
+├── UX-chrome.nvim      -> ../../ux-chrome.nvim
+└── agent-manager.nvimz -> ../../agent-manager.nvimz
+```
+
+Directory names are the lazy.nvim plugin names and are case-sensitive, so they
+must match the repository names exactly even when the symlink target is
+lowercase. `scripts/dev-plugins.sh` treats an existing directory *or* symlink
+as present, which is what lets both layouts coexist.
+
+`scripts/dev-plugins.sh` clones from `$NVIM_DEV_GIT_BASE`, defaulting to
+`https://github.com/777lotto`. A machine that reaches GitHub through a broker
+or mirror sets that variable instead of editing the script.
+
 ## GitHub presentation
 
 The repository landing page should contain:
