@@ -21,6 +21,14 @@ versioning for release organization.
 - A copy-only Toughbook clipboard bridge for SSH sessions. `NVIM_CLIPBOARD=auto`
   selects it when `~/.local/bin/toughbook-copy` is executable and keeps OSC 52
   as the portable fallback; `NVIM_CLIPBOARD=bridge` requests it explicitly.
+- An optional `mise.toml` task façade over `bin/nvim-config` plus fleet tasks
+  over a gitignored `dev/` directory. Mise declares no toolchain here and
+  remains optional; every task has a direct equivalent.
+- lazy.nvim dev mode for this account's own plugins. When `dev/` holds a
+  checkout or symlink for a `777lotto` plugin it is loaded from there;
+  `fallback = true` keeps every machine without `dev/` resolving from the
+  committed `lazy-lock.json` pins, and dev matching is off during
+  `nvim-config` maintenance runs so they never rewrite a dev plugin's pin.
 
 ### Changed
 

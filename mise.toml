@@ -1,0 +1,37 @@
+# Task façade for bin/nvim-config plus fleet operations over the gitignored
+# dev/ plugin checkouts. Mise remains optional: nothing in the editor or
+# bootstrap depends on it, and no [tools] section lives here because
+# lua/config/toolchain.lua, Mason, and the machine's own Mise configuration
+# already own tool provisioning.
+
+[tasks.update]
+description = "Fetch upstream, fast-forward, reconcile affected dependencies"
+run = "bin/nvim-config update"
+
+[tasks.doctor]
+description = "Check repository state and supported runtime versions"
+run = "bin/nvim-config doctor"
+
+[tasks.sync]
+description = "Restore the plugin lock and install missing tools"
+run = "bin/nvim-config sync"
+
+[tasks."plugins:clone"]
+description = "Ensure every fleet plugin checkout exists under dev/ on bluff"
+run = "scripts/dev-plugins.sh clone"
+
+[tasks."plugins:pull"]
+description = "Fast-forward every dev/ plugin checkout"
+run = "scripts/dev-plugins.sh pull"
+
+[tasks."plugins:status"]
+description = "One-line branch/dirty/ahead-behind status per dev/ checkout"
+run = "scripts/dev-plugins.sh status"
+
+[tasks."plugins:check"]
+description = "Compile-check every dev/ plugin that has Lua sources"
+run = "scripts/dev-plugins.sh check"
+
+[tasks.test-sync]
+description = "One-shot bluff sync before manual testing"
+run = [{ task = "update" }, { task = "plugins:pull" }, { task = "doctor" }]
