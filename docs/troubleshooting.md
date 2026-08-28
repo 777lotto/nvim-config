@@ -130,25 +130,25 @@ The default `NVIM_CLIPBOARD=auto` policy has two paths:
 
 - Locally on the Debian XFCE/X11 client, Neovim selects its native clipboard
   provider. This machine has `xclip` installed.
-- On the future headless Debian server, `SSH_TTY` or `SSH_CONNECTION` selects
-  copy-only OSC 52 so yanks can reach the clipboard owned by Xfce Terminal on
-  the client.
+- Over `ssh ai` or `ssh zem`, `SSH_TTY` or `SSH_CONNECTION` selects the
+  copy-only Toughbook bridge when `~/.local/bin/toughbook-copy` is installed.
+  The SSH reverse forward carries yanks to the Xfce clipboard without exposing
+  clipboard reads to the remote host. OSC 52 remains the portable fallback.
 
-The remote path is configured but has not yet been validated end-to-end because
-Neovim is not installed on the server. After deployment, test without tmux
-first:
+Test the remote path without tmux first:
 
-1. Run `:EnvironmentInfo` remotely and confirm `Clipboard policy: osc52`.
-2. Yank a short line in Neovim; `unnamedplus` should send it through OSC 52.
+1. Run `:EnvironmentInfo` remotely and confirm `Clipboard policy: bridge`.
+2. Yank a short line in Neovim; `unnamedplus` should invoke
+   `~/.local/bin/toughbook-copy`.
 3. Paste into a local XFCE application and confirm the exact text arrived.
-4. Test again through tmux only after the direct SSH path works, because a
-   multiplexer may require OSC 52 passthrough configuration.
+4. Test again through tmux; tmux copy mode and Neovim use the same bridge.
 
-OSC 52 clipboard reads are intentionally disabled because terminal support
-varies and remote clipboard reads have security implications. Paste into remote
-Neovim using Xfce Terminal's normal paste action; `"+p` is intentionally not a
-remote clipboard-read mechanism. This follows Neovim's
+Remote clipboard reads are intentionally disabled because they expose local
+clipboard contents to remote programs. Paste into remote Neovim using Xfce
+Terminal's normal paste action; `"+p` is intentionally not a remote
+clipboard-read mechanism. The OSC 52 fallback follows Neovim's
 [OSC 52 provider guidance](https://neovim.io/doc/user/provider.html#clipboard-osc52).
 
 For an unusual machine or forwarded clipboard setup, override detection for one
-launch with `NVIM_CLIPBOARD=native nvim` or `NVIM_CLIPBOARD=osc52 nvim`.
+launch with `NVIM_CLIPBOARD=native nvim`, `NVIM_CLIPBOARD=bridge nvim`, or
+`NVIM_CLIPBOARD=osc52 nvim`.

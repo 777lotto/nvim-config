@@ -25,6 +25,7 @@ M.ssh_auth_sock = first_set(vim.env.SSH_AUTH_SOCK)
 
 local valid_clipboard_modes = {
   auto = true,
+  bridge = true,
   native = true,
   osc52 = true,
 }
@@ -41,7 +42,7 @@ local function requested_clipboard_mode()
 
   vim.schedule(function()
     vim.notify(
-      ("Ignoring invalid NVIM_CLIPBOARD=%q; expected auto, native, or osc52"):format(mode),
+      ("Ignoring invalid NVIM_CLIPBOARD=%q; expected auto, bridge, native, or osc52"):format(mode),
       vim.log.levels.WARN,
       { title = "Environment policy" }
     )
@@ -49,24 +50,97 @@ local function requested_clipboard_mode()
   return "auto"
 end
 
+local function clipboard_bridge_path()
+  local path = vim.fn.expand("~/.local/bin/toughbook-copy")
+  return vim.fn.executable(path) == 1 and path or nil
+end
+
+local function setup_bridge_copy(path)
+  local cached = {
+    ["+"] = { {}, "" },
+    ["*"] = { {}, "" },
+  }
+
+  local function report_failure(reason)
+    vim.schedule(function()
+      vim.notify(
+        "Toughbook clipboard copy failed: " .. reason,
+        vim.log.levels.WARN,
+        { title = "Clipboard bridge" }
+      )
+    end)
+  end
+
+  local function copy_to_bridge(register)
+    return function(lines, regtype)
+      cached[register] = { vim.deepcopy(lines), regtype }
+      -- vim.system raises synchronously when the helper cannot be spawned at
+      -- all, so an absent or non-executable binary never reaches on_exit. An
+      -- explicit NVIM_CLIPBOARD=bridge must degrade to a warning, not throw on
+      -- every yank.
+      local spawned, spawn_error = pcall(vim.system, { path }, {
+        stdin = table.concat(lines, "\n"),
+        text = true,
+      }, function(result)
+        if result.code ~= 0 then
+          report_failure(is_set(result.stderr) and result.stderr or ("exit " .. result.code))
+        end
+      end)
+      if not spawned then
+        report_failure(tostring(spawn_error))
+      end
+    end
+  end
+
+  local function paste_cached(register)
+    -- Preserve ordinary `p` after a yank without allowing the remote host to
+    -- read arbitrary contents from the Toughbook clipboard.
+    return function()
+      return { vim.deepcopy(cached[register][1]), cached[register][2] }
+    end
+  end
+
+  vim.g.clipboard = {
+    name = "Toughbook bridge (copy only)",
+    copy = {
+      ["+"] = copy_to_bridge("+"),
+      ["*"] = copy_to_bridge("*"),
+    },
+    paste = {
+      ["+"] = paste_cached("+"),
+      ["*"] = paste_cached("*"),
+    },
+  }
+end
+
 local function setup_osc52_copy()
   local osc52 = require("vim.ui.clipboard.osc52")
-  local function paste_with_terminal()
-    -- OSC 52 clipboard reads are not consistently supported and can expose
-    -- clipboard contents to remote programs. Use the client terminal's paste
-    -- action instead; bracketed paste lets Neovim receive it safely.
-    return { {}, "" }
+  local cached = {
+    ["+"] = { {}, "" },
+    ["*"] = { {}, "" },
+  }
+  local function copy_and_cache(register)
+    local send = osc52.copy(register)
+    return function(lines, regtype)
+      cached[register] = { vim.deepcopy(lines), regtype }
+      send(lines, regtype)
+    end
+  end
+  local function paste_cached(register)
+    return function()
+      return { vim.deepcopy(cached[register][1]), cached[register][2] }
+    end
   end
 
   vim.g.clipboard = {
     name = "OSC 52 (copy only)",
     copy = {
-      ["+"] = osc52.copy("+"),
-      ["*"] = osc52.copy("*"),
+      ["+"] = copy_and_cache("+"),
+      ["*"] = copy_and_cache("*"),
     },
     paste = {
-      ["+"] = paste_with_terminal,
-      ["*"] = paste_with_terminal,
+      ["+"] = paste_cached("+"),
+      ["*"] = paste_cached("*"),
     },
   }
 end
@@ -91,14 +165,21 @@ end
 function M.setup()
   route_ssh_through_gpg_agent()
   local mode = requested_clipboard_mode()
+  local bridge_path = clipboard_bridge_path()
   if mode == "auto" then
-    mode = M.is_ssh and "osc52" or "native"
+    if M.is_ssh then
+      mode = bridge_path and "bridge" or "osc52"
+    else
+      mode = "native"
+    end
   end
 
   -- "native" deliberately leaves g:clipboard unset so Neovim can choose the
   -- available local clipboard provider itself.
   vim.opt.clipboard = "unnamedplus"
-  if mode == "osc52" then
+  if mode == "bridge" then
+    setup_bridge_copy(bridge_path or vim.fn.expand("~/.local/bin/toughbook-copy"))
+  elseif mode == "osc52" then
     setup_osc52_copy()
   end
   M.clipboard_mode = mode
