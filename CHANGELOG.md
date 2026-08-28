@@ -18,6 +18,9 @@ versioning for release organization.
   loopback endpoint.
 - Optional Mise-aware Treesitter injections for config `run` scripts and Bash
   file-task MISE/USAGE directives, with managed Bash, TOML, and KDL parsers.
+- A copy-only Toughbook clipboard bridge for SSH sessions. `NVIM_CLIPBOARD=auto`
+  selects it when `~/.local/bin/toughbook-copy` is executable and keeps OSC 52
+  as the portable fallback; `NVIM_CLIPBOARD=bridge` requests it explicitly.
 
 ### Changed
 
@@ -34,6 +37,8 @@ versioning for release organization.
 - Node 22 is the supported floor, Node 24 is the recommended default, and Node
   26 is the forward-compatibility canary. CI exercises the latest releases of
   the managed Node-backed tools on all three lanes.
+- The copy-only clipboard providers now serve `p` from the text they last sent
+  instead of an empty register. Neither provider reads the client clipboard.
 
 ## 0.1.0 - 2026-08-15
 

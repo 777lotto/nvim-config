@@ -337,10 +337,12 @@ while still allowing its newest compatible patch release.
 
 `lua/config/environment.lua` keeps machine-dependent behavior in one place.
 The default `NVIM_CLIPBOARD=auto` policy selects Neovim's native provider on a
-local desktop and copy-only OSC 52 when `SSH_TTY` or `SSH_CONNECTION` indicates
-an SSH session. Set `NVIM_CLIPBOARD=native` or `NVIM_CLIPBOARD=osc52` to override
-that decision for a particular launch. Run `:EnvironmentInfo` to see the
-desktop, terminal, SSH agent socket, and clipboard policy Neovim inherited.
+local desktop. In an SSH session it uses the one-way Toughbook clipboard bridge
+when `~/.local/bin/toughbook-copy` is installed, with copy-only OSC 52 as the
+portable fallback. Set `NVIM_CLIPBOARD=native`, `NVIM_CLIPBOARD=bridge`, or
+`NVIM_CLIPBOARD=osc52` to override that decision for a particular launch. Run
+`:EnvironmentInfo` to see the desktop, terminal, SSH agent socket, and clipboard
+policy Neovim inherited.
 
 Automatic detection is intentionally limited to behavior Neovim controls.
 When `gpgconf` is available, Neovim routes child Git and SSH processes through
