@@ -43,10 +43,13 @@ jobs:
           fetch-depth: 2
 
       - name: Check shell syntax
-        run: bash -n bootstrap.sh bin/nvim-config
+        run: |
+          for script in bootstrap.sh bin/nvim-config scripts/dev-plugins.sh scripts/ci/*.sh; do
+            bash -n "$script"
+          done
 
       - name: Run ShellCheck
-        run: shellcheck bootstrap.sh bin/nvim-config
+        run: shellcheck bootstrap.sh bin/nvim-config scripts/dev-plugins.sh scripts/ci/*.sh
 
       - name: Reject whitespace errors
         run: git diff --check HEAD^ HEAD
