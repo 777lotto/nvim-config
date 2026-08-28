@@ -16,4 +16,3 @@
 - [ ] I reviewed any `lazy-lock.json` change intentionally.
 - [ ] Runtime/tool changes preserve the Node 22 / 24 / 26 compatibility lanes.
 - [ ] I updated documentation and `CHANGELOG.md` when behavior changed.
-- [ ] I added a screenshot or recording for a visible UI change.
