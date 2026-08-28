@@ -64,19 +64,203 @@ jobs:
           NVIM_TOOLCHAIN_SYNC: "1"
           NVIM_TREESITTER_SKIP_INSTALL: "1"
         run: |
+          set -euo pipefail
+
           plugin="${INPUT_PLUGIN:-${DISPATCH_PLUGIN:-all}}"
           case "$plugin" in
-            all)
-              nvim --headless -u init.lua "+Lazy! update" +qa
-              ;;
-            git-panel.nvim|mcp-buff)
-              nvim --headless -u init.lua "+Lazy! update $plugin" +qa
-              ;;
+            all|git-panel.nvim|mcp-buff) ;;
             *)
               echo "Unsupported dependency refresh target: $plugin" >&2
               exit 1
               ;;
           esac
+
+          # Load the configuration the way an install does. `-u init.lua` leaves the
+          # checkout's lua/ off the runtimepath, so init.lua dies on its first require,
+          # lazy.nvim never loads, `+Lazy!` is E492 -- and nvim still exits 0. Point
+          # XDG_CONFIG_HOME at the checkout instead, and keep the other XDG roots under
+          # RUNNER_TEMP. `nvim -l` is not an option: it skips the user config entirely.
+          xdg="$RUNNER_TEMP/refresh-xdg"
+          mkdir --parents "$xdg/config" "$xdg/data/nvim/lazy" "$xdg/state" "$xdg/cache"
+          ln --symbolic --force --no-target-directory "$GITHUB_WORKSPACE" "$xdg/config/nvim"
+          export XDG_CONFIG_HOME="$xdg/config"
+          export XDG_DATA_HOME="$xdg/data"
+          export XDG_STATE_HOME="$xdg/state"
+          export XDG_CACHE_HOME="$xdg/cache"
+          export REFRESH_PLUGIN="$plugin"
+
+          # Capture the committed pins before Neovim starts: lazy.nvim's startup
+          # auto-install rewrites lazy-lock.json in place from whatever the plugin
+          # directory already holds, so a warm or stale checkout would become the pin.
+          cp lazy-lock.json "$RUNNER_TEMP/committed-lock.json"
+          export REFRESH_COMMITTED_LOCK="$RUNNER_TEMP/committed-lock.json"
+
+          cat > "$RUNNER_TEMP/refresh-lock.lua" <<'LUA'
+          -- Refresh one plugin (or all of them) and prove the run actually happened.
+          -- Sourced with :luafile once the user configuration has loaded, so lazy.nvim is
+          -- on the runtimepath. Exits 0 only on a verified success; every other path
+          -- exits non-zero, including "the configuration never loaded" -- which the old
+          -- `-u init.lua` invocation reported as a success.
+          local target = vim.env.REFRESH_PLUGIN or "all"
+
+          local function die(message)
+            io.stderr:write("dependency refresh: " .. message .. "\n")
+            io.stderr:flush()
+            os.exit(1)
+          end
+
+          local loaded, lazy = pcall(require, "lazy")
+          if not loaded then
+            die("lazy.nvim is not on the runtimepath, so the configuration never finished loading: " .. tostring(lazy))
+          end
+
+          local has_config, Config = pcall(require, "lazy.core.config")
+          if not has_config then
+            die("lazy.core.config is unavailable: " .. tostring(Config))
+          end
+          if vim.tbl_isempty(Config.plugins) then
+            die("lazy.nvim loaded no plugin specs")
+          end
+          if target ~= "all" and not Config.plugins[target] then
+            die(("%q is not a plugin in this configuration"):format(target))
+          end
+
+          -- The committed pins are captured by the step before Neovim starts, because
+          -- lazy.nvim's startup auto-install already rewrites the lockfile in place from
+          -- whatever the plugin directory holds.
+          local committed_path = vim.env.REFRESH_COMMITTED_LOCK
+          if not committed_path then
+            die("REFRESH_COMMITTED_LOCK is not set")
+          end
+          local committed_handle = io.open(committed_path, "r")
+          if not committed_handle then
+            die("could not read the committed lockfile at " .. committed_path)
+          end
+          local parsed, committed = pcall(vim.json.decode, committed_handle:read("*a"))
+          committed_handle:close()
+          if not parsed or type(committed) ~= "table" then
+            die("the committed lockfile is not valid JSON: " .. tostring(committed))
+          end
+
+          -- Any lazy.nvim operation rewrites the lockfile from the plugin directory's
+          -- current state, so a stale or cached checkout would quietly become the new
+          -- pin. Put the committed pins back on disk and drop lazy's cached copy before
+          -- each phase that is supposed to read them.
+          local Lock = require("lazy.manage.lock")
+          local function use_committed_pins()
+            local handle = io.open(Config.options.lockfile, "w")
+            if not handle then
+              die("could not rewrite the lockfile at " .. tostring(Config.options.lockfile))
+            end
+            handle:write(vim.json.encode(committed))
+            handle:close()
+            Lock.lock = {}
+            Lock._loaded = false
+          end
+
+          -- lazy.nvim keeps a failed task on its plugin after a run, so this surfaces a
+          -- clone/fetch/checkout/build failure that the process exit code alone hides.
+          local function failures()
+            local found = {}
+            for name, plugin in pairs(Config.plugins) do
+              for _, task in ipairs(plugin._ and plugin._.tasks or {}) do
+                if task:has_errors() then
+                  found[#found + 1] = ("%s: %s: %s"):format(name, task.name, task:output(vim.log.levels.ERROR))
+                end
+              end
+            end
+            table.sort(found)
+            return found
+          end
+
+          local function step(label, run)
+            local ok, err = pcall(run)
+            if not ok then
+              die(label .. " raised: " .. tostring(err))
+            end
+            local found = failures()
+            if #found > 0 then
+              die(label .. " failed:\n  " .. table.concat(found, "\n  "))
+            end
+          end
+
+          -- Install anything this runner does not have yet, then check every plugin out
+          -- at its committed pin, so the only thing that can move afterwards is the
+          -- plugin that was actually requested.
+          use_committed_pins()
+          step("install", function()
+            lazy.install({ wait = true, show = false })
+          end)
+          use_committed_pins()
+          step("restore", function()
+            lazy.restore({ wait = true, show = false })
+          end)
+
+          local update = { wait = true, show = false }
+          if target ~= "all" then
+            update.plugins = { target }
+          end
+          step("update", function()
+            lazy.update(update)
+          end)
+
+          -- The refreshed lockfile must still describe every managed plugin. lazy.nvim
+          -- omits a plugin it treats as local, which is how a refresh can quietly delete
+          -- a committed pin instead of moving it.
+          local lockfile = Config.options.lockfile
+          local handle = io.open(lockfile, "r")
+          if not handle then
+            die("no lockfile was written at " .. tostring(lockfile))
+          end
+          local decoded, lock = pcall(vim.json.decode, handle:read("*a"))
+          handle:close()
+          if not decoded or type(lock) ~= "table" then
+            die("the refreshed lockfile is not valid JSON: " .. tostring(lock))
+          end
+
+          local dropped = {}
+          for name, plugin in pairs(Config.plugins) do
+            if plugin.url and plugin._.installed and not plugin._.is_local and not lock[name] then
+              dropped[#dropped + 1] = name
+            end
+          end
+          if #dropped > 0 then
+            table.sort(dropped)
+            die("the refreshed lockfile dropped pins for: " .. table.concat(dropped, ", "))
+          end
+          if target ~= "all" and not lock[target] then
+            die(("the refreshed lockfile has no entry for %q"):format(target))
+          end
+
+          -- A targeted refresh may move exactly one pin. Anything else that moved is a
+          -- defect in the refresh rather than a dependency update: lazy.nvim floating its
+          -- own pin off a cold `--branch=stable` bootstrap is the known instance.
+          if target ~= "all" then
+            local drifted = {}
+            for name, entry in pairs(committed) do
+              local now = lock[name]
+              if name ~= target and now and now.commit ~= entry.commit then
+                drifted[#drifted + 1] = ("%s %s -> %s"):format(name, entry.commit, now.commit)
+              end
+            end
+            if #drifted > 0 then
+              table.sort(drifted)
+              die(("refreshing %q also moved pins it was not asked to move:\n  %s"):format(target, table.concat(drifted, "\n  ")))
+            end
+          end
+
+          print(("dependency refresh: %s refreshed, %d pins recorded"):format(target, vim.tbl_count(lock)))
+          io.stdout:flush()
+          os.exit(0)
+          LUA
+
+          nvim --headless -c "luafile $RUNNER_TEMP/refresh-lock.lua" -c "cquit 1"
+
+          if git diff --quiet -- lazy-lock.json; then
+            echo "No pin moved: the lockfile already matches the requested state."
+          else
+            git --no-pager diff --stat -- lazy-lock.json
+          fi
 
       - name: Validate refreshed configuration
         run: |
