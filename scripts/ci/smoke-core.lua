@@ -94,9 +94,12 @@ local function assert_round_trip(description)
   if type(provider) ~= "table" then
     return
   end
+  -- A distinct regtype per register catches a provider that drops or crosses
+  -- the mode as well as one that crosses the text.
+  local regtypes = { ["+"] = "v", ["*"] = "V" }
   for _, register in ipairs({ "+", "*" }) do
     local sent = { register .. " payload" }
-    local copied, copy_error = pcall(provider.copy[register], sent, "v")
+    local copied, copy_error = pcall(provider.copy[register], sent, regtypes[register])
     assert(copied, ("clipboard copy to %q (%s) raised: %s"):format(register, description, tostring(copy_error)))
   end
   for _, register in ipairs({ "+", "*" }) do
@@ -112,6 +115,15 @@ local function assert_round_trip(description)
         description,
         register .. " payload",
         tostring(pasted[1][1])
+      )
+    )
+    assert(
+      pasted[2] == regtypes[register],
+      ("clipboard paste regtype from %q (%s): expected %q, got %q"):format(
+        register,
+        description,
+        regtypes[register],
+        tostring(pasted[2])
       )
     )
   end
