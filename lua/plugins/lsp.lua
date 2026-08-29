@@ -59,8 +59,8 @@ return {
         -- insert location); use gri for implementation.
         vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, { buffer = buf, desc = "Go to declaration" })
         vim.keymap.set('n', 'gd', vim.lsp.buf.definition, { buffer = buf, desc = "Go to definition" })
-        -- Convenience mnemonics kept alongside the 0.11 grn/gra defaults:
-        vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, { buffer = buf, desc = "Rename symbol" })
+        -- Keep the code-action mnemonic alongside Neovim's gra default.
+        -- Symbol rename is globally discoverable under <leader>wr (word).
         vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, { buffer = buf, desc = "Code action" })
       end,
     })

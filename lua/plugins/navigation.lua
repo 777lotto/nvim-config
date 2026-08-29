@@ -17,12 +17,23 @@ return {
       },
     })
     require("telescope").load_extension("ui-select")
-    keymap.set("n", "<leader>ff", "<cmd>Telescope find_files<cr>", { desc = "Find Files" })
-    keymap.set("n", "<leader>fb", "<cmd>Telescope buffers<cr>", { desc = "Find Buffers" })
+
+    keymap.set("n", "<leader>bb", "<cmd>Telescope buffers<cr>", { desc = "Browse buffers" })
+    keymap.set("n", "<leader>ds", "<cmd>Telescope diagnostics<cr>", { desc = "Search diagnostics" })
+    keymap.set("n", "<leader>ff", "<cmd>Telescope find_files<cr>", { desc = "Find files" })
+    keymap.set("n", "<leader>fo", "<cmd>Telescope oldfiles<cr>", { desc = "Open recent file" })
+    keymap.set("n", "<leader>gb", "<cmd>Telescope git_branches<cr>", { desc = "Branches" })
+    keymap.set("n", "<leader>gc", "<cmd>Telescope git_commits<cr>", { desc = "Commits" })
+    keymap.set("n", "<leader>gs", "<cmd>Telescope git_status<cr>", { desc = "Status" })
+    keymap.set("n", "<leader>sb", "<cmd>Telescope current_buffer_fuzzy_find<cr>", { desc = "Buffer text" })
+    keymap.set("n", "<leader>sh", "<cmd>Telescope help_tags<cr>", { desc = "Help" })
+    keymap.set("n", "<leader>sk", "<cmd>Telescope keymaps<cr>", { desc = "Keymaps" })
+    keymap.set("n", "<leader>sr", "<cmd>Telescope resume<cr>", { desc = "Resume last search" })
+    keymap.set("n", "<leader>ss", "<cmd>Telescope grep_string<cr>", { desc = "Word under cursor" })
+    keymap.set("v", "<leader>ss", "<cmd>Telescope grep_string<cr>", { desc = "Selected text" })
     keymap.set("n", "<leader>sw", function()
       require("config.project_search").live_grep()
-    end, { desc = "Search Project (Live Grep)" })
-    keymap.set("v", "<leader>s", "<cmd>Telescope grep_string<cr>", { desc = "Search for selected text" })
+    end, { desc = "Workspace text" })
   end,
 },
 
@@ -87,7 +98,7 @@ return {
        width = function() return math.floor(vim.o.columns * 0.8) end,
      },
    })
- keymap.set("n", "<leader>fe", "<cmd>NvimTreeToggle<CR>", { desc = "File Explorer (toggle)" })
+ keymap.set("n", "<leader>fe", "<cmd>NvimTreeToggle<CR>", { desc = "File explorer" })
 end,
 },
 
@@ -97,11 +108,12 @@ end,
   config = function()
     -- Each invocation creates a new, ordinary terminal buffer. These terminals
     -- are deliberately independent from the persistent ToggleTerm instance
-    -- below, and appear as separate entries in the bufferline "tab" bar.
-    keymap.set("n", "<leader>tt", function()
+    -- below, and appear as separate entries in the buffer bar.
+    local function open_terminal(split)
+      if split then vim.cmd(split) end
       vim.cmd("terminal")
       vim.cmd("startinsert")
-    end, { desc = "Terminal: new buffer", noremap = true, silent = true })
+    end
 
     require("toggleterm").setup({
       -- Toggle one persistent floating terminal with Ctrl-\ (a real control
@@ -136,10 +148,17 @@ end,
     })
 
     -- This is an explicit command for the same persistent terminal toggled by
-    -- <C-\>; it does not share a job with the <leader>tt terminal buffers.
+    -- <C-\>; it does not share a job with the <leader>T* terminal buffers.
     vim.api.nvim_create_user_command("FloatTerminal", function()
       vim.cmd("ToggleTerm direction=float")
     end, { desc = "Toggle the persistent floating terminal" })
+    keymap.set("n", "<leader>Tf", "<cmd>FloatTerminal<cr>", { desc = "Floating terminal" })
+    keymap.set("n", "<leader>Th", function() open_terminal("botright split") end,
+      { desc = "Horizontal terminal", noremap = true, silent = true })
+    keymap.set("n", "<leader>Tn", function() open_terminal() end,
+      { desc = "New terminal buffer", noremap = true, silent = true })
+    keymap.set("n", "<leader>Tv", function() open_terminal("botright vsplit") end,
+      { desc = "Vertical terminal", noremap = true, silent = true })
 
     -- Exit terminal mode with Escape. Keep this autocmd local to the plugin
     -- instead of clearing every TermOpen autocmd in the user's configuration.

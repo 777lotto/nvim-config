@@ -47,8 +47,8 @@ return {
   event = { "BufReadPost", "BufNewFile" },
   opts = {},
   keys = {
-    { "<leader>ft", "<cmd>TodoTelescope<cr>",      desc = "Find TODOs" },
-    { "<leader>xt", "<cmd>Trouble todo toggle<cr>", desc = "TODOs (Trouble)" },
+    { "<leader>dt", "<cmd>Trouble todo toggle<cr>", desc = "TODOs (Trouble)" },
+    { "<leader>st", "<cmd>TodoTelescope<cr>", desc = "TODOs" },
   },
 },
 
@@ -81,9 +81,9 @@ return {
   event = "BufReadPre",
   opts = {},
   keys = {
-    { "<leader>qs", function() require("persistence").load() end,                desc = "Restore session (cwd)" },
-    { "<leader>ql", function() require("persistence").load({ last = true }) end, desc = "Restore last session" },
-    { "<leader>qd", function() require("persistence").stop() end,                desc = "Don't save this session" },
+    { "<leader>Sd", function() require("persistence").stop() end, desc = "Don't save this session" },
+    { "<leader>Sl", function() require("persistence").load({ last = true }) end, desc = "Restore last session" },
+    { "<leader>Sr", function() require("persistence").load() end, desc = "Restore session (cwd)" },
   },
 },
 
@@ -100,7 +100,7 @@ return {
 {
   "mbbill/undotree",
   cmd = "UndotreeToggle",
-  keys = { { "<leader>u", "<cmd>UndotreeToggle<cr>", desc = "Undo tree" } },
+  keys = { { "<leader>fh", "<cmd>UndotreeToggle<cr>", desc = "Undo history" } },
   config = function()
     vim.opt.undofile = true -- persist undo across sessions so the tree survives restarts
   end,
