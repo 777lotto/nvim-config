@@ -215,20 +215,78 @@ highlight groups, Treesitter, LSP, linting, diagnostics, and renderers interact.
 See [Configuration maintenance](docs/maintenance.md) for updater safety,
 latest-tested dependency policy, CI lanes, and release dispatches.
 
+## Leader shortcut organization
+
+Pressing `<leader>` (`Space`) opens an alphabetized which-key menu. Lowercase
+categories appear first, followed by uppercase categories; case deliberately
+distinguishes `w` (word) from `W` (window), `s` (search) from `S` (session),
+and `t` is left unused while `T` owns terminals.
+
+| Prefix      | which-key label | Scope                                                  |
+| ----------- | --------------- | ------------------------------------------------------ |
+| `<leader>a` | `(a)gent`       | Agent Manager and MCP Buff                             |
+| `<leader>b` | `(b)uffer`      | Buffer bar creation, selection, movement, and deletion |
+| `<leader>c` | `(c)ode`        | Code actions, formatting, and rendered Markdown        |
+| `<leader>d` | `(d)iagnostic`  | Diagnostic and TODO views                              |
+| `<leader>e` | `(e)dit`        | Selection, indentation, lines, comments, and lists     |
+| `<leader>f` | `(f)ile`        | Files, save, rename, undo, and redo                    |
+| `<leader>g` | `(g)it`         | GitPanel plus branch, commit, and status pickers       |
+| `<leader>n` | `(n)avigate`    | Lines, paragraphs, brackets, and jump history          |
+| `<leader>q` | `(q)uit`        | Quit the current window or all windows                 |
+| `<leader>s` | `(s)earch`      | Buffer, help, keymap, TODO, and workspace search       |
+| `<leader>w` | `(w)ord`        | Word occurrences, selection, case, and symbol rename   |
+| `<leader>S` | `(S)ession`     | Restore or suppress persistence sessions               |
+| `<leader>T` | `(T)erminal`    | New, split, and persistent floating terminals          |
+| `<leader>W` | `(W)indow`      | Split, focus, close, equalize, and maximize windows    |
+
+The most frequently used file and agent mappings are:
+
+| Key          | Action                                                                        |
+| ------------ | ----------------------------------------------------------------------------- |
+| `<leader>aa` | Open Agent Manager when available; currently a visible reserved shortcut      |
+| `<leader>am` | Open MCP Buff                                                                 |
+| `<leader>fe` | Toggle the file explorer                                                      |
+| `<leader>ff` | Find files                                                                    |
+| `<leader>fh` | Open undo history                                                             |
+| `<leader>fn` | Rename the current file after checking for unsaved changes and name conflicts |
+| `<leader>fo` | Open a recent file                                                            |
+| `<leader>fr` | Redo                                                                          |
+| `<leader>fs` | Save the current file                                                         |
+| `<leader>fu` | Undo                                                                          |
+| `<leader>fS` | Save all files                                                                |
+
+The bufferline across the top is a buffer bar, not native Neovim tabs.
+All of its leader mappings therefore live under `b`:
+
+| Key                           | Action                                       |
+| ----------------------------- | -------------------------------------------- |
+| `<leader>ba`                  | Switch to the alternate buffer               |
+| `<leader>bb`                  | Browse buffers with Telescope                |
+| `<leader>bc`                  | Create a buffer                              |
+| `<leader>bd`                  | Delete the current buffer                    |
+| `<leader>bf` / `<leader>bl`   | Go to the first / last buffer                |
+| `<leader>bn` / `<leader>bp`   | Go to the next / previous buffer             |
+| `<leader>bo`                  | Delete other buffers                         |
+| `<leader>bs`                  | Select a buffer by its displayed letter      |
+| `<leader>bmf` / `<leader>bml` | Move the buffer to the first / last position |
+| `<leader>bmn` / `<leader>bmp` | Move the buffer right / left                 |
+
 ## Diagnostics
 
 Diagnostics are available through several complementary views:
 
-| View | Use |
-| --- | --- |
-| Sign column + underline | Persistent severity/location cue |
-| Virtual text | Compact message beside each affected line |
+| View                       | Use                                         |
+| -------------------------- | ------------------------------------------- |
+| Sign column + underline    | Persistent severity/location cue            |
+| Virtual text               | Compact message beside each affected line   |
 | Current-line virtual lines | Full message below the line being inspected |
-| `<leader>xf` | Rounded floating details at the cursor |
-| `<leader>xl` | Current-buffer location list |
-| `<leader>xq` | Project quickfix list |
-| `<leader>xb` | Current-buffer Trouble panel |
-| `<leader>xx` | Project Trouble panel |
+| `<leader>db`               | Current-buffer Trouble panel                |
+| `<leader>df`               | Rounded floating details at the cursor      |
+| `<leader>dl`               | Current-buffer location list                |
+| `<leader>dp`               | Project Trouble panel                       |
+| `<leader>dq`               | Project quickfix list                       |
+| `<leader>ds`               | Search diagnostics with Telescope           |
+| `<leader>dt`               | TODO Trouble panel                          |
 
 ## Formatting
 
@@ -246,34 +304,41 @@ The `persistence.nvim` session commands remember the working directory, open
 buffers, windows, and tab layout. They do not save unsaved file contents and do
 not affect Git.
 
-| Key | Action |
-| --- | --- |
-| `<leader>qq` | Quit the current window |
-| `<leader>qa` | Quit all Neovim windows |
-| `<leader>qs` | Restore the saved session for the current directory |
-| `<leader>ql` | Restore the most recently used session |
-| `<leader>qd` | Stop persistence from saving this particular session |
+| Key          | Action                                               |
+| ------------ | ---------------------------------------------------- |
+| `<leader>qa` | Quit all Neovim windows                              |
+| `<leader>qq` | Quit the current window                              |
+| `<leader>Sd` | Stop persistence from saving this particular session |
+| `<leader>Sl` | Restore the most recently used session               |
+| `<leader>Sr` | Restore the saved session for the current directory  |
 
-The session mappings remain because they solve a different problem from
-quitting and are safely grouped under the same discoverable `q` prefix.
+Sessions and quitting remain separate because they solve different problems:
+lowercase `q` exits windows, while uppercase `S` manages persisted layouts.
 
 ## Terminals
 
-| Key / command | Action |
-| --- | --- |
-| `<leader>tt` | Open a new, independent terminal buffer (every use creates another) |
-| `<C-\>` | Show or hide one persistent floating terminal |
+| Key / command    | Action                                              |
+| ---------------- | --------------------------------------------------- |
+| `<leader>Tf`     | Show or hide the persistent floating terminal       |
+| `<leader>Th`     | Open a new terminal in a horizontal split           |
+| `<leader>Tn`     | Open a new, independent terminal buffer             |
+| `<leader>Tv`     | Open a new terminal in a vertical split             |
+| `<C-\>`          | Show or hide one persistent floating terminal       |
 | `:FloatTerminal` | Show or hide that same persistent floating terminal |
 
 The floating terminal is a ToggleTerm buffer displayed in a Neovim floating
 window. Toggling the window closed only hides it: its shell and any commands
 running inside it continue until the shell exits or Neovim ends. Ordinary
-`<leader>tt` terminals are separate listed buffers, so they appear in the
-bufferline bar and can run concurrently with each other and with the float.
+`<leader>Tn`, `<leader>Th`, and `<leader>Tv` terminals are separate listed
+buffers, so they appear in the buffer bar and can run concurrently with each
+other and with the float.
 
 ## Git workflows
 
+- `<leader>gb`: Telescope Git branches.
+- `<leader>gc`: Telescope Git commits.
 - `<leader>gg`: custom GitPanel tab.
+- `<leader>gs`: Telescope Git status.
 - `<leader>gG`: custom GitPanel split.
 
 [git-panel.nvim](https://github.com/777lotto/git-panel.nvim) is developed and
@@ -289,7 +354,7 @@ Other installations retain the standard `gh` API backend.
 
 ## Brokered write review
 
-- `<leader>mb`: open MCP Buff's Cloudflare write-ticket review panel.
+- `<leader>am`: open MCP Buff's Cloudflare write-ticket review panel.
 
 The plugin endpoint is fixed to `http://127.0.0.1:8792`. This repository does
 not create, modify, or persist an SSH tunnel; tunnel lifecycle and routing stay
@@ -298,12 +363,14 @@ reachability without a Neovim configuration change.
 
 ## Project search and replace
 
-`<leader>sw` opens Telescope Live Grep. Search remains regex-capable; press
-`<C-r>` inside the picker to replace the current prompt as exact,
-case-sensitive text across the project. Replacement text is entered in a
-centered floating prompt, followed by a second confirmation showing the match
-and file counts. The action refuses to run while a matching buffer has unsaved
-changes.
+`<leader>sw` opens Telescope Live Grep. `<leader>sb` searches the current
+buffer, `<leader>ss` searches the word under the cursor or selected text, and
+`<leader>sr` resumes the previous Telescope picker. Project search remains
+regex-capable; press `<C-r>` inside the picker to replace the current prompt
+as exact, case-sensitive text across the project. Replacement text is entered
+in a centered floating prompt, followed by a second confirmation showing the
+match and file counts. The action refuses to run while a matching buffer has
+unsaved changes.
 
 ## Themes and rendered files
 
@@ -357,8 +424,8 @@ Production, integration, release, and platform policy are documented in
 
 Press `<leader>?` for all mappings or `<leader>sk` to search them. Useful
 starting points are `<leader>ff` (files), `<leader>sw` (project grep), `<leader>fe`
-(file explorer), `<leader>tt` (new terminal buffer), `<C-\>` (persistent
-floating terminal), and `<leader>u` (undo tree).
+(file explorer), `<leader>bb` (buffers), `<leader>Tn` (new terminal buffer),
+`<C-\>` (persistent floating terminal), and `<leader>fh` (undo history).
 
 Common terminal, LSP, and clipboard checks are collected in
 [Troubleshooting](docs/troubleshooting.md).

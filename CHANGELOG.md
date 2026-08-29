@@ -29,6 +29,8 @@ versioning for release organization.
   `fallback = true` keeps every machine without `dev/` resolving from the
   committed `lazy-lock.json` pins, and dev matching is off during
   `nvim-config` maintenance runs so they never rewrite a dev plugin's pin.
+- Safe current-file rename on `<leader>fn`, a reserved Agent Manager entry on
+  `<leader>aa`, and focused buffer, search, Git, terminal, and window helpers.
 
 ### Changed
 
@@ -53,6 +55,10 @@ versioning for release organization.
 - `lazy-lock.json` is stored in lazy.nvim's own key order, so a plain
   `nvim-config sync` no longer leaves the worktree dirty with a `mcp-buff`
   reorder that changes no pin.
+- Leader shortcuts now use a case-aware alphabetical which-key taxonomy:
+  lowercase `a b c d e f g n q s w`, followed by uppercase `S T W`. Bufferline
+  actions use the `(b)uffer` group, MCP Buff uses `<leader>am`, sessions and
+  terminals use uppercase groups, and undo/redo use `<leader>fu` / `<leader>fr`.
 
 ## 0.1.0 - 2026-08-15
 

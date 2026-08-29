@@ -25,6 +25,97 @@ local mcp_buff = assert(operations[1], "MCP Buff plugin spec is missing")
 assert(mcp_buff[1] == "777lotto/mcp-buff", "unexpected MCP Buff repository")
 assert(mcp_buff.branch == "bet", "MCP Buff must consume its production branch")
 assert(mcp_buff.opts.endpoint == "http://127.0.0.1:8792", "MCP Buff endpoint must remain loopback-only")
+assert(mcp_buff.keys[1][1] == "<leader>am", "MCP Buff must use the agent menu at <leader>am")
+
+local ui_specs = assert(loadfile(root .. "/lua/plugins/ui.lua"))()
+local which_key
+for _, spec in ipairs(ui_specs) do
+  if spec[1] == "folke/which-key.nvim" then which_key = spec end
+end
+assert(which_key, "which-key plugin spec is missing")
+
+local which_key_setup
+local which_key_groups
+local original_which_key = package.loaded["which-key"]
+package.loaded["which-key"] = {
+  setup = function(options) which_key_setup = options end,
+  add = function(groups) which_key_groups = groups end,
+}
+which_key.config()
+package.loaded["which-key"] = original_which_key
+
+assert(
+  vim.deep_equal(which_key_setup.sort, { "case", "alphanum", "mod" }),
+  "which-key must sort lowercase groups before uppercase groups"
+)
+local expected_groups = {
+  ["<leader>a"] = "(a)gent",
+  ["<leader>b"] = "(b)uffer",
+  ["<leader>c"] = "(c)ode",
+  ["<leader>d"] = "(d)iagnostic",
+  ["<leader>e"] = "(e)dit",
+  ["<leader>f"] = "(f)ile",
+  ["<leader>g"] = "(g)it",
+  ["<leader>n"] = "(n)avigate",
+  ["<leader>q"] = "(q)uit",
+  ["<leader>s"] = "(s)earch",
+  ["<leader>w"] = "(w)ord",
+  ["<leader>S"] = "(S)ession",
+  ["<leader>T"] = "(T)erminal",
+  ["<leader>W"] = "(W)indow",
+}
+for _, item in ipairs(which_key_groups) do
+  if expected_groups[item[1]] then
+    assert(item.group == expected_groups[item[1]], "unexpected which-key group for " .. item[1])
+    expected_groups[item[1]] = nil
+  end
+end
+assert(next(expected_groups) == nil, "one or more which-key groups are missing")
+
+local function assert_mapping(mode, lhs, description)
+  local mapping = vim.fn.maparg(lhs, mode, false, true)
+  assert(type(mapping) == "table" and mapping.lhs, "missing mapping " .. lhs)
+  assert(mapping.desc == description, ("unexpected description for %s: %s"):format(lhs, tostring(mapping.desc)))
+  return mapping
+end
+
+local agent_manager = assert_mapping("n", "<leader>aa", "Agent Manager (reserved)")
+local file_rename = assert_mapping("n", "<leader>fn", "File name / rename")
+assert_mapping("n", "<leader>fr", "Redo")
+assert_mapping("n", "<leader>fu", "Undo")
+
+local agent_manager_opened = false
+vim.api.nvim_create_user_command("AgentManager", function() agent_manager_opened = true end, {})
+agent_manager.callback()
+vim.api.nvim_del_user_command("AgentManager")
+assert(agent_manager_opened, "reserved Agent Manager mapping did not call the available command")
+
+-- Exercise the rename mapping against a disposable real file. This proves the
+-- prompt result changes both the path on disk and the existing buffer name.
+local rename_root = vim.fn.tempname()
+local old_path = rename_root .. "/before.txt"
+local new_path = rename_root .. "/after.txt"
+vim.fn.mkdir(rename_root, "p")
+vim.fn.writefile({ "rename smoke" }, old_path)
+local original_input = vim.ui.input
+local original_notify = vim.notify
+local rename_ok, rename_error = pcall(function()
+  vim.cmd("edit " .. vim.fn.fnameescape(old_path))
+  vim.ui.input = function(options, callback)
+    assert(options.default == "before.txt", "file rename prompt has the wrong default")
+    callback("after.txt")
+  end
+  vim.notify = function() end
+  file_rename.callback()
+  assert(vim.uv.fs_stat(old_path) == nil, "file rename left the old path behind")
+  assert(vim.uv.fs_stat(new_path), "file rename did not create the new path")
+  assert(vim.fs.normalize(vim.api.nvim_buf_get_name(0)) == new_path, "file rename did not update the buffer name")
+end)
+vim.ui.input = original_input
+vim.notify = original_notify
+pcall(vim.cmd, "bdelete!")
+vim.fn.delete(rename_root, "rf")
+assert(rename_ok, rename_error)
 
 assert(
   environment.clipboard_mode == expected_clipboard,
