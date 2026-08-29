@@ -2,13 +2,15 @@
 
 ## Configuration update is refused
 
-Run `nvim-config doctor` first. `nvim-config update` deliberately stops when
-the checkout has uncommitted/untracked files, is detached, has no upstream, or
-has diverged from its upstream. It will not stash, reset, switch branches,
-rewrite remotes, or modify SSH/network configuration on your behalf.
+Run `nvim-config doctor` first. `nvim-update` deliberately stops when the
+config or selected plugin fleet has uncommitted/untracked files, is detached,
+is missing the selected remote branch, or has diverged from it. It will switch
+only to the explicitly persisted channel; it will not stash, reset, rewrite
+remote URLs, or modify SSH/network configuration on your behalf.
 
-For ordinary public installs, keep the checkout on production `bet`, preserve
-any local edits on a separate branch, and retry after the worktree is clean.
+For ordinary public installs, use `nvim-update channel bet`; this workstation's
+nightly soak uses `nvim-update channel bluff`. Preserve any local edits on a
+separate branch and retry after every affected worktree is clean.
 If the branch has diverged, inspect it with GitPanel or standard Git commands
 and reconcile it explicitly rather than forcing the updater through the state.
 

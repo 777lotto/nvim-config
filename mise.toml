@@ -6,7 +6,7 @@
 
 [tasks.update]
 description = "Fetch upstream, fast-forward, reconcile affected dependencies"
-run = "bin/nvim-config update"
+run = "bin/nvim-update"
 
 [tasks.doctor]
 description = "Check repository state and supported runtime versions"
@@ -17,12 +17,16 @@ description = "Restore the plugin lock and install missing tools"
 run = "bin/nvim-config sync"
 
 [tasks."plugins:clone"]
-description = "Ensure every fleet plugin checkout exists under dev/ on bluff"
+description = "Ensure every fleet plugin checkout exists on the selected channel"
 run = "scripts/dev-plugins.sh clone"
 
 [tasks."plugins:pull"]
-description = "Fast-forward every dev/ plugin checkout"
+description = "Select and fast-forward the channel in every dev/ plugin checkout"
 run = "scripts/dev-plugins.sh pull"
+
+[tasks."plugins:sync"]
+description = "Select and fast-forward the channel in every dev/ plugin checkout"
+run = "scripts/dev-plugins.sh sync"
 
 [tasks."plugins:status"]
 description = "One-line branch/dirty/ahead-behind status per dev/ checkout"
@@ -33,5 +37,9 @@ description = "Compile-check every dev/ plugin that has Lua sources"
 run = "scripts/dev-plugins.sh check"
 
 [tasks.test-sync]
-description = "One-shot bluff sync before manual testing"
-run = [{ task = "update" }, { task = "plugins:pull" }, { task = "doctor" }]
+description = "One-shot selected-channel sync before manual testing"
+run = "bin/nvim-update"
+
+[tasks.verify]
+description = "Run shell, core, updater, channel-fleet, UX integration, and performance gates"
+run = "scripts/ci/verify.sh"

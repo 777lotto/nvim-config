@@ -11,11 +11,32 @@ return {
     "nvim-telescope/telescope-ui-select.nvim",
   },
   config = function()
-    require("telescope").setup({
+    local setup_opts = {
+      -- Keep every Styling-owned structural path explicit. Telescope exposes
+      -- no exact public getter for its original setup input, so rollback can
+      -- only be lossless when this retained table is complete.
+      defaults = {
+        border = true,
+        entry_prefix = "  ",
+        layout_config = {
+          height = 0.9,
+          prompt_position = "bottom",
+          width = 0.8,
+        },
+        layout_strategy = "horizontal",
+        multi_icon = "+",
+        prompt_prefix = "> ",
+        selection_caret = "> ",
+        sorting_strategy = "descending",
+        winblend = 0,
+      },
+      pickers = {},
       extensions = {
         ["ui-select"] = { require("telescope.themes").get_dropdown({}) },
       },
-    })
+    }
+    require("config.ux_baselines").record("telescope", setup_opts)
+    require("telescope").setup(setup_opts)
     require("telescope").load_extension("ui-select")
 
     keymap.set("n", "<leader>bb", "<cmd>Telescope buffers<cr>", { desc = "Browse buffers" })
@@ -60,7 +81,7 @@ return {
      end
    end
 
-   require("nvim-tree").setup({
+   local setup_opts = {
      on_attach = on_attach,
      renderer = {
        -- Dotfiles stay visible, but mute both their names and icons so they
@@ -97,7 +118,9 @@ return {
        },
        width = function() return math.floor(vim.o.columns * 0.8) end,
      },
-   })
+   }
+   require("config.ux_baselines").record("nvim_tree", setup_opts)
+   require("nvim-tree").setup(setup_opts)
  keymap.set("n", "<leader>fe", "<cmd>NvimTreeToggle<CR>", { desc = "File explorer" })
 end,
 },

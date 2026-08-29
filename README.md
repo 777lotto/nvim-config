@@ -1,7 +1,7 @@
 # Neovim configuration
 
 [![CI](https://github.com/777lotto/nvim-config/actions/workflows/ci.yml/badge.svg?branch=bet)](https://github.com/777lotto/nvim-config/actions/workflows/ci.yml)
-[![Neovim](https://img.shields.io/badge/Neovim-0.12%2B-57A143?logo=neovim&logoColor=white)](https://neovim.io/)
+[![Neovim](https://img.shields.io/badge/Neovim-0.12.2%2B-57A143?logo=neovim&logoColor=white)](https://neovim.io/)
 [![Release](https://img.shields.io/github/v/release/777lotto/nvim-config)](https://github.com/777lotto/nvim-config/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -11,7 +11,7 @@ a headless Debian server accessed over SSH. The config uses Neovim's current Lua
 APIs, lazy.nvim for plugins, Mason for external tools, and a committed lockfile
 for repeatable installs.
 
-Requires Neovim 0.12 or newer. The leader key is `<Space>`.
+Requires Neovim 0.12.2 or newer. The leader key is `<Space>`.
 
 ## Highlights
 
@@ -27,6 +27,9 @@ Requires Neovim 0.12 or newer. The leader key is `<Space>`.
   [GitPanel](https://github.com/777lotto/git-panel.nvim) for Git workflows.
 - [MCP Buff](https://github.com/777lotto/mcp-buff) for reviewing brokered
   Cloudflare write tickets through an operator-controlled loopback tunnel.
+- Guarded UX Foundation, Styling, and Chrome integration. Chrome registers its
+  complete contract while Bufferline, Lualine, and native surfaces remain the
+  physical owners during the compatibility soak.
 - A clean-worktree, fast-forward-only whole-config updater available from the
   shell and inside Neovim.
 - Automatic clipboard policy: native X11 integration on the local XFCE client
@@ -100,7 +103,7 @@ bootstrap or `nvim-config sync` and updated by `nvim-config sync --latest`.
 
 | Need | Purpose | Debian setup |
 | --- | --- | --- |
-| Neovim 0.12+ | Editor and current Treesitter APIs | Current upstream build |
+| Neovim 0.12.2+ | Editor, UX contract, and current Treesitter APIs | Current upstream build |
 | Git and curl | Config, lazy.nvim, Mason | `apt install git curl ca-certificates` |
 | GitHub CLI (optional) | Create and publish a remote from GitPanel | `apt install gh`, then `gh auth login` |
 | C compiler | Treesitter parser builds | `apt install build-essential` |
@@ -126,10 +129,11 @@ git clone https://github.com/777lotto/nvim-config.git \
 
 The installer follows the repository's GitHub default branch unless
 `NVIM_CONFIG_BRANCH` is set explicitly. It is safe to rerun, but intentionally
-does not pull an existing checkout. Bootstrap provisions the checkout already
-on disk, restores plugins from `lazy-lock.json`, installs Mason tools, builds
-Treesitter parsers, and links `nvim-config` into `~/.local/bin` when that path is
-free.
+does not pull an existing checkout unless that variable requests a channel
+change. Bootstrap provisions the checkout already on disk, restores plugins
+from `lazy-lock.json`, installs Mason tools, builds
+Treesitter parsers, and links `nvim-update` and `nvim-config` into
+`~/.local/bin` when those paths are free.
 
 The account-wide branch convention is `bet` for production and `bluff` for
 integration. Fresh clones therefore receive `bet`; to test the current staging
@@ -139,29 +143,37 @@ state explicitly:
 NVIM_CONFIG_BRANCH=bluff ~/.config/nvim/bootstrap.sh
 ```
 
+That branch becomes the persistent channel for the config and every
+account-owned plugin. The default is `bet`; change this machine at any time
+with `nvim-update channel bluff` or roll it back with
+`nvim-update channel bet`. The selection is stored below
+`${XDG_STATE_HOME:-$HOME/.local/state}/nvim-config/channel` until explicitly
+changed.
+
 For a manual install, clone to `~/.config/nvim`, then run
 `~/.config/nvim/bin/nvim-config sync` and `:checkhealth`.
 
 ## Updating and health checks
 
-Use the maintenance command after the initial install:
+Routine maintenance is one command:
 
 ```sh
-nvim-config doctor
-nvim-config update
+nvim-update
 ```
 
-`update` refuses a dirty worktree or detached HEAD, reads the current branch's
-configured upstream, fetches that existing remote, and permits only a
-fast-forward. It never rewrites a remote URL, SSH host, tunnel, branch, or
-network setting. After a successful pull, it restores/cleans lazy.nvim plugins
-only when plugin inputs changed, refreshes Mason packages only when the managed
-tool inventory changed, and updates Treesitter parsers only when parser inputs
-changed. Restart Neovim after it completes.
+`nvim-update` refuses dirty or detached checkouts, selects the persisted branch
+on the existing remote, and permits only fast-forwards. A non-production
+channel also preflights, selects, fast-forwards, and compile-checks the complete
+`dev/` plugin fleet. Rolling back to `bet` also converges an existing developer
+fleet, while an ordinary production install continues to use only lockfile
+pins. It never rewrites a remote URL, SSH host, tunnel, or network setting.
+After a successful pull, it reconciles only the dependency classes affected by
+changed files. Restart Neovim after it completes.
 
-Inside Neovim, `:NvimConfigUpdate` runs the same command asynchronously and
-opens its report without blocking the editor. `:NvimConfigDoctor` checks Git,
-Neovim, Node/npm, supporting executables, upstream state, and worktree
+Inside Neovim, `:NvimUpdate` runs the same command asynchronously and opens its
+report without blocking the editor; `:NvimConfigUpdate` remains an alias.
+`nvim-config doctor` and `:NvimConfigDoctor` check Git, Neovim, Node/npm,
+supporting executables, upstream state, and worktree
 cleanliness. `nvim-config sync --latest` is the explicit manual path for
 refreshing unpinned Mason tools and parsers without changing plugin lock policy.
 
@@ -174,6 +186,7 @@ refreshing unpinned Mason tools and parsers without changing plugin lock policy.
 ├── init.lua                         # intentionally tiny startup entrypoint
 ├── lua/
 │   ├── config/
+│   │   ├── channel.lua              # persistent bet/bluff branch selection
 │   │   ├── environment.lua          # environment detection and clipboard policy
 │   │   ├── mise.lua                 # Mise path predicate; no CLI dependency
 │   │   ├── options.lua              # environment-independent editor options
@@ -181,7 +194,8 @@ refreshing unpinned Mason tools and parsers without changing plugin lock policy.
 │   │   ├── diagnostics.lua          # one diagnostic presentation policy
 │   │   ├── autocmds.lua             # general editor automation
 │   │   ├── toolchain.lua             # compatibility and managed-tool manifest
-│   │   ├── update.lua                # asynchronous editor maintenance commands
+│   │   ├── update.lua               # asynchronous editor maintenance commands
+│   │   ├── ux_baselines.lua         # exact third-party setup rollback inputs
 │   │   └── lazy.lua                 # lazy.nvim bootstrap and plugin import
 │   └── plugins/                     # lazy.nvim specs grouped by concern
 │       ├── ui.lua
@@ -193,6 +207,7 @@ refreshing unpinned Mason tools and parsers without changing plugin lock policy.
 │       ├── editing.lua
 │       ├── git.lua
 │       ├── operations.lua            # MCP Buff operator panel
+│       ├── ux.lua                    # guarded Foundation/Styling/Chrome integration
 │       └── ...
 ├── docs/
 │   ├── architecture.md
@@ -201,6 +216,7 @@ refreshing unpinned Mason tools and parsers without changing plugin lock policy.
 │   └── troubleshooting.md
 ├── scripts/ci/                      # dependency-light validation scripts
 ├── bin/nvim-config                  # doctor, update, and dependency sync CLI
+├── bin/nvim-update                  # single routine channel-aware update command
 ├── lazy-lock.json                   # exact plugin commits
 ├── bootstrap.sh
 └── CHANGELOG.md

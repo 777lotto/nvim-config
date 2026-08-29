@@ -1,7 +1,7 @@
 return {
   {
     "777lotto/mcp-buff",
-    branch = "bet",
+    branch = require("config.channel").current(),
     main = "mcp_buff",
     cmd = { "McpBuff" },
     keys = {

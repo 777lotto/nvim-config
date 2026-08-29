@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+nvim_update_source="${BASH_SOURCE[0]}"
+while [ -h "$nvim_update_source" ]; do
+  nvim_update_dir="$(cd -P "$(dirname "$nvim_update_source")" >/dev/null 2>&1 && pwd)"
+  nvim_update_source="$(readlink "$nvim_update_source")"
+  [[ "$nvim_update_source" != /* ]] && nvim_update_source="$nvim_update_dir/$nvim_update_source"
+done
+nvim_update_bin_dir="$(cd -P "$(dirname "$nvim_update_source")" >/dev/null 2>&1 && pwd)"
+
+if [ "$#" -eq 0 ] || [ "${1:-}" = "--no-color" ]; then
+  exec "$nvim_update_bin_dir/nvim-config" update "$@"
+fi
+exec "$nvim_update_bin_dir/nvim-config" "$@"

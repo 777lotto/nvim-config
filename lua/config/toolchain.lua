@@ -5,7 +5,7 @@
 local M = {}
 
 M.neovim = {
-  minimum = "0.12.0",
+  minimum = "0.12.2",
   tested = "0.12.4",
 }
 
