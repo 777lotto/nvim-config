@@ -22,13 +22,16 @@ return {
   "akinsho/bufferline.nvim",
   dependencies = { "nvim-tree/nvim-web-devicons" },
   version = "*",
-  opts = {
-    options = {
-      mode = "buffers", -- Show all open buffers
-      separator_style = "slant",
-      always_show_bufferline = true,
-    },
-  },
+  opts = function()
+    local setup_opts = {
+      options = {
+        mode = "buffers", -- Show all open buffers
+        separator_style = "slant",
+        always_show_bufferline = true,
+      },
+    }
+    return require("config.ux_baselines").record("bufferline", setup_opts)
+  end,
 },
 
 -- ===========================================================================

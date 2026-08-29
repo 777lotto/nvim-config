@@ -2,6 +2,7 @@ local root = assert(arg[1], "repository root argument is required")
 local expected_clipboard = assert(arg[2], "expected clipboard mode argument is required")
 
 vim.opt.runtimepath:prepend(vim.fn.fnamemodify(root, ":p"))
+vim.env.NVIM_CONFIG_CHANNEL = "bet"
 
 local environment = require("config.environment")
 environment.setup()
@@ -13,6 +14,7 @@ require("config.autocmds")
 require("config.update").setup()
 
 local toolchain = require("config.toolchain")
+assert(toolchain.neovim.minimum == "0.12.2", "unexpected Neovim compatibility floor")
 assert(toolchain.node.minimum_major == 22, "unexpected Node compatibility floor")
 assert(toolchain.node.recommended_major == 24, "unexpected recommended Node release")
 assert(toolchain.node.canary_major == 26, "unexpected Node canary release")
@@ -26,6 +28,56 @@ assert(mcp_buff[1] == "777lotto/mcp-buff", "unexpected MCP Buff repository")
 assert(mcp_buff.branch == "bet", "MCP Buff must consume its production branch")
 assert(mcp_buff.opts.endpoint == "http://127.0.0.1:8792", "MCP Buff endpoint must remain loopback-only")
 assert(mcp_buff.keys[1][1] == "<leader>am", "MCP Buff must use the agent menu at <leader>am")
+
+local git_specs = assert(loadfile(root .. "/lua/plugins/git.lua"))()
+assert(git_specs[1].branch == "bet", "Git Panel must consume the selected production channel")
+
+vim.env.NVIM_CONFIG_CHANNEL = "bluff"
+assert(assert(loadfile(root .. "/lua/plugins/operations.lua"))()[1].branch == "bluff",
+  "MCP Buff did not follow the nightly channel")
+assert(assert(loadfile(root .. "/lua/plugins/git.lua"))()[1].branch == "bluff",
+  "Git Panel did not follow the nightly channel")
+vim.env.NVIM_CONFIG_CHANNEL = "nightly/feature-1"
+assert(require("config.channel").current() == "nightly/feature-1",
+  "valid nested channel was rejected")
+vim.env.NVIM_CONFIG_CHANNEL = "invalid channel"
+assert(require("config.channel").current() == "bet", "invalid Lua channel did not fall back safely")
+vim.env.NVIM_CONFIG_CHANNEL = "nightly/.hidden"
+assert(require("config.channel").current() == "bet", "invalid Git path component was accepted")
+vim.env.NVIM_CONFIG_CHANNEL = "bet"
+
+local ux_specs = assert(loadfile(root .. "/lua/plugins/ux.lua"))()
+local foundation, chrome, styling = ux_specs[1], ux_specs[2], ux_specs[3]
+assert(foundation[1] == "777lotto/UX-foundation.nvim" and foundation.lazy == false,
+  "UX Foundation must load eagerly")
+assert(foundation.branch == "bet" and foundation.opts.load_active == false,
+  "UX Foundation must use the selected channel without applying a profile")
+assert(chrome[1] == "777lotto/UX-chrome.nvim" and chrome.branch == "bet",
+  "UX Chrome spec is missing or on the wrong channel")
+for _, surface in ipairs({ "tabline", "statusline", "winbar", "statuscolumn", "windows", "scrollbar" }) do
+  assert(chrome.opts.ownership[surface] == "external",
+    "UX Chrome must not take over " .. surface .. " during the compatibility soak")
+end
+assert(styling[1] == "777lotto/UX-styling.nvim" and styling.cmd == "UXStyling",
+  "UX Styling must remain command-lazy")
+
+local lock = vim.json.decode(table.concat(vim.fn.readfile(root .. "/lazy-lock.json"), "\n"))
+for _, name in ipairs({ "UX-foundation.nvim", "UX-styling.nvim", "UX-chrome.nvim" }) do
+  local pin = assert(lock[name], "production lock is missing " .. name)
+  assert(pin.branch == "bet", name .. " production pin must target bet")
+  assert(type(pin.commit) == "string" and pin.commit:match("^[0-9a-f]+$") and #pin.commit == 40,
+    name .. " production lock commit is invalid")
+end
+
+local baselines = require("config.ux_baselines")
+local marker = function() return "retained" end
+baselines.record("bufferline", { options = { mode = "buffers", callback = marker } })
+local styling_opts = styling.opts()
+assert(styling_opts.bufferline.baseline_setup.options.callback == marker,
+  "UX Styling lost callbacks from the exact Bufferline setup baseline")
+styling_opts.bufferline.baseline_setup.options.mode = "tabs"
+assert(baselines.get("bufferline").options.mode == "buffers",
+  "UX baseline consumers can mutate the retained setup input")
 
 local ui_specs = assert(loadfile(root .. "/lua/plugins/ui.lua"))()
 local which_key
@@ -138,6 +190,7 @@ assert(
 assert(vim.fn.exists(":EnvironmentInfo") == 2, ":EnvironmentInfo was not registered")
 assert(vim.fn.exists(":NvimConfigUpdate") == 2, ":NvimConfigUpdate was not registered")
 assert(vim.fn.exists(":NvimConfigDoctor") == 2, ":NvimConfigDoctor was not registered")
+assert(vim.fn.exists(":NvimUpdate") == 2, ":NvimUpdate was not registered")
 
 print(("Core smoke passed with clipboard mode %s"):format(environment.clipboard_mode))
 

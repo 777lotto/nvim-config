@@ -44,32 +44,39 @@ local function show_report(title, result)
   end
 end
 
-local function run(action)
+local function run(action, executable_name)
   if M.running then
     return vim.notify("nvim-config: another maintenance command is still running", vim.log.levels.WARN)
   end
-  local executable = config_root() .. "/bin/nvim-config"
+  executable_name = executable_name or "nvim-config"
+  local executable = config_root() .. "/bin/" .. executable_name
+  local report_title = executable_name == "nvim-update" and "NvimUpdate"
+    or "NvimConfig " .. action
   if vim.fn.executable(executable) ~= 1 then
     return vim.notify("nvim-config CLI is missing or not executable: " .. executable, vim.log.levels.ERROR)
   end
 
   M.running = true
-  vim.notify("nvim-config: " .. action .. " started in the background", vim.log.levels.INFO)
+  vim.notify(executable_name .. ": " .. action .. " started in the background", vim.log.levels.INFO)
   vim.system({ executable, action, "--no-color" }, {
     text = true,
     cwd = config_root(),
   }, function(result)
     vim.schedule(function()
       M.running = false
-      show_report("NvimConfig " .. action, result)
+      show_report(report_title, result)
       local level = result.code == 0 and vim.log.levels.INFO or vim.log.levels.ERROR
-      vim.notify("nvim-config: " .. action .. (result.code == 0 and " completed" or " failed"), level)
+      vim.notify(executable_name .. ": " .. action
+        .. (result.code == 0 and " completed" or " failed"), level)
     end)
   end)
 end
 
 function M.setup()
-  api.nvim_create_user_command("NvimConfigUpdate", function() run("update") end, {
+  api.nvim_create_user_command("NvimUpdate", function() run("update", "nvim-update") end, {
+    desc = "Update the persistent config/plugin channel and reconcile dependencies",
+  })
+  api.nvim_create_user_command("NvimConfigUpdate", function() run("update", "nvim-update") end, {
     desc = "Fast-forward this config and reconcile changed dependencies",
   })
   api.nvim_create_user_command("NvimConfigDoctor", function() run("doctor") end, {

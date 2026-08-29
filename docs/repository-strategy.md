@@ -122,23 +122,25 @@ config and its plugins from working checkouts at the same time.
 
 `dev/` is a gitignored directory at the repository root. lazy.nvim's dev mode
 is configured in `lua/config/lazy.lua` to look there for any plugin whose spec
-matches `777lotto`, except during a maintenance run:
+matches `777lotto` while a non-production channel is selected, except during a
+production-pin maintenance run:
 
 ```lua
 dev = {
-  path = (vim.env.NVIM_CONFIG_ROOT or vim.fn.stdpath("config")) .. "/dev",
-  patterns = vim.env.NVIM_TOOLCHAIN_SYNC == "1" and {} or { "777lotto" },
+  path = vim.env.NVIM_CONFIG_DEV_ROOT
+    or (vim.env.NVIM_CONFIG_ROOT or vim.fn.stdpath("config")) .. "/dev",
+  patterns = use_dev and { "777lotto" } or {},
   fallback = true,
 }
 ```
 
-`fallback = true` is the guarantee that matters for everyone else: a machine
-with no `dev/` directory, or one missing a particular plugin, resolves that
-plugin from its `lazy-lock.json` pin exactly as before. Dev mode is opt-in by
-the presence of a directory, never by configuration a user has to undo.
+`fallback = true` is the guarantee that matters for everyone else: production
+`bet`, a machine with no `dev/` directory, or one missing a particular plugin
+resolves that plugin from its `lazy-lock.json` pin. A non-`bet` selection is
+explicit and persistent through `nvim-update channel <branch>`.
 
 Each entry may be a real clone or a symlink to a canonical one. A standalone
-machine runs `mise run plugins:clone` and gets real clones on `bluff`. A
+machine runs `nvim-update channel bluff` and gets real clones on `bluff`. A
 workstation that already keeps canonical clones elsewhere symlinks them in, so
 one checkout serves both the coordination clone and the editor:
 
@@ -185,8 +187,8 @@ Both repositories share the Neovim Workspace Project for cross-repository
 planning.
 
 [MCP Buff](https://github.com/777lotto/mcp-buff) follows the same production
-`bet` and integration `bluff` model. This config consumes its `bet` branch and
-keeps its resolved commit in `lazy-lock.json`; its endpoint remains loopback
-only. Plugin release workflows may dispatch a focused dependency refresh here,
-but the resulting lock change still enters through `bluff` and the normal
-production promotion.
+`bet` and integration `bluff` model. This config consumes the selected channel
+and keeps its tested production commit in `lazy-lock.json`; its endpoint
+remains loopback only. Plugin release workflows may dispatch a focused
+dependency refresh here, but the resulting lock change still enters through
+`bluff` and the normal production promotion.
