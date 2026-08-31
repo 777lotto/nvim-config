@@ -373,9 +373,16 @@ Other installations retain the standard `gh` API backend.
 - `<leader>am`: open MCP Buff's Cloudflare write-ticket review panel.
 
 The plugin endpoint is fixed to `http://127.0.0.1:8792`. This repository does
-not create, modify, or persist an SSH tunnel; tunnel lifecycle and routing stay
-under the workstation network runbook. Closing the external tunnel revokes
-reachability without a Neovim configuration change.
+not expose the broker or connect to the container. Opening `:McpBuff` creates a
+loopback-only, panel-scoped SSH forward through the dedicated `zemrip-server`
+alias, which resolves to the server's WireGuard address. It then reads
+`zemrip/mcp/admin-capability` from the Toughbook's local `pass` store. Closing
+the panel revokes the forward and clears the in-memory capability.
+
+WireGuard is an always-on prerequisite managed outside Neovim. MCP Buff neither
+changes it nor falls back to `zemrip-server-lan`. The approval UI therefore
+runs on this Toughbook; agents in `zemrip-ai` post tickets, and the broker on
+`zemrip-server` executes only a locally reviewed decision.
 
 ## Project search and replace
 
