@@ -27,6 +27,13 @@ local mcp_buff = assert(operations[1], "MCP Buff plugin spec is missing")
 assert(mcp_buff[1] == "777lotto/mcp-buff", "unexpected MCP Buff repository")
 assert(mcp_buff.branch == "bet", "MCP Buff must consume its production branch")
 assert(mcp_buff.opts.endpoint == "http://127.0.0.1:8792", "MCP Buff endpoint must remain loopback-only")
+assert(vim.deep_equal(mcp_buff.opts.capability_cmd,
+  { "pass", "show", "zemrip/mcp/admin-capability" }),
+  "MCP Buff must read the local pass-backed admin capability")
+assert(mcp_buff.opts.tunnel.host == "zemrip-server",
+  "MCP Buff must use the WireGuard zemrip-server SSH alias")
+assert(not mcp_buff.opts.tunnel.host:find("lan", 1, true),
+  "MCP Buff must not fall back to a LAN SSH alias")
 assert(mcp_buff.keys[1][1] == "<leader>am", "MCP Buff must use the agent menu at <leader>am")
 
 local git_specs = assert(loadfile(root .. "/lua/plugins/git.lua"))()

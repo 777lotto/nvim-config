@@ -8,9 +8,14 @@ return {
       { "<leader>am", "<cmd>McpBuff<cr>", desc = "MCP Buff" },
     },
     opts = {
-      -- The plugin only accepts loopback. Tunnel lifecycle and SSH routing stay
-      -- outside Neovim and follow the workstation network runbook.
+      -- WireGuard is an always-on workstation prerequisite. This dedicated SSH
+      -- alias resolves to zemrip-server's WireGuard address; MCP Buff owns only
+      -- its ephemeral loopback forward and never falls back to the LAN alias.
       endpoint = "http://127.0.0.1:8792",
+      capability_cmd = { "pass", "show", "zemrip/mcp/admin-capability" },
+      tunnel = {
+        host = "zemrip-server",
+      },
     },
   },
 }
