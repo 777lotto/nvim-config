@@ -113,6 +113,65 @@ fields add only planning state such as Status, Priority, Size, and Target date.
 Recommended views are an all-work status board, repository-filtered Config and
 GitPanel boards, Debian/macOS label views, and a release roadmap.
 
+## Dev plane
+
+Plugins stay independent repositories: their own history, CI, releases, and a
+resolved commit in this repository's `lazy-lock.json`. Nothing below changes
+that. `dev/` is on-disk organization for a maintainer who wants to run the
+config and its plugins from working checkouts at the same time.
+
+`dev/` is a gitignored directory at the repository root. lazy.nvim's dev mode
+is configured in `lua/config/lazy.lua` to look there for any plugin whose spec
+matches `777lotto` while a non-production channel is selected, except during a
+production-pin maintenance run:
+
+```lua
+dev = {
+  path = vim.env.NVIM_CONFIG_DEV_ROOT
+    or (vim.env.NVIM_CONFIG_ROOT or vim.fn.stdpath("config")) .. "/dev",
+  patterns = use_dev and { "777lotto" } or {},
+  fallback = true,
+}
+```
+
+`fallback = true` is the guarantee that matters for everyone else: production
+`bet`, a machine with no `dev/` directory, or one missing a particular plugin
+resolves that plugin from its `lazy-lock.json` pin. A non-`bet` selection is
+explicit and persistent through `nvim-update channel <branch>`.
+
+Each entry may be a real clone or a symlink to a canonical one. A standalone
+machine runs `nvim-update channel bluff` and gets real clones on `bluff`. A
+workstation that already keeps canonical clones elsewhere symlinks them in, so
+one checkout serves both the coordination clone and the editor:
+
+```text
+dev/
+├── git-panel.nvim      -> ../../git-panel.nvim
+├── mcp-buff            -> ../../mcp-buff
+├── UX-foundation.nvim  -> ../../ux-foundation.nvim
+├── UX-styling.nvim     -> ../../ux-styling.nvim
+├── UX-chrome.nvim      -> ../../ux-chrome.nvim
+└── agent-manager.nvimz -> ../../agent-manager.nvimz
+```
+
+Directory names are the lazy.nvim plugin names and are case-sensitive, so they
+must match the repository names exactly even when the symlink target is
+lowercase. `scripts/dev-plugins.sh` treats an existing directory *or* symlink
+as present, which is what lets both layouts coexist.
+
+`scripts/dev-plugins.sh` clones from `$NVIM_DEV_GIT_BASE`, defaulting to
+`https://github.com/777lotto`. A machine that reaches GitHub through a broker
+or mirror sets that variable instead of editing the script.
+
+Dev mode is deliberately off during maintenance. lazy.nvim treats a plugin
+resolved outside its own root as local and omits local plugins from the
+lockfile it writes, so a `nvim-config sync` on a machine with `dev/` populated
+would delete exactly those plugins' committed pins. Every `bin/nvim-config` run
+and the dependency-refresh workflow already set `NVIM_TOOLCHAIN_SYNC`, and
+`lua/config/lazy.lua` disables dev matching when it is set: maintenance
+resolves those plugins from their pins and rewrites `lazy-lock.json`
+faithfully, exactly as it does on a machine with no `dev/` at all.
+
 ## Published plugins
 
 [git-panel.nvim](https://github.com/777lotto/git-panel.nvim) is an independent
@@ -128,8 +187,8 @@ Both repositories share the Neovim Workspace Project for cross-repository
 planning.
 
 [MCP Buff](https://github.com/777lotto/mcp-buff) follows the same production
-`bet` and integration `bluff` model. This config consumes its `bet` branch and
-keeps its resolved commit in `lazy-lock.json`; its endpoint remains loopback
-only. Plugin release workflows may dispatch a focused dependency refresh here,
-but the resulting lock change still enters through `bluff` and the normal
-production promotion.
+`bet` and integration `bluff` model. This config consumes the selected channel
+and keeps its tested production commit in `lazy-lock.json`; its endpoint
+remains loopback only. Plugin release workflows may dispatch a focused
+dependency refresh here, but the resulting lock change still enters through
+`bluff` and the normal production promotion.

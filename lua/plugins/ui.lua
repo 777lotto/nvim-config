@@ -22,13 +22,16 @@ return {
   "akinsho/bufferline.nvim",
   dependencies = { "nvim-tree/nvim-web-devicons" },
   version = "*",
-  opts = {
-    options = {
-      mode = "buffers", -- Show all open buffers
-      separator_style = "slant",
-      always_show_bufferline = true,
-    },
-  },
+  opts = function()
+    local setup_opts = {
+      options = {
+        mode = "buffers", -- Show all open buffers
+        separator_style = "slant",
+        always_show_bufferline = true,
+      },
+    }
+    return require("config.ux_baselines").record("bufferline", setup_opts)
+  end,
 },
 
 -- ===========================================================================
@@ -39,24 +42,30 @@ return {
   event = "VeryLazy",
   config = function()
     local wk = require("which-key")
-    wk.setup({})
+    wk.setup({
+      -- Keep the popup alphabetical while making case meaningful: all
+      -- lowercase categories appear before the uppercase categories.
+      sort = { "case", "alphanum", "mod" },
+    })
 
-    -- Optional: friendly names for your <leader> prefixes.
-    -- You do NOT need to register individual keys here — which-key reads
-    -- the `desc` from every mapping you already created automatically.
+    -- which-key reads each mapping's `desc` automatically. This list owns the
+    -- category names and mirrors the case-aware alphabetical popup order.
     wk.add({
-      { "<leader>f", group = "Files / Find" },
-      { "<leader>e", group = "Edit", mode = { "n", "x" } },
-      { "<leader>n", group = "Navigate", mode = { "n", "x" } },
-      { "<leader>s", group = "Search / Replace" },
-      { "<leader>w", group = "Windows / Splits" },
-      { "<leader>x", group = "Diagnostics" },
-      { "<leader>b", group = "Buffers" },
-      { "<leader>g", group = "Git" },
-      { "<leader>t", group = "Tab bar / Terminals" },
-      { "<leader>tm", group = "Tab bar: move" },
-      { "<leader>c", group = "Code" },
-      { "<leader>q", group = "Quit / Session" },
+      { "<leader>a", group = "(a)gent" },
+      { "<leader>b", group = "(b)uffer" },
+      { "<leader>bm", group = "(m)ove buffer" },
+      { "<leader>c", group = "(c)ode" },
+      { "<leader>d", group = "(d)iagnostic" },
+      { "<leader>e", group = "(e)dit", mode = { "n", "x" } },
+      { "<leader>f", group = "(f)ile" },
+      { "<leader>g", group = "(g)it" },
+      { "<leader>n", group = "(n)avigate", mode = { "n", "x" } },
+      { "<leader>q", group = "(q)uit" },
+      { "<leader>s", group = "(s)earch", mode = { "n", "x" } },
+      { "<leader>w", group = "(w)ord", mode = { "n", "x" } },
+      { "<leader>S", group = "(S)ession" },
+      { "<leader>T", group = "(T)erminal" },
+      { "<leader>W", group = "(W)indow" },
     })
   end,
 },
@@ -67,7 +76,7 @@ return {
 {
   "szw/vim-maximizer",
   keys = {
-    { "<leader>wm", "<cmd>MaximizerToggle<cr>", desc = "Maximize / restore window" },
+    { "<leader>Wm", "<cmd>MaximizerToggle<cr>", desc = "Maximize / restore window" },
   },
 },
 }

@@ -21,12 +21,12 @@ vim.diagnostic.config({
 })
 
 local keymap = vim.keymap
-keymap.set("n", "<leader>xf", function()
+keymap.set("n", "<leader>df", function()
   vim.diagnostic.open_float({ scope = "cursor", focusable = true })
 end, { desc = "Diagnostic details (float)" })
-keymap.set("n", "<leader>xl", function()
+keymap.set("n", "<leader>dl", function()
   vim.diagnostic.setloclist({ open = true })
 end, { desc = "Buffer diagnostics (location list)" })
-keymap.set("n", "<leader>xq", function()
+keymap.set("n", "<leader>dq", function()
   vim.diagnostic.setqflist({ open = true })
 end, { desc = "Project diagnostics (quickfix list)" })

@@ -1,7 +1,7 @@
 # Neovim configuration
 
 [![CI](https://github.com/777lotto/nvim-config/actions/workflows/ci.yml/badge.svg?branch=bet)](https://github.com/777lotto/nvim-config/actions/workflows/ci.yml)
-[![Neovim](https://img.shields.io/badge/Neovim-0.12%2B-57A143?logo=neovim&logoColor=white)](https://neovim.io/)
+[![Neovim](https://img.shields.io/badge/Neovim-0.12.2%2B-57A143?logo=neovim&logoColor=white)](https://neovim.io/)
 [![Release](https://img.shields.io/github/v/release/777lotto/nvim-config)](https://github.com/777lotto/nvim-config/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -11,7 +11,7 @@ a headless Debian server accessed over SSH. The config uses Neovim's current Lua
 APIs, lazy.nvim for plugins, Mason for external tools, and a committed lockfile
 for repeatable installs.
 
-Requires Neovim 0.12 or newer. The leader key is `<Space>`.
+Requires Neovim 0.12.2 or newer. The leader key is `<Space>`.
 
 ## Highlights
 
@@ -27,6 +27,9 @@ Requires Neovim 0.12 or newer. The leader key is `<Space>`.
   [GitPanel](https://github.com/777lotto/git-panel.nvim) for Git workflows.
 - [MCP Buff](https://github.com/777lotto/mcp-buff) for reviewing brokered
   Cloudflare write tickets through an operator-controlled loopback tunnel.
+- Guarded UX Foundation, Styling, and Chrome integration. Chrome registers its
+  complete contract while Bufferline, Lualine, and native surfaces remain the
+  physical owners during the compatibility soak.
 - A clean-worktree, fast-forward-only whole-config updater available from the
   shell and inside Neovim.
 - Automatic clipboard policy: native X11 integration on the local XFCE client
@@ -70,6 +73,9 @@ the process before this configuration loads.
 | Python | Treesitter | `pyright` | — |
 | Markdown, MDX | Treesitter + render-markdown | `marksman` | Prettier + markdownlint-cli2 |
 | XML | Treesitter | — | — |
+| Bash / shell | Treesitter + Mise file-task injections | — | — |
+| TOML | Treesitter + Mise `run` injections | — | — |
+| KDL | Treesitter (including embedded Mise usage specs) | — | — |
 
 Prettier is also configured for JSON5, SCSS, Less, Vue, GraphQL, Handlebars,
 Angular HTML, and YAML. It is deliberately not assigned to Lua, Python, C, XML,
@@ -77,11 +83,27 @@ or plain text because Prettier does not parse those languages. Those can receive
 their own formatters later (for example StyLua or Ruff) without changing the
 Prettier policy.
 
+### Optional Mise highlighting
+
+Mise configuration receives syntax-aware embedded highlighting without making
+Mise an editor dependency. Single-line `run` strings and multiline strings
+without a shebang use Bash; multiline `env` and direct-interpreter shebangs use
+the named language. The predicate recognizes Mise's default project, local,
+environment, grouped `config.toml`, and non-hidden `conf.d/*.toml` paths. A
+generic TOML file with a `run` key is intentionally left as TOML.
+
+Bash file tasks highlight `#MISE`, `#[MISE]`, and `# [MISE]` bodies as TOML,
+and the corresponding `USAGE` forms as KDL. Consecutive USAGE directives are
+parsed as one multi-node KDL region on Neovim 0.12. Mise itself remains an
+optional external command: startup, bootstrap, and `nvim-config doctor` do not
+invoke or require it. The managed Bash, TOML, and KDL parsers are installed by
+bootstrap or `nvim-config sync` and updated by `nvim-config sync --latest`.
+
 ## Requirements
 
 | Need | Purpose | Debian setup |
 | --- | --- | --- |
-| Neovim 0.12+ | Editor and current Treesitter APIs | Current upstream build |
+| Neovim 0.12.2+ | Editor, UX contract, and current Treesitter APIs | Current upstream build |
 | Git and curl | Config, lazy.nvim, Mason | `apt install git curl ca-certificates` |
 | GitHub CLI (optional) | Create and publish a remote from GitPanel | `apt install gh`, then `gh auth login` |
 | C compiler | Treesitter parser builds | `apt install build-essential` |
@@ -107,10 +129,11 @@ git clone https://github.com/777lotto/nvim-config.git \
 
 The installer follows the repository's GitHub default branch unless
 `NVIM_CONFIG_BRANCH` is set explicitly. It is safe to rerun, but intentionally
-does not pull an existing checkout. Bootstrap provisions the checkout already
-on disk, restores plugins from `lazy-lock.json`, installs Mason tools, builds
-Treesitter parsers, and links `nvim-config` into `~/.local/bin` when that path is
-free.
+does not pull an existing checkout unless that variable requests a channel
+change. Bootstrap provisions the checkout already on disk, restores plugins
+from `lazy-lock.json`, installs Mason tools, builds
+Treesitter parsers, and links `nvim-update` and `nvim-config` into
+`~/.local/bin` when those paths are free.
 
 The account-wide branch convention is `bet` for production and `bluff` for
 integration. Fresh clones therefore receive `bet`; to test the current staging
@@ -120,29 +143,37 @@ state explicitly:
 NVIM_CONFIG_BRANCH=bluff ~/.config/nvim/bootstrap.sh
 ```
 
+That branch becomes the persistent channel for the config and every
+account-owned plugin. The default is `bet`; change this machine at any time
+with `nvim-update channel bluff` or roll it back with
+`nvim-update channel bet`. The selection is stored below
+`${XDG_STATE_HOME:-$HOME/.local/state}/nvim-config/channel` until explicitly
+changed.
+
 For a manual install, clone to `~/.config/nvim`, then run
 `~/.config/nvim/bin/nvim-config sync` and `:checkhealth`.
 
 ## Updating and health checks
 
-Use the maintenance command after the initial install:
+Routine maintenance is one command:
 
 ```sh
-nvim-config doctor
-nvim-config update
+nvim-update
 ```
 
-`update` refuses a dirty worktree or detached HEAD, reads the current branch's
-configured upstream, fetches that existing remote, and permits only a
-fast-forward. It never rewrites a remote URL, SSH host, tunnel, branch, or
-network setting. After a successful pull, it restores/cleans lazy.nvim plugins
-only when plugin inputs changed, refreshes Mason packages only when the managed
-tool inventory changed, and updates Treesitter parsers only when parser inputs
-changed. Restart Neovim after it completes.
+`nvim-update` refuses dirty or detached checkouts, selects the persisted branch
+on the existing remote, and permits only fast-forwards. A non-production
+channel also preflights, selects, fast-forwards, and compile-checks the complete
+`dev/` plugin fleet. Rolling back to `bet` also converges an existing developer
+fleet, while an ordinary production install continues to use only lockfile
+pins. It never rewrites a remote URL, SSH host, tunnel, or network setting.
+After a successful pull, it reconciles only the dependency classes affected by
+changed files. Restart Neovim after it completes.
 
-Inside Neovim, `:NvimConfigUpdate` runs the same command asynchronously and
-opens its report without blocking the editor. `:NvimConfigDoctor` checks Git,
-Neovim, Node/npm, supporting executables, upstream state, and worktree
+Inside Neovim, `:NvimUpdate` runs the same command asynchronously and opens its
+report without blocking the editor; `:NvimConfigUpdate` remains an alias.
+`nvim-config doctor` and `:NvimConfigDoctor` check Git, Neovim, Node/npm,
+supporting executables, upstream state, and worktree
 cleanliness. `nvim-config sync --latest` is the explicit manual path for
 refreshing unpinned Mason tools and parsers without changing plugin lock policy.
 
@@ -151,16 +182,20 @@ refreshing unpinned Mason tools and parsers without changing plugin lock policy.
 ```text
 .
 ├── .github/                         # CI, issue forms, and PR guidance
+├── after/queries/                   # query extensions for embedded languages
 ├── init.lua                         # intentionally tiny startup entrypoint
 ├── lua/
 │   ├── config/
+│   │   ├── channel.lua              # persistent bet/bluff branch selection
 │   │   ├── environment.lua          # environment detection and clipboard policy
+│   │   ├── mise.lua                 # Mise path predicate; no CLI dependency
 │   │   ├── options.lua              # environment-independent editor options
 │   │   ├── keymaps.lua              # global mappings and edit commands
 │   │   ├── diagnostics.lua          # one diagnostic presentation policy
 │   │   ├── autocmds.lua             # general editor automation
 │   │   ├── toolchain.lua             # compatibility and managed-tool manifest
-│   │   ├── update.lua                # asynchronous editor maintenance commands
+│   │   ├── update.lua               # asynchronous editor maintenance commands
+│   │   ├── ux_baselines.lua         # exact third-party setup rollback inputs
 │   │   └── lazy.lua                 # lazy.nvim bootstrap and plugin import
 │   └── plugins/                     # lazy.nvim specs grouped by concern
 │       ├── ui.lua
@@ -172,6 +207,7 @@ refreshing unpinned Mason tools and parsers without changing plugin lock policy.
 │       ├── editing.lua
 │       ├── git.lua
 │       ├── operations.lua            # MCP Buff operator panel
+│       ├── ux.lua                    # guarded Foundation/Styling/Chrome integration
 │       └── ...
 ├── docs/
 │   ├── architecture.md
@@ -180,6 +216,7 @@ refreshing unpinned Mason tools and parsers without changing plugin lock policy.
 │   └── troubleshooting.md
 ├── scripts/ci/                      # dependency-light validation scripts
 ├── bin/nvim-config                  # doctor, update, and dependency sync CLI
+├── bin/nvim-update                  # single routine channel-aware update command
 ├── lazy-lock.json                   # exact plugin commits
 ├── bootstrap.sh
 └── CHANGELOG.md
@@ -194,20 +231,78 @@ highlight groups, Treesitter, LSP, linting, diagnostics, and renderers interact.
 See [Configuration maintenance](docs/maintenance.md) for updater safety,
 latest-tested dependency policy, CI lanes, and release dispatches.
 
+## Leader shortcut organization
+
+Pressing `<leader>` (`Space`) opens an alphabetized which-key menu. Lowercase
+categories appear first, followed by uppercase categories; case deliberately
+distinguishes `w` (word) from `W` (window), `s` (search) from `S` (session),
+and `t` is left unused while `T` owns terminals.
+
+| Prefix      | which-key label | Scope                                                  |
+| ----------- | --------------- | ------------------------------------------------------ |
+| `<leader>a` | `(a)gent`       | Agent Manager and MCP Buff                             |
+| `<leader>b` | `(b)uffer`      | Buffer bar creation, selection, movement, and deletion |
+| `<leader>c` | `(c)ode`        | Code actions, formatting, and rendered Markdown        |
+| `<leader>d` | `(d)iagnostic`  | Diagnostic and TODO views                              |
+| `<leader>e` | `(e)dit`        | Selection, indentation, lines, comments, and lists     |
+| `<leader>f` | `(f)ile`        | Files, save, rename, undo, and redo                    |
+| `<leader>g` | `(g)it`         | GitPanel plus branch, commit, and status pickers       |
+| `<leader>n` | `(n)avigate`    | Lines, paragraphs, brackets, and jump history          |
+| `<leader>q` | `(q)uit`        | Quit the current window or all windows                 |
+| `<leader>s` | `(s)earch`      | Buffer, help, keymap, TODO, and workspace search       |
+| `<leader>w` | `(w)ord`        | Word occurrences, selection, case, and symbol rename   |
+| `<leader>S` | `(S)ession`     | Restore or suppress persistence sessions               |
+| `<leader>T` | `(T)erminal`    | New, split, and persistent floating terminals          |
+| `<leader>W` | `(W)indow`      | Split, focus, close, equalize, and maximize windows    |
+
+The most frequently used file and agent mappings are:
+
+| Key          | Action                                                                        |
+| ------------ | ----------------------------------------------------------------------------- |
+| `<leader>aa` | Open Agent Manager when available; currently a visible reserved shortcut      |
+| `<leader>am` | Open MCP Buff                                                                 |
+| `<leader>fe` | Toggle the file explorer                                                      |
+| `<leader>ff` | Find files                                                                    |
+| `<leader>fh` | Open undo history                                                             |
+| `<leader>fn` | Rename the current file after checking for unsaved changes and name conflicts |
+| `<leader>fo` | Open a recent file                                                            |
+| `<leader>fr` | Redo                                                                          |
+| `<leader>fs` | Save the current file                                                         |
+| `<leader>fu` | Undo                                                                          |
+| `<leader>fS` | Save all files                                                                |
+
+The bufferline across the top is a buffer bar, not native Neovim tabs.
+All of its leader mappings therefore live under `b`:
+
+| Key                           | Action                                       |
+| ----------------------------- | -------------------------------------------- |
+| `<leader>ba`                  | Switch to the alternate buffer               |
+| `<leader>bb`                  | Browse buffers with Telescope                |
+| `<leader>bc`                  | Create a buffer                              |
+| `<leader>bd`                  | Delete the current buffer                    |
+| `<leader>bf` / `<leader>bl`   | Go to the first / last buffer                |
+| `<leader>bn` / `<leader>bp`   | Go to the next / previous buffer             |
+| `<leader>bo`                  | Delete other buffers                         |
+| `<leader>bs`                  | Select a buffer by its displayed letter      |
+| `<leader>bmf` / `<leader>bml` | Move the buffer to the first / last position |
+| `<leader>bmn` / `<leader>bmp` | Move the buffer right / left                 |
+
 ## Diagnostics
 
 Diagnostics are available through several complementary views:
 
-| View | Use |
-| --- | --- |
-| Sign column + underline | Persistent severity/location cue |
-| Virtual text | Compact message beside each affected line |
+| View                       | Use                                         |
+| -------------------------- | ------------------------------------------- |
+| Sign column + underline    | Persistent severity/location cue            |
+| Virtual text               | Compact message beside each affected line   |
 | Current-line virtual lines | Full message below the line being inspected |
-| `<leader>xf` | Rounded floating details at the cursor |
-| `<leader>xl` | Current-buffer location list |
-| `<leader>xq` | Project quickfix list |
-| `<leader>xb` | Current-buffer Trouble panel |
-| `<leader>xx` | Project Trouble panel |
+| `<leader>db`               | Current-buffer Trouble panel                |
+| `<leader>df`               | Rounded floating details at the cursor      |
+| `<leader>dl`               | Current-buffer location list                |
+| `<leader>dp`               | Project Trouble panel                       |
+| `<leader>dq`               | Project quickfix list                       |
+| `<leader>ds`               | Search diagnostics with Telescope           |
+| `<leader>dt`               | TODO Trouble panel                          |
 
 ## Formatting
 
@@ -225,34 +320,41 @@ The `persistence.nvim` session commands remember the working directory, open
 buffers, windows, and tab layout. They do not save unsaved file contents and do
 not affect Git.
 
-| Key | Action |
-| --- | --- |
-| `<leader>qq` | Quit the current window |
-| `<leader>qa` | Quit all Neovim windows |
-| `<leader>qs` | Restore the saved session for the current directory |
-| `<leader>ql` | Restore the most recently used session |
-| `<leader>qd` | Stop persistence from saving this particular session |
+| Key          | Action                                               |
+| ------------ | ---------------------------------------------------- |
+| `<leader>qa` | Quit all Neovim windows                              |
+| `<leader>qq` | Quit the current window                              |
+| `<leader>Sd` | Stop persistence from saving this particular session |
+| `<leader>Sl` | Restore the most recently used session               |
+| `<leader>Sr` | Restore the saved session for the current directory  |
 
-The session mappings remain because they solve a different problem from
-quitting and are safely grouped under the same discoverable `q` prefix.
+Sessions and quitting remain separate because they solve different problems:
+lowercase `q` exits windows, while uppercase `S` manages persisted layouts.
 
 ## Terminals
 
-| Key / command | Action |
-| --- | --- |
-| `<leader>tt` | Open a new, independent terminal buffer (every use creates another) |
-| `<C-\>` | Show or hide one persistent floating terminal |
+| Key / command    | Action                                              |
+| ---------------- | --------------------------------------------------- |
+| `<leader>Tf`     | Show or hide the persistent floating terminal       |
+| `<leader>Th`     | Open a new terminal in a horizontal split           |
+| `<leader>Tn`     | Open a new, independent terminal buffer             |
+| `<leader>Tv`     | Open a new terminal in a vertical split             |
+| `<C-\>`          | Show or hide one persistent floating terminal       |
 | `:FloatTerminal` | Show or hide that same persistent floating terminal |
 
 The floating terminal is a ToggleTerm buffer displayed in a Neovim floating
 window. Toggling the window closed only hides it: its shell and any commands
 running inside it continue until the shell exits or Neovim ends. Ordinary
-`<leader>tt` terminals are separate listed buffers, so they appear in the
-bufferline bar and can run concurrently with each other and with the float.
+`<leader>Tn`, `<leader>Th`, and `<leader>Tv` terminals are separate listed
+buffers, so they appear in the buffer bar and can run concurrently with each
+other and with the float.
 
 ## Git workflows
 
+- `<leader>gb`: Telescope Git branches.
+- `<leader>gc`: Telescope Git commits.
 - `<leader>gg`: custom GitPanel tab.
+- `<leader>gs`: Telescope Git status.
 - `<leader>gG`: custom GitPanel split.
 
 [git-panel.nvim](https://github.com/777lotto/git-panel.nvim) is developed and
@@ -268,7 +370,7 @@ Other installations retain the standard `gh` API backend.
 
 ## Brokered write review
 
-- `<leader>mb`: open MCP Buff's Cloudflare write-ticket review panel.
+- `<leader>am`: open MCP Buff's Cloudflare write-ticket review panel.
 
 The plugin endpoint is fixed to `http://127.0.0.1:8792`. This repository does
 not create, modify, or persist an SSH tunnel; tunnel lifecycle and routing stay
@@ -277,12 +379,14 @@ reachability without a Neovim configuration change.
 
 ## Project search and replace
 
-`<leader>sw` opens Telescope Live Grep. Search remains regex-capable; press
-`<C-r>` inside the picker to replace the current prompt as exact,
-case-sensitive text across the project. Replacement text is entered in a
-centered floating prompt, followed by a second confirmation showing the match
-and file counts. The action refuses to run while a matching buffer has unsaved
-changes.
+`<leader>sw` opens Telescope Live Grep. `<leader>sb` searches the current
+buffer, `<leader>ss` searches the word under the cursor or selected text, and
+`<leader>sr` resumes the previous Telescope picker. Project search remains
+regex-capable; press `<C-r>` inside the picker to replace the current prompt
+as exact, case-sensitive text across the project. Replacement text is entered
+in a centered floating prompt, followed by a second confirmation showing the
+match and file counts. The action refuses to run while a matching buffer has
+unsaved changes.
 
 ## Themes and rendered files
 
@@ -316,10 +420,12 @@ while still allowing its newest compatible patch release.
 
 `lua/config/environment.lua` keeps machine-dependent behavior in one place.
 The default `NVIM_CLIPBOARD=auto` policy selects Neovim's native provider on a
-local desktop and copy-only OSC 52 when `SSH_TTY` or `SSH_CONNECTION` indicates
-an SSH session. Set `NVIM_CLIPBOARD=native` or `NVIM_CLIPBOARD=osc52` to override
-that decision for a particular launch. Run `:EnvironmentInfo` to see the
-desktop, terminal, SSH agent socket, and clipboard policy Neovim inherited.
+local desktop. In an SSH session it uses the one-way Toughbook clipboard bridge
+when `~/.local/bin/toughbook-copy` is installed, with copy-only OSC 52 as the
+portable fallback. Set `NVIM_CLIPBOARD=native`, `NVIM_CLIPBOARD=bridge`, or
+`NVIM_CLIPBOARD=osc52` to override that decision for a particular launch. Run
+`:EnvironmentInfo` to see the desktop, terminal, SSH agent socket, and clipboard
+policy Neovim inherited.
 
 Automatic detection is intentionally limited to behavior Neovim controls.
 When `gpgconf` is available, Neovim routes child Git and SSH processes through
@@ -334,8 +440,8 @@ Production, integration, release, and platform policy are documented in
 
 Press `<leader>?` for all mappings or `<leader>sk` to search them. Useful
 starting points are `<leader>ff` (files), `<leader>sw` (project grep), `<leader>fe`
-(file explorer), `<leader>tt` (new terminal buffer), `<C-\>` (persistent
-floating terminal), and `<leader>u` (undo tree).
+(file explorer), `<leader>bb` (buffers), `<leader>Tn` (new terminal buffer),
+`<C-\>` (persistent floating terminal), and `<leader>fh` (undo history).
 
 Common terminal, LSP, and clipboard checks are collected in
 [Troubleshooting](docs/troubleshooting.md).

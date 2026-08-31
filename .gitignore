@@ -39,3 +39,11 @@ telescope_history
 # The explicit un-ignore guarantees it survives even if a broad rule is added.
 # =============================================================================
 !lazy-lock.json
+
+# --- lazy.nvim dev-mode plugin checkouts (never committed) -------------------
+# dev/ holds independent plugin working clones, or symlinks to canonical ones,
+# that lazy.nvim's dev mode resolves instead of the GitHub pins. Each plugin
+# stays its own repository with its own lockfile pin and release flow; this
+# directory is on-disk organization only. Deliberately distinct from the
+# committed local-plugins/ concept, which ships as part of the config.
+dev/

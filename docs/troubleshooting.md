@@ -2,13 +2,15 @@
 
 ## Configuration update is refused
 
-Run `nvim-config doctor` first. `nvim-config update` deliberately stops when
-the checkout has uncommitted/untracked files, is detached, has no upstream, or
-has diverged from its upstream. It will not stash, reset, switch branches,
-rewrite remotes, or modify SSH/network configuration on your behalf.
+Run `nvim-config doctor` first. `nvim-update` deliberately stops when the
+config or selected plugin fleet has uncommitted/untracked files, is detached,
+is missing the selected remote branch, or has diverged from it. It will switch
+only to the explicitly persisted channel; it will not stash, reset, rewrite
+remote URLs, or modify SSH/network configuration on your behalf.
 
-For ordinary public installs, keep the checkout on production `bet`, preserve
-any local edits on a separate branch, and retry after the worktree is clean.
+For ordinary public installs, use `nvim-update channel bet`; this workstation's
+nightly soak uses `nvim-update channel bluff`. Preserve any local edits on a
+separate branch and retry after every affected worktree is clean.
 If the branch has diverged, inspect it with GitPanel or standard Git commands
 and reconcile it explicitly rather than forcing the updater through the state.
 
@@ -111,31 +113,44 @@ Run `:ConformInfo`. For a Prettier-supported file, it should show either the
 project-local Prettier binary or Mason's fallback. Plain text, Lua, Python, C,
 and XML are intentionally not assigned to Prettier.
 
+## Mise embedded highlighting does not appear
+
+Run `:set filetype?` and `:Inspect`. Mise TOML should use the `toml` filetype,
+and Bash file tasks should use `sh`. If Neovim reports a missing Bash, TOML, or
+KDL parser, run `nvim-config sync`; use `nvim-config sync --latest` when the
+installed parser or its upstream queries are stale.
+
+The `run` injection is intentionally restricted to Mise's default config names,
+environment/local variants, grouped `mise` / `.mise` config paths, and their
+non-hidden `conf.d` TOML fragments. A generic `config.toml` or `settings.toml`
+with a `run` key is not a Mise config and stays plain TOML. The `mise`
+executable is optional and is not a `nvim-config doctor` check.
+
 ## Clipboard on the XFCE client and over SSH
 
 The default `NVIM_CLIPBOARD=auto` policy has two paths:
 
 - Locally on the Debian XFCE/X11 client, Neovim selects its native clipboard
   provider. This machine has `xclip` installed.
-- On the future headless Debian server, `SSH_TTY` or `SSH_CONNECTION` selects
-  copy-only OSC 52 so yanks can reach the clipboard owned by Xfce Terminal on
-  the client.
+- Over `ssh ai` or `ssh zem`, `SSH_TTY` or `SSH_CONNECTION` selects the
+  copy-only Toughbook bridge when `~/.local/bin/toughbook-copy` is installed.
+  The SSH reverse forward carries yanks to the Xfce clipboard without exposing
+  clipboard reads to the remote host. OSC 52 remains the portable fallback.
 
-The remote path is configured but has not yet been validated end-to-end because
-Neovim is not installed on the server. After deployment, test without tmux
-first:
+Test the remote path without tmux first:
 
-1. Run `:EnvironmentInfo` remotely and confirm `Clipboard policy: osc52`.
-2. Yank a short line in Neovim; `unnamedplus` should send it through OSC 52.
+1. Run `:EnvironmentInfo` remotely and confirm `Clipboard policy: bridge`.
+2. Yank a short line in Neovim; `unnamedplus` should invoke
+   `~/.local/bin/toughbook-copy`.
 3. Paste into a local XFCE application and confirm the exact text arrived.
-4. Test again through tmux only after the direct SSH path works, because a
-   multiplexer may require OSC 52 passthrough configuration.
+4. Test again through tmux; tmux copy mode and Neovim use the same bridge.
 
-OSC 52 clipboard reads are intentionally disabled because terminal support
-varies and remote clipboard reads have security implications. Paste into remote
-Neovim using Xfce Terminal's normal paste action; `"+p` is intentionally not a
-remote clipboard-read mechanism. This follows Neovim's
+Remote clipboard reads are intentionally disabled because they expose local
+clipboard contents to remote programs. Paste into remote Neovim using Xfce
+Terminal's normal paste action; `"+p` is intentionally not a remote
+clipboard-read mechanism. The OSC 52 fallback follows Neovim's
 [OSC 52 provider guidance](https://neovim.io/doc/user/provider.html#clipboard-osc52).
 
 For an unusual machine or forwarded clipboard setup, override detection for one
-launch with `NVIM_CLIPBOARD=native nvim` or `NVIM_CLIPBOARD=osc52 nvim`.
+launch with `NVIM_CLIPBOARD=native nvim`, `NVIM_CLIPBOARD=bridge nvim`, or
+`NVIM_CLIPBOARD=osc52 nvim`.

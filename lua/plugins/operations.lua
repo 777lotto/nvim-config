@@ -1,11 +1,11 @@
 return {
   {
     "777lotto/mcp-buff",
-    branch = "bet",
+    branch = require("config.channel").current(),
     main = "mcp_buff",
     cmd = { "McpBuff" },
     keys = {
-      { "<leader>mb", "<cmd>McpBuff<cr>", desc = "Cloudflare write tickets" },
+      { "<leader>am", "<cmd>McpBuff<cr>", desc = "MCP Buff" },
     },
     opts = {
       -- The plugin only accepts loopback. Tunnel lifecycle and SSH routing stay

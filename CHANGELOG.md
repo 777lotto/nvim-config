@@ -7,6 +7,23 @@ versioning for release organization.
 
 ### Added
 
+- A persistent account-plugin channel, defaulting to `bet`, plus
+  `nvim-update channel <branch>` for clean, fast-forward-only config and fleet
+  switching. This workstation can remain on nightly `bluff` until the explicit
+  `nvim-update channel bet` rollback.
+- The single `nvim-update` command and asynchronous `:NvimUpdate` entry point;
+  existing `nvim-config` commands remain compatible.
+- Guarded UX Foundation, Styling, and Chrome integration with exact retained
+  Bufferline, nvim-tree, and Telescope setup baselines. Saved UX profiles are
+  not auto-applied and all Chrome surfaces remain externally owned during the
+  compatibility soak.
+- Cross-repository UX compatibility and performance gates covering the Neovim
+  0.12.2 floor and tested 0.12.4 release, safe surface ownership, registration,
+  exact rollback inputs, full startup, render hot paths, catalog refresh, and
+  Styling workspace latency.
+- Isolated maintenance runs now retain their requested config root through
+  lazy.nvim spec reloads, preventing a different installed checkout from
+  rewriting the lockfile with the wrong plugin inventory.
 - `nvim-config doctor`, `update`, and `sync` commands for health checks,
   fast-forward-only whole-config updates, and explicit dependency
   reconciliation without rerunning the installer.
@@ -14,8 +31,22 @@ versioning for release organization.
   in-editor maintenance report.
 - A centralized Neovim, Node, Mason, LSP, and Treesitter compatibility
   manifest plus latest-tested dependency automation.
-- MCP Buff on its production `bet` branch, restricted to the documented
-  loopback endpoint.
+- MCP Buff on the selected channel with an exact production `bet` pin,
+  restricted to the documented loopback endpoint.
+- Optional Mise-aware Treesitter injections for config `run` scripts and Bash
+  file-task MISE/USAGE directives, with managed Bash, TOML, and KDL parsers.
+- A copy-only Toughbook clipboard bridge for SSH sessions. `NVIM_CLIPBOARD=auto`
+  selects it when `~/.local/bin/toughbook-copy` is executable and keeps OSC 52
+  as the portable fallback; `NVIM_CLIPBOARD=bridge` requests it explicitly.
+- An optional `mise.toml` task façade over `bin/nvim-config` plus fleet tasks
+  over a gitignored `dev/` directory. Mise declares no toolchain here and
+  remains optional; every task has a direct equivalent.
+- Channel-gated lazy.nvim dev mode for this account's own plugins. Non-`bet`
+  sessions load matching `dev/` checkouts or symlinks; production always uses
+  the committed pins. Dev matching is off during pin maintenance so a local
+  checkout can never erase its production lock entry.
+- Safe current-file rename on `<leader>fn`, a reserved Agent Manager entry on
+  `<leader>aa`, and focused buffer, search, Git, terminal, and window helpers.
 
 ### Changed
 
@@ -32,6 +63,18 @@ versioning for release organization.
 - Node 22 is the supported floor, Node 24 is the recommended default, and Node
   26 is the forward-compatibility canary. CI exercises the latest releases of
   the managed Node-backed tools on all three lanes.
+- The copy-only clipboard providers now serve `p` from the text they last sent
+  instead of an empty register. Neither provider reads the client clipboard.
+- The tested `git-panel.nvim` pin advances to its current `bet` head, which
+  carries the locally signed Git merge backend this configuration already
+  selects when the workstation `gh-app` helper is installed.
+- `lazy-lock.json` is stored in lazy.nvim's own key order, so a plain
+  `nvim-config sync` no longer leaves the worktree dirty with a `mcp-buff`
+  reorder that changes no pin.
+- Leader shortcuts now use a case-aware alphabetical which-key taxonomy:
+  lowercase `a b c d e f g n q s w`, followed by uppercase `S T W`. Bufferline
+  actions use the `(b)uffer` group, MCP Buff uses `<leader>am`, sessions and
+  terminals use uppercase groups, and undo/redo use `<leader>fu` / `<leader>fr`.
 
 ## 0.1.0 - 2026-08-15
 

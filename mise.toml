@@ -1,0 +1,45 @@
+# Task façade for bin/nvim-config plus fleet operations over the gitignored
+# dev/ plugin checkouts. Mise remains optional: nothing in the editor or
+# bootstrap depends on it, and no [tools] section lives here because
+# lua/config/toolchain.lua, Mason, and the machine's own Mise configuration
+# already own tool provisioning.
+
+[tasks.update]
+description = "Fetch upstream, fast-forward, reconcile affected dependencies"
+run = "bin/nvim-update"
+
+[tasks.doctor]
+description = "Check repository state and supported runtime versions"
+run = "bin/nvim-config doctor"
+
+[tasks.sync]
+description = "Restore the plugin lock and install missing tools"
+run = "bin/nvim-config sync"
+
+[tasks."plugins:clone"]
+description = "Ensure every fleet plugin checkout exists on the selected channel"
+run = "scripts/dev-plugins.sh clone"
+
+[tasks."plugins:pull"]
+description = "Select and fast-forward the channel in every dev/ plugin checkout"
+run = "scripts/dev-plugins.sh pull"
+
+[tasks."plugins:sync"]
+description = "Select and fast-forward the channel in every dev/ plugin checkout"
+run = "scripts/dev-plugins.sh sync"
+
+[tasks."plugins:status"]
+description = "One-line branch/dirty/ahead-behind status per dev/ checkout"
+run = "scripts/dev-plugins.sh status"
+
+[tasks."plugins:check"]
+description = "Compile-check every dev/ plugin that has Lua sources"
+run = "scripts/dev-plugins.sh check"
+
+[tasks.test-sync]
+description = "One-shot selected-channel sync before manual testing"
+run = "bin/nvim-update"
+
+[tasks.verify]
+description = "Run shell, core, updater, channel-fleet, UX integration, and performance gates"
+run = "scripts/ci/verify.sh"

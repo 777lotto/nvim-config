@@ -25,13 +25,17 @@ elseif action == "validate" then
   assert(#toolchain.mason_packages > #toolchain.lsp_servers, "Mason inventory is incomplete")
   assert(toolchain.node.minimum_major <= toolchain.node.recommended_major)
   assert(toolchain.node.recommended_major < toolchain.node.canary_major)
-  assert_unique(toolchain.parsers, "parser")
-  assert_unique(toolchain.parser_filetypes, "parser filetype")
+  local parsers = assert_unique(toolchain.parsers, "parser")
+  local parser_filetypes = assert_unique(toolchain.parser_filetypes, "parser filetype")
   assert_unique(toolchain.lsp_servers, "LSP")
   local mason_packages = assert_unique(toolchain.mason_packages, "Mason package")
   assert_unique(toolchain.node_backed_packages, "Node-backed package")
   for _, package in ipairs(toolchain.node_backed_packages) do
     assert(mason_packages[package], "Node-backed package missing from Mason inventory: " .. package)
+  end
+  for parser, filetype in pairs({ bash = "sh", toml = "toml", kdl = "kdl" }) do
+    assert(parsers[parser], "Mise parser missing from inventory: " .. parser)
+    assert(parser_filetypes[filetype], "Mise parser filetype missing from inventory: " .. filetype)
   end
   local nvmrc = assert(io.open(root .. "/.nvmrc", "r"))
   local recommended_node = nvmrc:read("*l")

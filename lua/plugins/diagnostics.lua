@@ -15,8 +15,10 @@ return {
     })
 
     -- Keymaps
-    vim.keymap.set("n", "<leader>xx", "<cmd>Trouble diagnostics toggle<cr>", { desc = "Project Diagnostics" })
-    vim.keymap.set("n", "<leader>xb", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>", { desc = "Buffer Diagnostics" })
+    vim.keymap.set("n", "<leader>db", "<cmd>Trouble diagnostics toggle filter.buf=0<cr>",
+      { desc = "Buffer diagnostics (Trouble)" })
+    vim.keymap.set("n", "<leader>dp", "<cmd>Trouble diagnostics toggle<cr>",
+      { desc = "Project diagnostics (Trouble)" })
   end,
 },
 }
