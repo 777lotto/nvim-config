@@ -137,7 +137,14 @@ secrets and are never stored in this config.
 
 ## MCP Buff boundary
 
-The managed MCP Buff spec uses only `http://127.0.0.1:8792`. Installing or
-updating the config does not open a tunnel or change an SSH host. Operators
-bring up and tear down the documented external tunnel separately; the panel
-cannot reach a bridge address, container address, or Cloudflare directly.
+The MCP Buff spec uses only `http://127.0.0.1:8792` and reads the admin
+capability from `pass` on the Toughbook. `:McpBuff` owns a temporary,
+loopback-only SSH forward through `zemrip-server` for the visible review
+session, then terminates that exact child. It cannot reach a bridge address,
+container address, or Cloudflare directly.
+
+The `zemrip-server` SSH alias is the WireGuard route and is maintained outside
+this repository. WireGuard is expected to remain active; the plugin does not
+start, stop, or reconfigure it, and must never fall back to
+`zemrip-server-lan`. An already occupied local admin port is refused because
+the plugin cannot prove who owns that listener.

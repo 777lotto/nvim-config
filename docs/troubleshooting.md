@@ -1,5 +1,27 @@
 # Troubleshooting
 
+## MCP Buff cannot open the approval route
+
+Run `:McpBuff` or `<leader>am` on this Toughbook. The panel starts its own
+loopback SSH forward through `zemrip-server`, whose target is the server's
+WireGuard address, then reads `zemrip/mcp/admin-capability` from the local
+`pass` store. No separate tunnel command is part of the normal workflow.
+
+The WireGuard tunnel is an always-on prerequisite and stays outside Neovim's
+lifecycle. A network-unreachable SSH error therefore means to diagnose the
+existing WireGuard route or the `zemrip-server` alias; do not switch MCP Buff
+to `zemrip-server-lan`. The `zemrip-ai` container posts tickets but is not the
+approval environment, and the server host keeps the broker's admin listener on
+its own loopback.
+
+If MCP Buff says `127.0.0.1:8792 already has a listener`, stop the stale or
+manually opened local forward before retrying. Managed mode intentionally
+refuses to send the admin capability through a process it did not create. If
+capability acquisition fails instead, verify that the local `pass` entry and
+Java Card agent are available. Closing the panel with `q` or `:close` should
+remove the local listener; an in-flight decision keeps it only until outcome
+resolution finishes.
+
 ## Configuration update is refused
 
 Run `nvim-config doctor` first. `nvim-update` deliberately stops when the

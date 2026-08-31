@@ -50,6 +50,10 @@ versioning for release organization.
 
 ### Changed
 
+- `:McpBuff` and `<leader>am` now open their own loopback-only SSH forward
+  through the WireGuard `zemrip-server` alias and read the Toughbook's local
+  pass-backed admin capability. Closing the review session revokes both; no
+  per-launch tunnel command or LAN fallback remains.
 - GitPanel uses the repository-scoped `gh-app` API wrapper and locally signed
   Git merges when the workstation helper is installed, while other installs
   retain the standard `gh` API backend.
