@@ -16,7 +16,7 @@ requested repository/operation instead of adding a credential locally.
 
 ## MCP Buff cannot open the approval route
 
-Run `:McpBuff` or `<leader>am` on this Toughbook. The panel starts its own
+Run `:McpBuff` or `<leader>ar` on this Toughbook. The panel starts its own
 loopback SSH forward through `zemrip-server`, whose target is the server's
 WireGuard address, then reads `zemrip/mcp/admin-capability` from the local
 `pass` store. No separate tunnel command is part of the normal workflow.
@@ -35,6 +35,18 @@ capability acquisition fails instead, verify that the local `pass` entry and
 Java Card agent are available. Closing the panel with `q` or `:close` should
 remove the local listener; an in-flight decision keeps it only until outcome
 resolution finishes.
+
+## Agent Manager cannot start
+
+Run `:AgentManagerHealth` first. `:AgentManager`, `:AgentManagerStart`, and the
+other Agent Manager commands are registered lazily, so their complete absence
+usually means this config predates the Agent Manager plugin spec. A source
+checkout also needs a built `agent-manager-broker` and the locked Python worker
+environment; startup deliberately does not build or install either one.
+
+The shortcuts are `<leader>amm` for the workspace, `<leader>amc` to start
+Codex, and `<leader>ams` to enter a prompt. Opening the workspace and starting
+the provider are non-spending; submitting a prompt starts a live model turn.
 
 ## Configuration update is refused
 

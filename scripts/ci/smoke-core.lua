@@ -34,7 +34,28 @@ assert(mcp_buff.opts.tunnel.host == "zemrip-server",
   "MCP Buff must use the WireGuard zemrip-server SSH alias")
 assert(not mcp_buff.opts.tunnel.host:find("lan", 1, true),
   "MCP Buff must not fall back to a LAN SSH alias")
-assert(mcp_buff.keys[1][1] == "<leader>am", "MCP Buff must use the agent menu at <leader>am")
+assert(mcp_buff.keys[1][1] == "<leader>ar", "MCP Buff review must use <leader>ar")
+
+local agent_manager = assert(operations[2], "Agent Manager plugin spec is missing")
+assert(agent_manager[1] == "777lotto/agent-manager.nvimz", "unexpected Agent Manager repository")
+assert(agent_manager.branch == "bet", "Agent Manager must consume its production branch")
+assert(agent_manager.main == "agent_manager", "Agent Manager setup module is incorrect")
+for _, command in ipairs({
+  "AgentManager",
+  "AgentManagerStart",
+  "AgentManagerSend",
+  "AgentManagerSteer",
+  "AgentManagerInterrupt",
+  "AgentManagerHealth",
+  "AgentManagerClose",
+}) do
+  assert(vim.list_contains(agent_manager.cmd, command), command .. " is not lazy-loadable")
+end
+assert(vim.deep_equal(agent_manager.keys, {
+  { "<leader>amm", "<cmd>AgentManager<cr>", desc = "Agent Manager" },
+  { "<leader>amc", "<cmd>AgentManagerStart codex<cr>", desc = "Start Codex agent" },
+  { "<leader>ams", "<cmd>AgentManagerSend<cr>", desc = "Send agent prompt" },
+}), "Agent Manager shortcuts changed unexpectedly")
 
 local git_specs = assert(loadfile(root .. "/lua/plugins/git.lua"))()
 assert(git_specs[1].branch == "bet", "Git Panel must consume the selected production channel")
@@ -72,8 +93,11 @@ assert(portable_options.profile == nil and portable_options.merge_backend == "ap
   "portable GitPanel defaults changed unexpectedly")
 
 vim.env.NVIM_CONFIG_CHANNEL = "bluff"
-assert(assert(loadfile(root .. "/lua/plugins/operations.lua"))()[1].branch == "bluff",
+local nightly_operations = assert(loadfile(root .. "/lua/plugins/operations.lua"))()
+assert(nightly_operations[1].branch == "bluff",
   "MCP Buff did not follow the nightly channel")
+assert(nightly_operations[2].branch == "bluff",
+  "Agent Manager did not follow the nightly channel")
 assert(assert(loadfile(root .. "/lua/plugins/git.lua"))()[1].branch == "bluff",
   "Git Panel did not follow the nightly channel")
 vim.env.NVIM_CONFIG_CHANNEL = "nightly/feature-1"
@@ -156,6 +180,7 @@ assert(
 )
 local expected_groups = {
   ["<leader>a"] = "(a)gent",
+  ["<leader>am"] = "(m)anager",
   ["<leader>b"] = "(b)uffer",
   ["<leader>c"] = "(c)ode",
   ["<leader>d"] = "(d)iagnostic",
@@ -185,16 +210,10 @@ local function assert_mapping(mode, lhs, description)
   return mapping
 end
 
-local agent_manager = assert_mapping("n", "<leader>aa", "Agent Manager (reserved)")
+assert(vim.fn.maparg("<leader>aa", "n") == "", "retired Agent Manager shortcut is still mapped")
 local file_rename = assert_mapping("n", "<leader>fn", "File name / rename")
 assert_mapping("n", "<leader>fr", "Redo")
 assert_mapping("n", "<leader>fu", "Undo")
-
-local agent_manager_opened = false
-vim.api.nvim_create_user_command("AgentManager", function() agent_manager_opened = true end, {})
-agent_manager.callback()
-vim.api.nvim_del_user_command("AgentManager")
-assert(agent_manager_opened, "reserved Agent Manager mapping did not call the available command")
 
 -- Exercise the rename mapping against a disposable real file. This proves the
 -- prompt result changes both the path on disk and the existing buffer name.

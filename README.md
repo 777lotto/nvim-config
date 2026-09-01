@@ -25,6 +25,8 @@ Requires Neovim 0.12.2 or newer. The leader key is `<Space>`.
 - Markdown rendering, Marksman, Prettier, and markdownlint-cli2.
 - A dependency-free custom
   [GitPanel](https://github.com/777lotto/git-panel.nvim) for Git workflows.
+- [Agent Manager](https://github.com/777lotto/agent-manager.nvimz) for native,
+  keyboard-first Codex and Claude sessions inside Neovim.
 - [MCP Buff](https://github.com/777lotto/mcp-buff) for reviewing brokered
   Cloudflare write tickets through an operator-controlled loopback tunnel.
 - Guarded UX Foundation, Styling, and Chrome integration. Chrome registers its
@@ -210,7 +212,7 @@ refreshing unpinned Mason tools and parsers without changing plugin lock policy.
 │       ├── languages.lua
 │       ├── editing.lua
 │       ├── git.lua
-│       ├── operations.lua            # MCP Buff operator panel
+│       ├── operations.lua            # Agent Manager and MCP Buff
 │       ├── ux.lua                    # guarded Foundation/Styling/Chrome integration
 │       └── ...
 ├── docs/
@@ -242,38 +244,44 @@ categories appear first, followed by uppercase categories; case deliberately
 distinguishes `w` (word) from `W` (window), `s` (search) from `S` (session),
 and `t` is left unused while `T` owns terminals.
 
-| Prefix      | which-key label | Scope                                                  |
-| ----------- | --------------- | ------------------------------------------------------ |
-| `<leader>a` | `(a)gent`       | Agent Manager and MCP Buff                             |
-| `<leader>b` | `(b)uffer`      | Buffer bar creation, selection, movement, and deletion |
-| `<leader>c` | `(c)ode`        | Code actions, formatting, and rendered Markdown        |
-| `<leader>d` | `(d)iagnostic`  | Diagnostic and TODO views                              |
-| `<leader>e` | `(e)dit`        | Selection, indentation, lines, comments, and lists     |
-| `<leader>f` | `(f)ile`        | Files, save, rename, undo, and redo                    |
-| `<leader>g` | `(g)it`         | GitPanel plus branch, commit, and status pickers       |
-| `<leader>n` | `(n)avigate`    | Lines, paragraphs, brackets, and jump history          |
-| `<leader>q` | `(q)uit`        | Quit the current window or all windows                 |
-| `<leader>s` | `(s)earch`      | Buffer, help, keymap, TODO, and workspace search       |
-| `<leader>w` | `(w)ord`        | Word occurrences, selection, case, and symbol rename   |
-| `<leader>S` | `(S)ession`     | Restore or suppress persistence sessions               |
-| `<leader>T` | `(T)erminal`    | New, split, and persistent floating terminals          |
-| `<leader>W` | `(W)indow`      | Split, focus, close, equalize, and maximize windows    |
+| Prefix       | which-key label | Scope                                                  |
+| ------------ | --------------- | ------------------------------------------------------ |
+| `<leader>a`  | `(a)gent`       | Agent sessions and brokered review                     |
+| `<leader>am` | `(m)anager`     | Agent Manager workspace, startup, and prompts          |
+| `<leader>b`  | `(b)uffer`      | Buffer bar creation, selection, movement, and deletion |
+| `<leader>c`  | `(c)ode`        | Code actions, formatting, and rendered Markdown        |
+| `<leader>d`  | `(d)iagnostic`  | Diagnostic and TODO views                              |
+| `<leader>e`  | `(e)dit`        | Selection, indentation, lines, comments, and lists     |
+| `<leader>f`  | `(f)ile`        | Files, save, rename, undo, and redo                    |
+| `<leader>g`  | `(g)it`         | GitPanel plus branch, commit, and status pickers       |
+| `<leader>n`  | `(n)avigate`    | Lines, paragraphs, brackets, and jump history          |
+| `<leader>q`  | `(q)uit`        | Quit the current window or all windows                 |
+| `<leader>s`  | `(s)earch`      | Buffer, help, keymap, TODO, and workspace search       |
+| `<leader>w`  | `(w)ord`        | Word occurrences, selection, case, and symbol rename   |
+| `<leader>S`  | `(S)ession`     | Restore or suppress persistence sessions               |
+| `<leader>T`  | `(T)erminal`    | New, split, and persistent floating terminals          |
+| `<leader>W`  | `(W)indow`      | Split, focus, close, equalize, and maximize windows    |
+
+Keep current and future Agent Manager actions under `<leader>am`; `<leader>ar`
+is reserved for the brokered MCP Buff review panel.
 
 The most frequently used file and agent mappings are:
 
-| Key          | Action                                                                        |
-| ------------ | ----------------------------------------------------------------------------- |
-| `<leader>aa` | Open Agent Manager when available; currently a visible reserved shortcut      |
-| `<leader>am` | Open MCP Buff                                                                 |
-| `<leader>fe` | Toggle the file explorer                                                      |
-| `<leader>ff` | Find files                                                                    |
-| `<leader>fh` | Open undo history                                                             |
-| `<leader>fn` | Rename the current file after checking for unsaved changes and name conflicts |
-| `<leader>fo` | Open a recent file                                                            |
-| `<leader>fr` | Redo                                                                          |
-| `<leader>fs` | Save the current file                                                         |
-| `<leader>fu` | Undo                                                                          |
-| `<leader>fS` | Save all files                                                                |
+| Key           | Action                                                                        |
+| ------------- | ----------------------------------------------------------------------------- |
+| `<leader>amm` | Open Agent Manager                                                            |
+| `<leader>amc` | Start a Codex agent                                                           |
+| `<leader>ams` | Send a prompt through Agent Manager                                           |
+| `<leader>ar`  | Open MCP Buff                                                                 |
+| `<leader>fe`  | Toggle the file explorer                                                      |
+| `<leader>ff`  | Find files                                                                    |
+| `<leader>fh`  | Open undo history                                                             |
+| `<leader>fn`  | Rename the current file after checking for unsaved changes and name conflicts |
+| `<leader>fo`  | Open a recent file                                                            |
+| `<leader>fr`  | Redo                                                                          |
+| `<leader>fs`  | Save the current file                                                         |
+| `<leader>fu`  | Undo                                                                          |
+| `<leader>fS`  | Save all files                                                                |
 
 The bufferline across the top is a buffer bar, not native Neovim tabs.
 All of its leader mappings therefore live under `b`:
@@ -380,9 +388,18 @@ public `signed_git` backend for pull-request merges through the existing signed
 Git/SSH setup. Other installations retain standard GitHub CLI and public REST
 profiles.
 
+## Agent workspace
+
+`<leader>amm` opens Agent Manager, `<leader>amc` starts its Codex provider,
+and `<leader>ams` opens native prompt input for the selected agent. The same
+actions are available as `:AgentManager`, `:AgentManagerStart codex`, and
+`:AgentManagerSend`; steering, interrupt, health, and close commands are also
+lazy-loadable. Starting the workspace or provider does not send a model turn,
+while submitting a prompt can consume provider quota.
+
 ## Brokered write review
 
-- `<leader>am`: open MCP Buff's Cloudflare write-ticket review panel.
+- `<leader>ar`: open MCP Buff's Cloudflare write-ticket review panel.
 
 The plugin endpoint is fixed to `http://127.0.0.1:8792`. This repository does
 not expose the broker or connect to the container. Opening `:McpBuff` creates a

@@ -26,7 +26,7 @@ for nvim_config_entry in \
   ln -s "$nvim_config_path" "$nvim_config_dev/$nvim_config_name"
 done
 
-for nvim_config_name in git-panel.nvim mcp-buff; do
+for nvim_config_name in agent-manager.nvimz git-panel.nvim mcp-buff; do
   [ -e "$nvim_config_source_dev/$nvim_config_name" ] || {
     printf 'Missing account-owned source: %s/%s\n' "$nvim_config_source_dev" "$nvim_config_name" >&2
     exit 1

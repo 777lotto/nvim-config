@@ -5,7 +5,7 @@ return {
     main = "mcp_buff",
     cmd = { "McpBuff" },
     keys = {
-      { "<leader>am", "<cmd>McpBuff<cr>", desc = "MCP Buff" },
+      { "<leader>ar", "<cmd>McpBuff<cr>", desc = "MCP Buff review" },
     },
     opts = {
       -- WireGuard is an always-on workstation prerequisite. This dedicated SSH
@@ -17,5 +17,26 @@ return {
         host = "zemrip-server",
       },
     },
+  },
+
+  {
+    "777lotto/agent-manager.nvimz",
+    branch = require("config.channel").current(),
+    main = "agent_manager",
+    cmd = {
+      "AgentManager",
+      "AgentManagerStart",
+      "AgentManagerSend",
+      "AgentManagerSteer",
+      "AgentManagerInterrupt",
+      "AgentManagerHealth",
+      "AgentManagerClose",
+    },
+    keys = {
+      { "<leader>amm", "<cmd>AgentManager<cr>", desc = "Agent Manager" },
+      { "<leader>amc", "<cmd>AgentManagerStart codex<cr>", desc = "Start Codex agent" },
+      { "<leader>ams", "<cmd>AgentManagerSend<cr>", desc = "Send agent prompt" },
+    },
+    opts = {},
   },
 }
