@@ -37,11 +37,11 @@ Requires Neovim 0.12.2 or newer. The leader key is `<Space>`.
 
 ## Supported environment
 
-| Platform | Status | CI |
-| --- | --- | --- |
-| Debian 13 desktop / XFCE | Supported | Core policy smoke test |
-| Debian 13 headless / SSH | Supported | OSC 52 / SSH policy smoke test |
-| macOS | Historical / experimental | Not currently blocking releases |
+| Platform                 | Status                    | CI                              |
+| ------------------------ | ------------------------- | ------------------------------- |
+| Debian 13 desktop / XFCE | Supported                 | Core policy smoke test          |
+| Debian 13 headless / SSH | Supported                 | OSC 52 / SSH policy smoke test  |
+| macOS                    | Historical / experimental | Not currently blocking releases |
 
 The active topology is:
 
@@ -62,20 +62,20 @@ the process before this configuration loads.
 
 ## Language coverage
 
-| Language | Structure / highlighting | LSP | Formatter / linter |
-| --- | --- | --- | --- |
-| Lua | Treesitter | `lua_ls` | — |
-| JavaScript, JSX | Treesitter | `ts_ls` | Prettier |
-| TypeScript, TSX | Treesitter | `ts_ls` | Prettier |
-| HTML | Treesitter | `html` | Prettier |
-| CSS | Treesitter | `cssls` | Prettier |
-| JSON, JSONC | Treesitter | `jsonls` + SchemaStore | Prettier |
-| Python | Treesitter | `pyright` | — |
-| Markdown, MDX | Treesitter + render-markdown | `marksman` | Prettier + markdownlint-cli2 |
-| XML | Treesitter | — | — |
-| Bash / shell | Treesitter + Mise file-task injections | — | — |
-| TOML | Treesitter + Mise `run` injections | — | — |
-| KDL | Treesitter (including embedded Mise usage specs) | — | — |
+| Language        | Structure / highlighting                         | LSP                    | Formatter / linter           |
+| --------------- | ------------------------------------------------ | ---------------------- | ---------------------------- |
+| Lua             | Treesitter                                       | `lua_ls`               | —                            |
+| JavaScript, JSX | Treesitter                                       | `ts_ls`                | Prettier                     |
+| TypeScript, TSX | Treesitter                                       | `ts_ls`                | Prettier                     |
+| HTML            | Treesitter                                       | `html`                 | Prettier                     |
+| CSS             | Treesitter                                       | `cssls`                | Prettier                     |
+| JSON, JSONC     | Treesitter                                       | `jsonls` + SchemaStore | Prettier                     |
+| Python          | Treesitter                                       | `pyright`              | —                            |
+| Markdown, MDX   | Treesitter + render-markdown                     | `marksman`             | Prettier + markdownlint-cli2 |
+| XML             | Treesitter                                       | —                      | —                            |
+| Bash / shell    | Treesitter + Mise file-task injections           | —                      | —                            |
+| TOML            | Treesitter + Mise `run` injections               | —                      | —                            |
+| KDL             | Treesitter (including embedded Mise usage specs) | —                      | —                            |
 
 Prettier is also configured for JSON5, SCSS, Less, Vue, GraphQL, Handlebars,
 Angular HTML, and YAML. It is deliberately not assigned to Lua, Python, C, XML,
@@ -101,18 +101,18 @@ bootstrap or `nvim-config sync` and updated by `nvim-config sync --latest`.
 
 ## Requirements
 
-| Need | Purpose | Debian setup |
-| --- | --- | --- |
-| Neovim 0.12.2+ | Editor, UX contract, and current Treesitter APIs | Current upstream build |
-| Git and curl | Config, lazy.nvim, Mason | `apt install git curl ca-certificates` |
-| GitHub CLI (optional) | Create and publish a remote from GitPanel | `apt install gh`, then `gh auth login` |
-| C compiler | Treesitter parser builds | `apt install build-essential` |
-| Node 22+ and npm | Web LSPs, Prettier, markdownlint | Node 24 LTS recommended; 22 is the CI floor |
-| ripgrep | Telescope live grep | `apt install ripgrep` |
-| Python 3 | Python tooling/providers | `apt install python3` |
-| unzip and tar | Mason packages | `apt install unzip tar` |
-| Xfce Terminal and xclip | Client terminal and local X11 clipboard | `apt install xfce4-terminal xclip` on the XFCE client |
-| Nerd Font | File/type icons | Configure Xfce Terminal on the client |
+| Need                    | Purpose                                          | Debian setup                                          |
+| ----------------------- | ------------------------------------------------ | ----------------------------------------------------- |
+| Neovim 0.12.2+          | Editor, UX contract, and current Treesitter APIs | Current upstream build                                |
+| Git and curl            | Config, lazy.nvim, Mason                         | `apt install git curl ca-certificates`                |
+| GitHub CLI (optional)   | Create and publish a remote from GitPanel        | `apt install gh`, then `gh auth login`                |
+| C compiler              | Treesitter parser builds                         | `apt install build-essential`                         |
+| Node 22+ and npm        | Web LSPs, Prettier, markdownlint                 | Node 24 LTS recommended; 22 is the CI floor           |
+| ripgrep                 | Telescope live grep                              | `apt install ripgrep`                                 |
+| Python 3                | Python tooling/providers                         | `apt install python3`                                 |
+| unzip and tar           | Mason packages                                   | `apt install unzip tar`                               |
+| Xfce Terminal and xclip | Client terminal and local X11 clipboard          | `apt install xfce4-terminal xclip` on the XFCE client |
+| Nerd Font               | File/type icons                                  | Configure Xfce Terminal on the client                 |
 
 Mason installs the required tree-sitter CLI, LSP servers, Prettier, and
 markdownlint-cli2. A C compiler is still needed to build parsers.
@@ -172,6 +172,9 @@ changed files. Restart Neovim after it completes.
 
 Inside Neovim, `:NvimUpdate` runs the same command asynchronously and opens its
 report without blocking the editor; `:NvimConfigUpdate` remains an alias.
+`:NvimChannel` presents the production `bet` and integration `bluff` channels,
+confirms the selection, then delegates to the same guarded updater. Restart
+Neovim after a successful switch.
 `nvim-config doctor` and `:NvimConfigDoctor` check Git, Neovim, Node/npm,
 supporting executables, upstream state, and worktree
 cleanliness. `nvim-config sync --latest` is the explicit manual path for
@@ -363,10 +366,18 @@ this configuration. In a local-only repository, `P` can create and push a
 GitHub repository through the optional authenticated `gh` CLI, or attach an
 existing remote URL for another Git host.
 
-When `~/.local/bin/gh-app` is executable, GitPanel uses that repository-scoped
-App wrapper for GitHub API data and comments, and uses the public `signed_git`
-backend for pull-request merges through the existing signed Git/SSH setup.
-Other installations retain the standard `gh` API backend.
+GitPanel exposes `:GitPanelConnection` and `:GitPanelDoctor` for selecting and
+diagnosing preconfigured GitHub connections. Inside `zemrip-ai`, the installed
+`gh-agent` command identifies the credential-free agent plane: GitPanel strips
+the broker's `github/git` remote prefix and uses anonymous curl against
+`http://10.77.0.1:8790/github/api`; the host broker injects a short-lived,
+repository-scoped credential upstream. GitPanel never receives or stores it.
+
+When `~/.local/bin/gh-app` is executable instead, GitPanel uses that
+repository-scoped App wrapper for GitHub API data and comments, and uses the
+public `signed_git` backend for pull-request merges through the existing signed
+Git/SSH setup. Other installations retain standard GitHub CLI and public REST
+profiles.
 
 ## Brokered write review
 

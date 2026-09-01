@@ -11,6 +11,11 @@ versioning for release organization.
   `nvim-update channel <branch>` for clean, fast-forward-only config and fleet
   switching. This workstation can remain on nightly `bluff` until the explicit
   `nvim-update channel bet` rollback.
+- An in-editor `:NvimChannel` picker that distinguishes the currently loaded
+  channel, confirms the requested `bet`/`bluff` switch, delegates to the guarded
+  updater, and reports the required restart.
+- GitPanel connection profiles and diagnostics, including automatic selection
+  of the credential-free Zemrip GitHub broker inside `zemrip-ai`.
 - The single `nvim-update` command and asynchronous `:NvimUpdate` entry point;
   existing `nvim-config` commands remain compatible.
 - Guarded UX Foundation, Styling, and Chrome integration with exact retained
@@ -49,6 +54,13 @@ versioning for release organization.
   `<leader>aa`, and focused buffer, search, Git, terminal, and window helpers.
 
 ### Changed
+
+- Lua and the updater now read the same XDG channel-state path; Neovim no
+  longer inserts an extra application-name directory and silently falls back
+  to `bet` after the CLI selected `bluff`.
+- GitPanel uses the broker's prefixed Git remote and REST route in `zemrip-ai`,
+  while workstation App and portable GitHub CLI/public REST behavior remain
+  available as named profiles.
 
 - `:McpBuff` and `<leader>am` now open their own loopback-only SSH forward
   through the WireGuard `zemrip-server` alias and read the Toughbook's local
