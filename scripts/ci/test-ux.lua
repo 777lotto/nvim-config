@@ -1,6 +1,27 @@
 local root = assert(arg[1], "repository root argument is required")
 local channel = require("config.channel").current()
 
+for _, command in ipairs({
+  "AgentManager",
+  "AgentManagerStart",
+  "AgentManagerSend",
+  "AgentManagerSteer",
+  "AgentManagerInterrupt",
+  "AgentManagerHealth",
+  "AgentManagerClose",
+}) do
+  assert(vim.fn.exists(":" .. command) == 2, command .. " is not registered")
+end
+for lhs, description in pairs({
+  ["<leader>amm"] = "Agent Manager",
+  ["<leader>amc"] = "Start Codex agent",
+  ["<leader>ams"] = "Send agent prompt",
+  ["<leader>ar"] = "MCP Buff review",
+}) do
+  local mapping = vim.fn.maparg(lhs, "n", false, true)
+  assert(mapping.lhs and mapping.desc == description, lhs .. " is not registered correctly")
+end
+
 if vim.env.NVIM_CONFIG_VERIFY_LOCK == "1" then
   -- lazy.nvim reloads the spec graph during restore/update. An isolated
   -- checkout must remain the source of truth across that reload.

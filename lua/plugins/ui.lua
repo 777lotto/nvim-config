@@ -52,6 +52,7 @@ return {
     -- category names and mirrors the case-aware alphabetical popup order.
     wk.add({
       { "<leader>a", group = "(a)gent" },
+      { "<leader>am", group = "(m)anager" },
       { "<leader>b", group = "(b)uffer" },
       { "<leader>bm", group = "(m)ove buffer" },
       { "<leader>c", group = "(c)ode" },

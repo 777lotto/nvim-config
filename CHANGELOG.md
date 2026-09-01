@@ -38,6 +38,9 @@ versioning for release organization.
   manifest plus latest-tested dependency automation.
 - MCP Buff on the selected channel with an exact production `bet` pin,
   restricted to the documented loopback endpoint.
+- Agent Manager on the selected channel with lazy-loadable workspace, provider,
+  prompt, steering, interrupt, health, and close commands. Its shortcuts are
+  `<leader>amm`, `<leader>amc`, and `<leader>ams`.
 - Optional Mise-aware Treesitter injections for config `run` scripts and Bash
   file-task MISE/USAGE directives, with managed Bash, TOML, and KDL parsers.
 - A copy-only Toughbook clipboard bridge for SSH sessions. `NVIM_CLIPBOARD=auto`
@@ -50,14 +53,13 @@ versioning for release organization.
   sessions load matching `dev/` checkouts or symlinks; production always uses
   the committed pins. Dev matching is off during pin maintenance so a local
   checkout can never erase its production lock entry.
-- Safe current-file rename on `<leader>fn`, a reserved Agent Manager entry on
-  `<leader>aa`, and focused buffer, search, Git, terminal, and window helpers.
+- Safe current-file rename on `<leader>fn` and focused buffer, search, Git,
+  terminal, and window helpers.
 
 ### Changed
 
-- Nightly fleet sync now includes only plugins loaded by nvim-config; the
-  specification-only Agent Manager repository remains untouched until its
-  implementation acceptance gates pass.
+- Nightly fleet sync now includes Agent Manager because nvim-config consumes
+  its accepted M1 implementation.
 - Lua and the updater now read the same XDG channel-state path; Neovim no
   longer inserts an extra application-name directory and silently falls back
   to `bet` after the CLI selected `bluff`.
@@ -65,7 +67,7 @@ versioning for release organization.
   while workstation App and portable GitHub CLI/public REST behavior remain
   available as named profiles.
 
-- `:McpBuff` and `<leader>am` now open their own loopback-only SSH forward
+- `:McpBuff` and `<leader>ar` now open their own loopback-only SSH forward
   through the WireGuard `zemrip-server` alias and read the Toughbook's local
   pass-backed admin capability. Closing the review session revokes both; no
   per-launch tunnel command or LAN fallback remains.
@@ -92,8 +94,9 @@ versioning for release organization.
   reorder that changes no pin.
 - Leader shortcuts now use a case-aware alphabetical which-key taxonomy:
   lowercase `a b c d e f g n q s w`, followed by uppercase `S T W`. Bufferline
-  actions use the `(b)uffer` group, MCP Buff uses `<leader>am`, sessions and
-  terminals use uppercase groups, and undo/redo use `<leader>fu` / `<leader>fr`.
+  actions use the `(b)uffer` group, Agent Manager uses the nested `<leader>am`
+  group, MCP Buff uses `<leader>ar`, sessions and terminals use uppercase
+  groups, and undo/redo use `<leader>fu` / `<leader>fr`.
 
 ## 0.1.0 - 2026-08-15
 

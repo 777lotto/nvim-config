@@ -22,6 +22,7 @@ dev_plugins_branch="${NVIM_DEV_GIT_BRANCH:-$("$dev_plugins_root/bin/nvim-config"
 # lazy.nvim matches a dev plugin by its spec name, so these directory names are
 # case-sensitive and must equal the repository names exactly.
 dev_plugins_fleet=(
+  agent-manager.nvimz
   git-panel.nvim
   mcp-buff
   UX-foundation.nvim
