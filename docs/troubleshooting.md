@@ -1,5 +1,19 @@
 # Troubleshooting
 
+## GitPanel GitHub tabs do not synchronize
+
+Tabs 1 and 2 read local Git state; Actions, Issues, and Pull Requests need a
+GitHub connection. Run `:GitPanelDoctor` to inspect repository discovery and a
+live metadata request without displaying credentials, or
+`:GitPanelConnection` to select one of the configured profiles.
+
+Inside `zemrip-ai`, `~/.local/bin/gh-agent` selects the host-broker profile.
+GitPanel uses the broker REST route directly rather than treating `gh-agent` as
+the standard `gh` CLI; their `api` argument contracts differ. The profile is
+credential-free in the container and must not gain a token provider. If the
+doctor reports a broker refusal, preserve that policy boundary and inspect the
+requested repository/operation instead of adding a credential locally.
+
 ## MCP Buff cannot open the approval route
 
 Run `:McpBuff` or `<leader>am` on this Toughbook. The panel starts its own

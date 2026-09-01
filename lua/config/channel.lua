@@ -2,11 +2,23 @@ local M = {}
 
 local DEFAULT_CHANNEL = "bet"
 
+local function state_home()
+  if vim.env.XDG_STATE_HOME and vim.env.XDG_STATE_HOME ~= "" then
+    return vim.env.XDG_STATE_HOME
+  end
+  local home = vim.env.HOME
+  if not home or home == "" then home = (vim.uv or vim.loop).os_homedir() end
+  return (home and home ~= "") and (home .. "/.local/state") or vim.fn.expand("~/.local/state")
+end
+
 local function state_file()
   if vim.env.NVIM_CONFIG_CHANNEL_FILE and vim.env.NVIM_CONFIG_CHANNEL_FILE ~= "" then
     return vim.env.NVIM_CONFIG_CHANNEL_FILE
   end
-  return vim.fn.stdpath("state") .. "/nvim-config/channel"
+  -- Keep this byte-for-byte aligned with bin/nvim-config. stdpath("state")
+  -- appends Neovim's application name (normally /nvim), which made the editor
+  -- read a different file from the cross-process updater.
+  return state_home() .. "/nvim-config/channel"
 end
 
 local function valid(channel)

@@ -38,6 +38,38 @@ assert(mcp_buff.keys[1][1] == "<leader>am", "MCP Buff must use the agent menu at
 
 local git_specs = assert(loadfile(root .. "/lua/plugins/git.lua"))()
 assert(git_specs[1].branch == "bet", "Git Panel must consume the selected production channel")
+assert(vim.list_contains(git_specs[1].cmd, "GitPanelConnection"),
+  "Git Panel connection command is not lazy-loadable")
+assert(vim.list_contains(git_specs[1].cmd, "GitPanelDoctor"),
+  "Git Panel doctor command is not lazy-loadable")
+
+local git_panel_config = require("config.git_panel")
+local function helper_options(name)
+  return git_panel_config.options({
+    expand = function(path) return path end,
+    executable = function(path) return path:find(name, 1, true) ~= nil end,
+  })
+end
+local broker_options = helper_options("gh-agent").github
+assert(broker_options.profile == "zemrip-broker", "agent plane did not select the broker profile")
+assert(broker_options.transport == "curl", "broker profile must use curl")
+assert(broker_options.remote_path_prefix == "github/git", "broker Git prefix is missing")
+assert(broker_options.api_url == "http://10.77.0.1:8790/github/api",
+  "broker REST endpoint is incorrect")
+assert(broker_options.allow_insecure_http == true, "private plaintext broker needs explicit opt-in")
+assert(broker_options.token_provider == nil, "broker profile must remain credential-free")
+assert(broker_options.profiles["github-cli"] and broker_options.profiles["public-rest"],
+  "portable connection profiles are missing")
+
+local app_options = helper_options("gh-app").github
+assert(app_options.profile == "github-app" and app_options.merge_backend == "signed_git",
+  "workstation App profile lost signed merge behavior")
+local portable_options = git_panel_config.options({
+  expand = function(path) return path end,
+  executable = function() return false end,
+}).github
+assert(portable_options.profile == nil and portable_options.merge_backend == "api",
+  "portable GitPanel defaults changed unexpectedly")
 
 vim.env.NVIM_CONFIG_CHANNEL = "bluff"
 assert(assert(loadfile(root .. "/lua/plugins/operations.lua"))()[1].branch == "bluff",
@@ -52,6 +84,21 @@ assert(require("config.channel").current() == "bet", "invalid Lua channel did no
 vim.env.NVIM_CONFIG_CHANNEL = "nightly/.hidden"
 assert(require("config.channel").current() == "bet", "invalid Git path component was accepted")
 vim.env.NVIM_CONFIG_CHANNEL = "bet"
+
+local original_channel_file = vim.env.NVIM_CONFIG_CHANNEL_FILE
+local original_state_home = vim.env.XDG_STATE_HOME
+local original_channel_home = vim.env.HOME
+vim.env.NVIM_CONFIG_CHANNEL_FILE = nil
+vim.env.XDG_STATE_HOME = "/tmp/nvim-config-state-home"
+assert(require("config.channel").state_file() == "/tmp/nvim-config-state-home/nvim-config/channel",
+  "Lua channel path drifted from the updater's XDG state path")
+vim.env.XDG_STATE_HOME = nil
+vim.env.HOME = "/tmp/nvim-config-home"
+assert(require("config.channel").state_file() == "/tmp/nvim-config-home/.local/state/nvim-config/channel",
+  "Lua channel path drifted from the updater's HOME fallback")
+vim.env.NVIM_CONFIG_CHANNEL_FILE = original_channel_file
+vim.env.XDG_STATE_HOME = original_state_home
+vim.env.HOME = original_channel_home
 
 local ux_specs = assert(loadfile(root .. "/lua/plugins/ux.lua"))()
 local foundation, chrome, styling = ux_specs[1], ux_specs[2], ux_specs[3]
@@ -198,6 +245,11 @@ assert(vim.fn.exists(":EnvironmentInfo") == 2, ":EnvironmentInfo was not registe
 assert(vim.fn.exists(":NvimConfigUpdate") == 2, ":NvimConfigUpdate was not registered")
 assert(vim.fn.exists(":NvimConfigDoctor") == 2, ":NvimConfigDoctor was not registered")
 assert(vim.fn.exists(":NvimUpdate") == 2, ":NvimUpdate was not registered")
+assert(vim.fn.exists(":NvimChannel") == 2, ":NvimChannel was not registered")
+local channel_choices = require("config.update").channel_choices()
+assert(channel_choices[1].id == "bet" and channel_choices[1].loaded,
+  "channel picker did not identify the loaded production channel")
+assert(channel_choices[2].id == "bluff", "channel picker is missing the integration channel")
 
 print(("Core smoke passed with clipboard mode %s"):format(environment.clipboard_mode))
 
