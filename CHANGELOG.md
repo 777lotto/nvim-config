@@ -55,6 +55,9 @@ versioning for release organization.
 
 ### Changed
 
+- Nightly fleet sync now includes only plugins loaded by nvim-config; the
+  specification-only Agent Manager repository remains untouched until its
+  implementation acceptance gates pass.
 - Lua and the updater now read the same XDG channel-state path; Neovim no
   longer inserts an extra application-name directory and silently falls back
   to `bet` after the CLI selected `bluff`.
