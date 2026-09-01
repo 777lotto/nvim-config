@@ -143,9 +143,9 @@ state explicitly:
 NVIM_CONFIG_BRANCH=bluff ~/.config/nvim/bootstrap.sh
 ```
 
-That branch becomes the persistent channel for the config and every
-account-owned plugin. The default is `bet`; change this machine at any time
-with `nvim-update channel bluff` or roll it back with
+That branch becomes the persistent channel for the config and every installed
+account-owned plugin in its runtime fleet. The default is `bet`; change this
+machine at any time with `nvim-update channel bluff` or roll it back with
 `nvim-update channel bet`. The selection is stored below
 `${XDG_STATE_HOME:-$HOME/.local/state}/nvim-config/channel` until explicitly
 changed.
@@ -164,9 +164,10 @@ nvim-update
 `nvim-update` refuses dirty or detached checkouts, selects the persisted branch
 on the existing remote, and permits only fast-forwards. A non-production
 channel also preflights, selects, fast-forwards, and compile-checks the complete
-`dev/` plugin fleet. Rolling back to `bet` also converges an existing developer
-fleet, while an ordinary production install continues to use only lockfile
-pins. It never rewrites a remote URL, SSH host, tunnel, or network setting.
+`dev/` runtime plugin fleet. Rolling back to `bet` also converges an existing
+developer fleet, while an ordinary production install continues to use only
+lockfile pins. It never rewrites a remote URL, SSH host, tunnel, or network
+setting.
 After a successful pull, it reconciles only the dependency classes affected by
 changed files. Restart Neovim after it completes.
 

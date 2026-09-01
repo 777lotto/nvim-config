@@ -150,14 +150,18 @@ dev/
 ├── mcp-buff            -> ../../mcp-buff
 ├── UX-foundation.nvim  -> ../../ux-foundation.nvim
 ├── UX-styling.nvim     -> ../../ux-styling.nvim
-├── UX-chrome.nvim      -> ../../ux-chrome.nvim
-└── agent-manager.nvimz -> ../../agent-manager.nvimz
+└── UX-chrome.nvim      -> ../../ux-chrome.nvim
 ```
 
 Directory names are the lazy.nvim plugin names and are case-sensitive, so they
 must match the repository names exactly even when the symlink target is
 lowercase. `scripts/dev-plugins.sh` treats an existing directory *or* symlink
 as present, which is what lets both layouts coexist.
+
+Only repositories consumed by nvim-config belong to this fleet. The
+`agent-manager.nvimz` repository is specification-only and remains excluded
+until its implementation acceptance gates pass and nvim-config actually loads
+it.
 
 `scripts/dev-plugins.sh` clones from `$NVIM_DEV_GIT_BASE`, defaulting to
 `https://github.com/777lotto`. A machine that reaches GitHub through a broker

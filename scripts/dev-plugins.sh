@@ -18,6 +18,7 @@ dev_plugins_dir="${NVIM_DEV_DIR:-$dev_plugins_root/dev}"
 dev_plugins_base="${NVIM_DEV_GIT_BASE:-https://github.com/777lotto}"
 dev_plugins_branch="${NVIM_DEV_GIT_BRANCH:-$("$dev_plugins_root/bin/nvim-config" channel --no-color)}"
 
+# Keep this fleet limited to repositories that nvim-config actually loads.
 # lazy.nvim matches a dev plugin by its spec name, so these directory names are
 # case-sensitive and must equal the repository names exactly.
 dev_plugins_fleet=(
@@ -26,7 +27,6 @@ dev_plugins_fleet=(
   UX-foundation.nvim
   UX-styling.nvim
   UX-chrome.nvim
-  agent-manager.nvimz
 )
 
 log()  { printf '==> %s\n' "$*"; }
