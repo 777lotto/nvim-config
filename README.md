@@ -25,6 +25,8 @@ Requires Neovim 0.12.2 or newer. The leader key is `<Space>`.
 - Markdown rendering, Marksman, Prettier, and markdownlint-cli2.
 - A dependency-free custom
   [GitPanel](https://github.com/777lotto/git-panel.nvim) for Git workflows.
+- [Agent Manager](https://github.com/777lotto/agent-manager.nvimz) for native,
+  keyboard-first Codex and Claude sessions inside Neovim.
 - [MCP Buff](https://github.com/777lotto/mcp-buff) for reviewing brokered
   Cloudflare write tickets through an operator-controlled loopback tunnel.
 - Guarded UX Foundation, Styling, and Chrome integration. Chrome registers its
@@ -37,11 +39,11 @@ Requires Neovim 0.12.2 or newer. The leader key is `<Space>`.
 
 ## Supported environment
 
-| Platform | Status | CI |
-| --- | --- | --- |
-| Debian 13 desktop / XFCE | Supported | Core policy smoke test |
-| Debian 13 headless / SSH | Supported | OSC 52 / SSH policy smoke test |
-| macOS | Historical / experimental | Not currently blocking releases |
+| Platform                 | Status                    | CI                              |
+| ------------------------ | ------------------------- | ------------------------------- |
+| Debian 13 desktop / XFCE | Supported                 | Core policy smoke test          |
+| Debian 13 headless / SSH | Supported                 | OSC 52 / SSH policy smoke test  |
+| macOS                    | Historical / experimental | Not currently blocking releases |
 
 The active topology is:
 
@@ -62,20 +64,20 @@ the process before this configuration loads.
 
 ## Language coverage
 
-| Language | Structure / highlighting | LSP | Formatter / linter |
-| --- | --- | --- | --- |
-| Lua | Treesitter | `lua_ls` | — |
-| JavaScript, JSX | Treesitter | `ts_ls` | Prettier |
-| TypeScript, TSX | Treesitter | `ts_ls` | Prettier |
-| HTML | Treesitter | `html` | Prettier |
-| CSS | Treesitter | `cssls` | Prettier |
-| JSON, JSONC | Treesitter | `jsonls` + SchemaStore | Prettier |
-| Python | Treesitter | `pyright` | — |
-| Markdown, MDX | Treesitter + render-markdown | `marksman` | Prettier + markdownlint-cli2 |
-| XML | Treesitter | — | — |
-| Bash / shell | Treesitter + Mise file-task injections | — | — |
-| TOML | Treesitter + Mise `run` injections | — | — |
-| KDL | Treesitter (including embedded Mise usage specs) | — | — |
+| Language        | Structure / highlighting                         | LSP                    | Formatter / linter           |
+| --------------- | ------------------------------------------------ | ---------------------- | ---------------------------- |
+| Lua             | Treesitter                                       | `lua_ls`               | —                            |
+| JavaScript, JSX | Treesitter                                       | `ts_ls`                | Prettier                     |
+| TypeScript, TSX | Treesitter                                       | `ts_ls`                | Prettier                     |
+| HTML            | Treesitter                                       | `html`                 | Prettier                     |
+| CSS             | Treesitter                                       | `cssls`                | Prettier                     |
+| JSON, JSONC     | Treesitter                                       | `jsonls` + SchemaStore | Prettier                     |
+| Python          | Treesitter                                       | `pyright`              | —                            |
+| Markdown, MDX   | Treesitter + render-markdown                     | `marksman`             | Prettier + markdownlint-cli2 |
+| XML             | Treesitter                                       | —                      | —                            |
+| Bash / shell    | Treesitter + Mise file-task injections           | —                      | —                            |
+| TOML            | Treesitter + Mise `run` injections               | —                      | —                            |
+| KDL             | Treesitter (including embedded Mise usage specs) | —                      | —                            |
 
 Prettier is also configured for JSON5, SCSS, Less, Vue, GraphQL, Handlebars,
 Angular HTML, and YAML. It is deliberately not assigned to Lua, Python, C, XML,
@@ -101,18 +103,18 @@ bootstrap or `nvim-config sync` and updated by `nvim-config sync --latest`.
 
 ## Requirements
 
-| Need | Purpose | Debian setup |
-| --- | --- | --- |
-| Neovim 0.12.2+ | Editor, UX contract, and current Treesitter APIs | Current upstream build |
-| Git and curl | Config, lazy.nvim, Mason | `apt install git curl ca-certificates` |
-| GitHub CLI (optional) | Create and publish a remote from GitPanel | `apt install gh`, then `gh auth login` |
-| C compiler | Treesitter parser builds | `apt install build-essential` |
-| Node 22+ and npm | Web LSPs, Prettier, markdownlint | Node 24 LTS recommended; 22 is the CI floor |
-| ripgrep | Telescope live grep | `apt install ripgrep` |
-| Python 3 | Python tooling/providers | `apt install python3` |
-| unzip and tar | Mason packages | `apt install unzip tar` |
-| Xfce Terminal and xclip | Client terminal and local X11 clipboard | `apt install xfce4-terminal xclip` on the XFCE client |
-| Nerd Font | File/type icons | Configure Xfce Terminal on the client |
+| Need                    | Purpose                                          | Debian setup                                          |
+| ----------------------- | ------------------------------------------------ | ----------------------------------------------------- |
+| Neovim 0.12.2+          | Editor, UX contract, and current Treesitter APIs | Current upstream build                                |
+| Git and curl            | Config, lazy.nvim, Mason                         | `apt install git curl ca-certificates`                |
+| GitHub CLI (optional)   | Create and publish a remote from GitPanel        | `apt install gh`, then `gh auth login`                |
+| C compiler              | Treesitter parser builds                         | `apt install build-essential`                         |
+| Node 22+ and npm        | Web LSPs, Prettier, markdownlint                 | Node 24 LTS recommended; 22 is the CI floor           |
+| ripgrep                 | Telescope live grep                              | `apt install ripgrep`                                 |
+| Python 3                | Python tooling/providers                         | `apt install python3`                                 |
+| unzip and tar           | Mason packages                                   | `apt install unzip tar`                               |
+| Xfce Terminal and xclip | Client terminal and local X11 clipboard          | `apt install xfce4-terminal xclip` on the XFCE client |
+| Nerd Font               | File/type icons                                  | Configure Xfce Terminal on the client                 |
 
 Mason installs the required tree-sitter CLI, LSP servers, Prettier, and
 markdownlint-cli2. A C compiler is still needed to build parsers.
@@ -143,9 +145,9 @@ state explicitly:
 NVIM_CONFIG_BRANCH=bluff ~/.config/nvim/bootstrap.sh
 ```
 
-That branch becomes the persistent channel for the config and every
-account-owned plugin. The default is `bet`; change this machine at any time
-with `nvim-update channel bluff` or roll it back with
+That branch becomes the persistent channel for the config and every installed
+account-owned plugin in its runtime fleet. The default is `bet`; change this
+machine at any time with `nvim-update channel bluff` or roll it back with
 `nvim-update channel bet`. The selection is stored below
 `${XDG_STATE_HOME:-$HOME/.local/state}/nvim-config/channel` until explicitly
 changed.
@@ -164,14 +166,18 @@ nvim-update
 `nvim-update` refuses dirty or detached checkouts, selects the persisted branch
 on the existing remote, and permits only fast-forwards. A non-production
 channel also preflights, selects, fast-forwards, and compile-checks the complete
-`dev/` plugin fleet. Rolling back to `bet` also converges an existing developer
-fleet, while an ordinary production install continues to use only lockfile
-pins. It never rewrites a remote URL, SSH host, tunnel, or network setting.
+`dev/` runtime plugin fleet. Rolling back to `bet` also converges an existing
+developer fleet, while an ordinary production install continues to use only
+lockfile pins. It never rewrites a remote URL, SSH host, tunnel, or network
+setting.
 After a successful pull, it reconciles only the dependency classes affected by
 changed files. Restart Neovim after it completes.
 
 Inside Neovim, `:NvimUpdate` runs the same command asynchronously and opens its
 report without blocking the editor; `:NvimConfigUpdate` remains an alias.
+`:NvimChannel` presents the production `bet` and integration `bluff` channels,
+confirms the selection, then delegates to the same guarded updater. Restart
+Neovim after a successful switch.
 `nvim-config doctor` and `:NvimConfigDoctor` check Git, Neovim, Node/npm,
 supporting executables, upstream state, and worktree
 cleanliness. `nvim-config sync --latest` is the explicit manual path for
@@ -206,7 +212,7 @@ refreshing unpinned Mason tools and parsers without changing plugin lock policy.
 │       ├── languages.lua
 │       ├── editing.lua
 │       ├── git.lua
-│       ├── operations.lua            # MCP Buff operator panel
+│       ├── operations.lua            # Agent Manager and MCP Buff
 │       ├── ux.lua                    # guarded Foundation/Styling/Chrome integration
 │       └── ...
 ├── docs/
@@ -238,38 +244,44 @@ categories appear first, followed by uppercase categories; case deliberately
 distinguishes `w` (word) from `W` (window), `s` (search) from `S` (session),
 and `t` is left unused while `T` owns terminals.
 
-| Prefix      | which-key label | Scope                                                  |
-| ----------- | --------------- | ------------------------------------------------------ |
-| `<leader>a` | `(a)gent`       | Agent Manager and MCP Buff                             |
-| `<leader>b` | `(b)uffer`      | Buffer bar creation, selection, movement, and deletion |
-| `<leader>c` | `(c)ode`        | Code actions, formatting, and rendered Markdown        |
-| `<leader>d` | `(d)iagnostic`  | Diagnostic and TODO views                              |
-| `<leader>e` | `(e)dit`        | Selection, indentation, lines, comments, and lists     |
-| `<leader>f` | `(f)ile`        | Files, save, rename, undo, and redo                    |
-| `<leader>g` | `(g)it`         | GitPanel plus branch, commit, and status pickers       |
-| `<leader>n` | `(n)avigate`    | Lines, paragraphs, brackets, and jump history          |
-| `<leader>q` | `(q)uit`        | Quit the current window or all windows                 |
-| `<leader>s` | `(s)earch`      | Buffer, help, keymap, TODO, and workspace search       |
-| `<leader>w` | `(w)ord`        | Word occurrences, selection, case, and symbol rename   |
-| `<leader>S` | `(S)ession`     | Restore or suppress persistence sessions               |
-| `<leader>T` | `(T)erminal`    | New, split, and persistent floating terminals          |
-| `<leader>W` | `(W)indow`      | Split, focus, close, equalize, and maximize windows    |
+| Prefix       | which-key label | Scope                                                  |
+| ------------ | --------------- | ------------------------------------------------------ |
+| `<leader>a`  | `(a)gent`       | Agent sessions and brokered review                     |
+| `<leader>am` | `(m)anager`     | Agent Manager workspace, startup, and prompts          |
+| `<leader>b`  | `(b)uffer`      | Buffer bar creation, selection, movement, and deletion |
+| `<leader>c`  | `(c)ode`        | Code actions, formatting, and rendered Markdown        |
+| `<leader>d`  | `(d)iagnostic`  | Diagnostic and TODO views                              |
+| `<leader>e`  | `(e)dit`        | Selection, indentation, lines, comments, and lists     |
+| `<leader>f`  | `(f)ile`        | Files, save, rename, undo, and redo                    |
+| `<leader>g`  | `(g)it`         | GitPanel plus branch, commit, and status pickers       |
+| `<leader>n`  | `(n)avigate`    | Lines, paragraphs, brackets, and jump history          |
+| `<leader>q`  | `(q)uit`        | Quit the current window or all windows                 |
+| `<leader>s`  | `(s)earch`      | Buffer, help, keymap, TODO, and workspace search       |
+| `<leader>w`  | `(w)ord`        | Word occurrences, selection, case, and symbol rename   |
+| `<leader>S`  | `(S)ession`     | Restore or suppress persistence sessions               |
+| `<leader>T`  | `(T)erminal`    | New, split, and persistent floating terminals          |
+| `<leader>W`  | `(W)indow`      | Split, focus, close, equalize, and maximize windows    |
+
+Keep current and future Agent Manager actions under `<leader>am`; `<leader>ar`
+is reserved for the brokered MCP Buff review panel.
 
 The most frequently used file and agent mappings are:
 
-| Key          | Action                                                                        |
-| ------------ | ----------------------------------------------------------------------------- |
-| `<leader>aa` | Open Agent Manager when available; currently a visible reserved shortcut      |
-| `<leader>am` | Open MCP Buff                                                                 |
-| `<leader>fe` | Toggle the file explorer                                                      |
-| `<leader>ff` | Find files                                                                    |
-| `<leader>fh` | Open undo history                                                             |
-| `<leader>fn` | Rename the current file after checking for unsaved changes and name conflicts |
-| `<leader>fo` | Open a recent file                                                            |
-| `<leader>fr` | Redo                                                                          |
-| `<leader>fs` | Save the current file                                                         |
-| `<leader>fu` | Undo                                                                          |
-| `<leader>fS` | Save all files                                                                |
+| Key           | Action                                                                        |
+| ------------- | ----------------------------------------------------------------------------- |
+| `<leader>amm` | Open Agent Manager                                                            |
+| `<leader>amc` | Start a Codex agent                                                           |
+| `<leader>ams` | Send a prompt through Agent Manager                                           |
+| `<leader>ar`  | Open MCP Buff                                                                 |
+| `<leader>fe`  | Toggle the file explorer                                                      |
+| `<leader>ff`  | Find files                                                                    |
+| `<leader>fh`  | Open undo history                                                             |
+| `<leader>fn`  | Rename the current file after checking for unsaved changes and name conflicts |
+| `<leader>fo`  | Open a recent file                                                            |
+| `<leader>fr`  | Redo                                                                          |
+| `<leader>fs`  | Save the current file                                                         |
+| `<leader>fu`  | Undo                                                                          |
+| `<leader>fS`  | Save all files                                                                |
 
 The bufferline across the top is a buffer bar, not native Neovim tabs.
 All of its leader mappings therefore live under `b`:
@@ -363,14 +375,31 @@ this configuration. In a local-only repository, `P` can create and push a
 GitHub repository through the optional authenticated `gh` CLI, or attach an
 existing remote URL for another Git host.
 
-When `~/.local/bin/gh-app` is executable, GitPanel uses that repository-scoped
-App wrapper for GitHub API data and comments, and uses the public `signed_git`
-backend for pull-request merges through the existing signed Git/SSH setup.
-Other installations retain the standard `gh` API backend.
+GitPanel exposes `:GitPanelConnection` and `:GitPanelDoctor` for selecting and
+diagnosing preconfigured GitHub connections. Inside `zemrip-ai`, the installed
+`gh-agent` command identifies the credential-free agent plane: GitPanel strips
+the broker's `github/git` remote prefix and uses anonymous curl against
+`http://10.77.0.1:8790/github/api`; the host broker injects a short-lived,
+repository-scoped credential upstream. GitPanel never receives or stores it.
+
+When `~/.local/bin/gh-app` is executable instead, GitPanel uses that
+repository-scoped App wrapper for GitHub API data and comments, and uses the
+public `signed_git` backend for pull-request merges through the existing signed
+Git/SSH setup. Other installations retain standard GitHub CLI and public REST
+profiles.
+
+## Agent workspace
+
+`<leader>amm` opens Agent Manager, `<leader>amc` starts its Codex provider,
+and `<leader>ams` opens native prompt input for the selected agent. The same
+actions are available as `:AgentManager`, `:AgentManagerStart codex`, and
+`:AgentManagerSend`; steering, interrupt, health, and close commands are also
+lazy-loadable. Starting the workspace or provider does not send a model turn,
+while submitting a prompt can consume provider quota.
 
 ## Brokered write review
 
-- `<leader>am`: open MCP Buff's Cloudflare write-ticket review panel.
+- `<leader>ar`: open MCP Buff's Cloudflare write-ticket review panel.
 
 The plugin endpoint is fixed to `http://127.0.0.1:8792`. This repository does
 not expose the broker or connect to the container. Opening `:McpBuff` creates a

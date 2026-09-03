@@ -5,18 +5,20 @@ upgrades so each operation has one predictable responsibility.
 
 ## Commands
 
-| Command | Purpose |
-| --- | --- |
-| `bootstrap.sh` | Clone when needed and provision the checkout already on disk; an explicit branch also seeds its channel |
-| `nvim-update` | Converge config and account-owned plugins on the persistent channel |
-| `nvim-update channel <branch>` | Persist, switch, and update another shared branch (`bet` is the rollback) |
-| `nvim-config doctor` | Validate Git, Neovim, Node/npm, supporting tools, upstream, and worktree state |
-| `nvim-config update` | Backward-compatible implementation behind `nvim-update` |
-| `nvim-config sync` | Restore locked plugins and install missing managed tools/parsers |
-| `nvim-config sync --latest` | Update unpinned Mason tools and Treesitter parsers |
-| `:NvimUpdate` | Run the same channel-aware update asynchronously from Neovim |
-| `:NvimConfigUpdate` | Backward-compatible alias for `:NvimUpdate` |
-| `:NvimConfigDoctor` | Run the doctor asynchronously from Neovim |
+| Command                        | Purpose                                                                                                 |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `bootstrap.sh`                 | Clone when needed and provision the checkout already on disk; an explicit branch also seeds its channel |
+| `nvim-update`                  | Converge config and account-owned plugins on the persistent channel                                     |
+| `nvim-update channel <branch>` | Persist, switch, and update another shared branch (`bet` is the rollback)                               |
+| `nvim-config doctor`           | Validate Git, Neovim, Node/npm, supporting tools, upstream, and worktree state                          |
+| `nvim-config update`           | Backward-compatible implementation behind `nvim-update`                                                 |
+| `nvim-config sync`             | Restore locked plugins and install missing managed tools/parsers                                        |
+| `nvim-config sync --latest`    | Update unpinned Mason tools and Treesitter parsers                                                      |
+| `:NvimUpdate`                  | Run the same channel-aware update asynchronously from Neovim                                            |
+| `:DevPlugins [branch]`         | Fetch and fast-forward the `dev/` fleet on a chosen branch, from inside Neovim                          |
+| `:NvimConfigUpdate`            | Backward-compatible alias for `:NvimUpdate`                                                             |
+| `:NvimConfigDoctor`            | Run the doctor asynchronously from Neovim                                                               |
+| `:NvimChannel`                 | Select `bet` or `bluff`, confirm, then run the guarded channel update                                   |
 
 The updater requires clean, attached checkouts. It reads the persisted channel
 from `${XDG_STATE_HOME:-$HOME/.local/state}/nvim-config/channel` (default
@@ -32,6 +34,14 @@ reported checkout and rerunning
 `nvim-update` resumes the same operation; `nvim-update channel bet` is the
 explicit undo.
 
+The CLI and Lua runtime share exactly
+`${XDG_STATE_HOME:-$HOME/.local/state}/nvim-config/channel`. The Lua reader must
+not use Neovim's application-specific `stdpath("state")`, because that appends
+an extra `nvim/` component and would make the editor silently load a different
+channel from the updater. `:NvimChannel` shows the channel loaded by the current
+process separately from a newly requested selection and requires a restart
+after the update succeeds.
+
 ## Optional Mise task façade
 
 `mise.toml` at the repository root is a thin façade over `bin/nvim-config`
@@ -41,18 +51,18 @@ and a second version source would be free to drift. Mise stays optional -
 nothing in the editor, `bootstrap.sh`, or `bin/nvim-config` invokes or requires
 it, and every task has a documented direct equivalent.
 
-| Task | Runs |
-| --- | --- |
-| `mise run update` | `bin/nvim-update` |
-| `mise run doctor` | `bin/nvim-config doctor` |
-| `mise run sync` | `bin/nvim-config sync` |
-| `mise run plugins:clone` | ensure every fleet checkout exists under `dev/` |
-| `mise run plugins:pull` | select and fast-forward the channel in every `dev/` checkout |
-| `mise run plugins:sync` | explicit alias for the same fleet convergence |
-| `mise run plugins:status` | one line of branch/dirty/ahead-behind per checkout |
-| `mise run plugins:check` | compile-check every `dev/` plugin that has Lua |
-| `mise run test-sync` | backward-compatible alias for `bin/nvim-update` |
-| `mise run verify` | shell, core, updater, fleet, UX integration, and performance gates |
+| Task                      | Runs                                                               |
+| ------------------------- | ------------------------------------------------------------------ |
+| `mise run update`         | `bin/nvim-update`                                                  |
+| `mise run doctor`         | `bin/nvim-config doctor`                                           |
+| `mise run sync`           | `bin/nvim-config sync`                                             |
+| `mise run plugins:clone`  | ensure every fleet checkout exists under `dev/`                    |
+| `mise run plugins:pull`   | select and fast-forward the channel in every `dev/` checkout       |
+| `mise run plugins:sync`   | explicit alias for the same fleet convergence                      |
+| `mise run plugins:status` | one line of branch/dirty/ahead-behind per checkout                 |
+| `mise run plugins:check`  | compile-check every `dev/` plugin that has Lua                     |
+| `mise run test-sync`      | backward-compatible alias for `bin/nvim-update`                    |
+| `mise run verify`         | shell, core, updater, fleet, UX integration, and performance gates |
 
 Always use the explicit `mise run <task>` form. Mise ships its own top-level
 `doctor` and `sync` subcommands, so a bare `mise doctor` or `mise sync` runs
@@ -78,13 +88,47 @@ uses the committed production pins.
 touching your work; resolve those in the plugin's own repository. `dev/` is
 gitignored and never enters a commit here.
 
+`plugins:pull` and `:DevPlugins` are the only things that move the `dev/`
+fleet. lazy.nvim never does: every one of its Git tasks skips a plugin resolved
+outside its own root, so `:Lazy update` passes silently over all six. Conversely
+`:DevPlugins` never touches a third-party plugin. The two update commands do not
+overlap, and neither replaces the other.
+
+## Which lockfile a session writes
+
 A dependency pin still moves only through the documented dependency-refresh
-flow. `update` and `sync` do rewrite `lazy-lock.json` through lazy.nvim, as
-they always have, but they write the same content on a machine with `dev/`
-populated as on one without it: `bin/nvim-config` sets `NVIM_TOOLCHAIN_SYNC`,
-and `lua/config/lazy.lua` turns dev matching off when it is set. Without that
-guard lazy.nvim would treat each dev plugin as local and drop its pin from the
-lockfile entirely.
+flow, and `lazy-lock.json` stays committed — it is what makes a `bet` install
+reproducible and what a rollback returns to.
+
+But lazy.nvim rewrites its lockfile after every install, update, restore, and
+clean, from whatever the resolved plugin directories currently hold, and an
+editing session cannot do that faithfully here. Two reasons:
+
+- **dev matching** resolves the account's own plugins from `dev/`, outside
+  lazy's root, so lazy treats them as local — and its writer omits every local
+  plugin. It _deletes_ their committed pins rather than moving them.
+- **the plugin root is shared.** Everything under `stdpath("data")/lazy` is one
+  directory per machine, used by every checkout and worktree, so a session
+  records whatever commits those directories hold — which an unrelated
+  `:Lazy update` may already have moved.
+
+Either way the session leaves a modified tracked file and the next
+`nvim-update` refuses to fast-forward until it is committed or stashed. So a
+session that cannot write the committed lockfile faithfully does not write it
+at all. `lua/config/lockfile.lua` hands the committed path only to a
+maintenance run resolving the committed pins — every `bin/nvim-config` run and
+the dependency-refresh workflow, which is what `NVIM_TOOLCHAIN_SYNC` marks —
+and gives every other session a per-machine scratch copy at
+`${XDG_STATE_HOME:-$HOME/.local/state}/nvim/nvim-config/lazy-lock.local.json`,
+seeded from the committed pins whenever those are newer. A run that holds
+`NVIM_TOOLCHAIN_SYNC` only to switch dev matching and tool installation off —
+the UX suite does — declines the write with `NVIM_CONFIG_SCRATCH_LOCK=1`.
+
+The consequence to know: an interactive `:Lazy update` still updates
+third-party plugins on disk, but no longer proposes a lockfile change you can
+commit, and the next `nvim-config sync` restores the committed pins over it.
+That is the latest-tested model working as intended — automation proposes,
+CI tests, merging advances the lock.
 
 ## Version policy
 

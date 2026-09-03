@@ -1,12 +1,14 @@
 local api = vim.api
+local channel = require("config.channel")
 
 local M = { running = false }
+local loaded_channel = channel.current()
 
 local function config_root()
   return vim.env.NVIM_CONFIG_ROOT or vim.fn.stdpath("config")
 end
 
-local function show_report(title, result)
+local function show_report(title, result, footer)
   local chunks = {}
   for _, chunk in ipairs({ result.stdout, result.stderr }) do
     chunk = (chunk or ""):gsub("%s+$", "")
@@ -14,6 +16,10 @@ local function show_report(title, result)
   end
   local output = table.concat(chunks, "\n")
   local lines = vim.split(output ~= "" and output or "(no output)", "\n", { plain = true })
+  if footer then
+    table.insert(lines, "")
+    table.insert(lines, footer)
+  end
   table.insert(lines, 1, "")
   table.insert(lines, 1, title .. (result.code == 0 and " completed" or " failed"))
 
@@ -44,32 +50,137 @@ local function show_report(title, result)
   end
 end
 
-local function run(action, executable_name)
+local function run(action, executable_name, extra_args, options)
+  options = options or {}
   if M.running then
     return vim.notify("nvim-config: another maintenance command is still running", vim.log.levels.WARN)
   end
   executable_name = executable_name or "nvim-config"
-  local executable = config_root() .. "/bin/" .. executable_name
-  local report_title = executable_name == "nvim-update" and "NvimUpdate"
+  local executable = config_root() .. "/" .. (options.directory or "bin") .. "/" .. executable_name
+  local report_title = options.title or (executable_name == "nvim-update" and "NvimUpdate"
     or "NvimConfig " .. action
+  )
   if vim.fn.executable(executable) ~= 1 then
-    return vim.notify("nvim-config CLI is missing or not executable: " .. executable, vim.log.levels.ERROR)
+    return vim.notify("missing or not executable: " .. executable, vim.log.levels.ERROR)
   end
 
   M.running = true
-  vim.notify(executable_name .. ": " .. action .. " started in the background", vim.log.levels.INFO)
-  vim.system({ executable, action, "--no-color" }, {
+  local action_label = options.action_label or action
+  vim.notify(executable_name .. ": " .. action_label .. " started in the background",
+    vim.log.levels.INFO)
+  local command = { executable, action }
+  vim.list_extend(command, extra_args or {})
+  -- Only the nvim-config CLI takes this flag; scripts/ helpers do not.
+  if options.no_color ~= false then
+    command[#command + 1] = "--no-color"
+  end
+  vim.system(command, {
     text = true,
     cwd = config_root(),
+    -- Merged into the inherited environment; vim.system only replaces it
+    -- wholesale when clear_env is set, which nothing here wants.
+    env = options.env,
   }, function(result)
     vim.schedule(function()
       M.running = false
-      show_report(report_title, result)
+      local footer = result.code == 0 and options.success_footer or nil
+      show_report(report_title, result, footer)
       local level = result.code == 0 and vim.log.levels.INFO or vim.log.levels.ERROR
-      vim.notify(executable_name .. ": " .. action
+      vim.notify(executable_name .. ": " .. action_label
         .. (result.code == 0 and " completed" or " failed"), level)
     end)
   end)
+end
+
+local CHANNELS = {
+  { id = "bet", label = "bet — production" },
+  { id = "bluff", label = "bluff — integration" },
+}
+
+function M.channel_choices()
+  local requested = channel.current()
+  local choices = vim.deepcopy(CHANNELS)
+  for _, choice in ipairs(choices) do
+    choice.loaded = choice.id == loaded_channel
+    choice.requested = choice.id == requested
+  end
+  return choices
+end
+
+local function confirm_channel(selected)
+  local confirmation = {
+    { id = "switch", label = "Switch, update, and require a restart" },
+    { id = "cancel", label = "Cancel" },
+  }
+  vim.ui.select(confirmation, {
+    prompt = ("Change Neovim channel from %s to %s?"):format(loaded_channel, selected),
+    format_item = function(item) return item.label end,
+  }, function(choice)
+    if not choice or choice.id ~= "switch" then return end
+    run("channel", "nvim-config", { selected }, {
+      title = "NvimChannel",
+      action_label = "channel " .. selected,
+      success_footer = "Restart Neovim to load channel " .. selected .. ".",
+    })
+  end)
+end
+
+function M.select_channel(selected)
+  if selected and selected ~= "" then return confirm_channel(selected) end
+  vim.ui.select(M.channel_choices(), {
+    prompt = "Neovim configuration channel:",
+    format_item = function(choice)
+      local markers = {}
+      if choice.loaded then markers[#markers + 1] = "loaded" end
+      if choice.requested and not choice.loaded then markers[#markers + 1] = "requested" end
+      return choice.label .. (#markers > 0 and (" (" .. table.concat(markers, ", ") .. ")") or "")
+    end,
+  }, function(choice)
+    if choice then confirm_channel(choice.id) end
+  end)
+end
+
+local function dev_directory()
+  local configured = vim.env.NVIM_DEV_DIR
+  if configured and configured ~= "" then return configured end
+  return config_root() .. "/dev"
+end
+
+--- Fetch and fast-forward this account's own plugins on a chosen branch.
+---
+--- lazy.nvim never does this: every one of its Git tasks skips a plugin it
+--- resolved outside its own root, so `:Lazy update` silently passes over the
+--- dev/ fleet. scripts/dev-plugins.sh is what actually moves them -- it
+--- preflights the whole fleet before switching any checkout, so a network
+--- failure or a dirty plugin leaves every existing branch untouched. This is
+--- the editor entry point to it, and the branch argument is the one thing the
+--- CLI could not take from a keystroke.
+function M.dev_plugins(branch)
+  local channel_module = require("config.channel")
+  local selected = (branch and branch ~= "") and branch or channel_module.current()
+  if not channel_module.valid(selected) then
+    return vim.notify("nvim-config: not a usable branch name: " .. selected, vim.log.levels.ERROR)
+  end
+
+  -- Refuse rather than clone. dev-plugins.sh creates the whole fleet when it
+  -- is absent, which is right for an explicit CLI call and wrong for a
+  -- mistyped command on a production install that has no fleet by design.
+  local directory = dev_directory()
+  if vim.fn.isdirectory(directory) ~= 1 then
+    return vim.notify(
+      "nvim-config: no plugin fleet at " .. directory
+        .. "; create one with 'mise run plugins:clone' or 'nvim-update channel bluff'",
+      vim.log.levels.ERROR)
+  end
+
+  run("sync", "dev-plugins.sh", nil, {
+    directory = "scripts",
+    no_color = false,
+    env = { NVIM_DEV_GIT_BRANCH = selected },
+    title = "DevPlugins",
+    action_label = "sync " .. selected,
+    success_footer = "Restart Neovim to load the updated plugins.",
+  })
 end
 
 function M.setup()
@@ -79,8 +190,22 @@ function M.setup()
   api.nvim_create_user_command("NvimConfigUpdate", function() run("update", "nvim-update") end, {
     desc = "Fast-forward this config and reconcile changed dependencies",
   })
+  api.nvim_create_user_command("DevPlugins", function(options)
+    M.dev_plugins(options.args)
+  end, {
+    desc = "Fetch and fast-forward this account's own plugins on a chosen branch",
+    nargs = "?",
+    complete = function() return { "bet", "bluff" } end,
+  })
   api.nvim_create_user_command("NvimConfigDoctor", function() run("doctor") end, {
     desc = "Check Neovim config, Git, Node, and toolchain prerequisites",
+  })
+  api.nvim_create_user_command("NvimChannel", function(options)
+    M.select_channel(options.args)
+  end, {
+    desc = "Select and update the persistent Neovim configuration channel",
+    nargs = "?",
+    complete = function() return { "bet", "bluff" } end,
   })
 end
 

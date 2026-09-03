@@ -102,6 +102,19 @@ test "$(cat "$nvim_config_channel_file")" = bet
 test "$(git -C "$nvim_config_consumer" branch --show-current)" = bet
 test -f "$nvim_config_consumer/docs/update-probe.txt"
 
+# The CLI and Lua runtime must resolve the same default channel file when no
+# explicit override is present. Neovim's stdpath("state") adds an app-name
+# directory, so this guards the cross-process XDG path contract directly.
+nvim_config_default_state="$nvim_config_test_root/default-state"
+mkdir -p "$nvim_config_default_state/nvim-config"
+printf '%s\n' bluff > "$nvim_config_default_state/nvim-config/channel"
+test "$(XDG_STATE_HOME="$nvim_config_default_state" \
+  "$nvim_config_consumer/bin/nvim-config" channel)" = bluff
+NVIM_CONFIG_DIR="$nvim_config_consumer" XDG_STATE_HOME="$nvim_config_default_state" \
+  nvim --headless --clean \
+    --cmd 'lua vim.opt.runtimepath:prepend(vim.env.NVIM_CONFIG_DIR)' \
+    "+lua assert(require('config.channel').current() == 'bluff')" +qa
+
 bash "$nvim_config_source_root/scripts/ci/test-mise.sh" "$nvim_config_source_root"
 
 printf '%s\n' "Whole-config updater integration passed"

@@ -146,18 +146,22 @@ one checkout serves both the coordination clone and the editor:
 
 ```text
 dev/
+├── agent-manager.nvimz -> ../../agent-manager
 ├── git-panel.nvim      -> ../../git-panel.nvim
 ├── mcp-buff            -> ../../mcp-buff
 ├── UX-foundation.nvim  -> ../../ux-foundation.nvim
 ├── UX-styling.nvim     -> ../../ux-styling.nvim
-├── UX-chrome.nvim      -> ../../ux-chrome.nvim
-└── agent-manager.nvimz -> ../../agent-manager.nvimz
+└── UX-chrome.nvim      -> ../../ux-chrome.nvim
 ```
 
 Directory names are the lazy.nvim plugin names and are case-sensitive, so they
 must match the repository names exactly even when the symlink target is
-lowercase. `scripts/dev-plugins.sh` treats an existing directory *or* symlink
+lowercase. `scripts/dev-plugins.sh` treats an existing directory _or_ symlink
 as present, which is what lets both layouts coexist.
+
+Only repositories consumed by nvim-config belong to this fleet. Agent Manager
+joined it when the embedded M1 implementation passed its acceptance gates and
+nvim-config began loading the plugin.
 
 `scripts/dev-plugins.sh` clones from `$NVIM_DEV_GIT_BASE`, defaulting to
 `https://github.com/777lotto`. A machine that reaches GitHub through a broker
@@ -171,6 +175,13 @@ and the dependency-refresh workflow already set `NVIM_TOOLCHAIN_SYNC`, and
 `lua/config/lazy.lua` disables dev matching when it is set: maintenance
 resolves those plugins from their pins and rewrites `lazy-lock.json`
 faithfully, exactly as it does on a machine with no `dev/` at all.
+
+An editing session keeps dev matching and is denied the committed lockfile
+instead — see "Which lockfile a session writes" in
+[maintenance](maintenance.md). That is also why `:Lazy update` cannot move this
+fleet: lazy skips every Git task for a plugin outside its root. `:DevPlugins`
+and `mise run plugins:pull` are the commands that move it, on whichever branch
+you name.
 
 ## Published plugins
 
@@ -192,3 +203,8 @@ and keeps its tested production commit in `lazy-lock.json`; its endpoint
 remains loopback only. Plugin release workflows may dispatch a focused
 dependency refresh here, but the resulting lock change still enters through
 `bluff` and the normal production promotion.
+
+[Agent Manager](https://github.com/777lotto/agent-manager.nvimz) also follows
+the shared channel model. This config owns its lazy-loading commands and
+`<leader>am` shortcut group; the plugin repository owns the Rust broker, Python
+worker, Lua workspace, provider safety boundary, and build artifacts.

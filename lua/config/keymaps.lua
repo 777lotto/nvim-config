@@ -10,15 +10,6 @@ local function notify(message, level, title)
   vim.notify(message, level or vim.log.levels.INFO, { title = title })
 end
 
-local function open_agent_manager()
-  if vim.fn.exists(":AgentManager") == 2 then
-    vim.cmd("AgentManager")
-    return
-  end
-
-  notify("This shortcut is reserved until agent-manager is installed.", nil, "Agent Manager")
-end
-
 local function move_buffer_to(command)
   for _ = 1, #vim.fn.getbufinfo({ buflisted = 1 }) do
     vim.cmd(command)
@@ -139,9 +130,6 @@ end, { range = true, desc = "Toggle '- [ ] ' checkboxes on the range" })
 -- Lowercase groups are listed first, followed by uppercase groups. which-key
 -- applies the same case-aware alphabetical order in its popup.
 -- =============================================================================
-
--- ---- (a)gent ----------------------------------------------------------------
-keymap.set("n", "<leader>aa", open_agent_manager, { desc = "Agent Manager (reserved)" })
 
 -- ---- (b)uffer ---------------------------------------------------------------
 -- The bar at the top uses bufferline's "buffers" mode. These mappings operate

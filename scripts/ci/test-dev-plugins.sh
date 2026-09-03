@@ -10,12 +10,12 @@ nvim_config_dev_root="$nvim_config_test_root/dev"
 mkdir --parents "$nvim_config_remote_root"
 
 nvim_config_fleet=(
+  agent-manager.nvimz
   git-panel.nvim
   mcp-buff
   UX-foundation.nvim
   UX-styling.nvim
   UX-chrome.nvim
-  agent-manager.nvimz
 )
 
 for nvim_config_name in "${nvim_config_fleet[@]}"; do
