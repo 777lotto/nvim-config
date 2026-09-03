@@ -33,70 +33,16 @@ usage() {
 Usage: nvim-config <command> [--no-color]
 
 Commands:
-  update          Switch to the persistent channel, fast-forward config and
-                  nightly plugins, then reconcile changed dependencies.
-  channel         Print the persistent Git branch channel.
-  channel <name>  Persist a branch for config and account-owned plugins, then
-                  switch/update immediately. Use 'channel bet' to roll back.
+  update          Fast-forward the configured upstream and any local bluff
+                  plugin fleet, then reconcile changed dependencies.
   sync            Restore the committed plugin lock and install missing tools.
   sync --latest   Restore plugins, update Mason tools, and update parsers.
   doctor          Check repository state and supported runtime versions.
   help            Show this help.
 
 Environment:
-  NVIM_CONFIG_DIR          Override the repository/config directory.
-  NVIM_CONFIG_CHANNEL      One-run channel override (not persisted).
-  NVIM_CONFIG_CHANNEL_FILE Override the persistent channel state path.
+  NVIM_CONFIG_DIR Override the repository/config directory.
 EOF
-}
-
-channel_file() {
-  if [ -n "${NVIM_CONFIG_CHANNEL_FILE:-}" ]; then
-    printf '%s\n' "$NVIM_CONFIG_CHANNEL_FILE"
-  else
-    printf '%s\n' "${XDG_STATE_HOME:-${HOME:?HOME is required}/.local/state}/nvim-config/channel"
-  fi
-}
-
-validate_channel() {
-  local nvim_config_candidate=$1
-  [ -n "$nvim_config_candidate" ] || die "channel cannot be empty"
-  [[ "$nvim_config_candidate" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ ]] ||
-    die "invalid Git branch channel: $nvim_config_candidate"
-  if command -v git >/dev/null 2>&1; then
-    git check-ref-format --branch "$nvim_config_candidate" >/dev/null 2>&1 ||
-      die "invalid Git branch channel: $nvim_config_candidate"
-  fi
-}
-
-selected_channel() {
-  local nvim_config_selected=${NVIM_CONFIG_CHANNEL:-}
-  local nvim_config_file
-  nvim_config_file="$(channel_file)"
-  if [ -z "$nvim_config_selected" ] && [ -f "$nvim_config_file" ]; then
-    IFS= read -r nvim_config_selected < "$nvim_config_file" || true
-  fi
-  nvim_config_selected=${nvim_config_selected:-bet}
-  validate_channel "$nvim_config_selected"
-  printf '%s\n' "$nvim_config_selected"
-}
-
-persist_channel() {
-  local nvim_config_selected=$1 nvim_config_file nvim_config_dir nvim_config_tmp
-  validate_channel "$nvim_config_selected"
-  nvim_config_file="$(channel_file)"
-  nvim_config_dir="$(dirname "$nvim_config_file")"
-  mkdir -p "$nvim_config_dir"
-  nvim_config_tmp="$(mktemp "$nvim_config_dir/.channel.XXXXXX")"
-  if ! printf '%s\n' "$nvim_config_selected" > "$nvim_config_tmp"; then
-    rm -f -- "$nvim_config_tmp"
-    die "could not write channel state"
-  fi
-  if ! chmod 600 "$nvim_config_tmp" || ! mv -f -- "$nvim_config_tmp" "$nvim_config_file"; then
-    rm -f -- "$nvim_config_tmp"
-    die "could not install channel state"
-  fi
-  log "Persistent channel: $nvim_config_selected"
 }
 
 manifest_get() {
@@ -121,10 +67,7 @@ version_at_least() {
 doctor() {
   local nvim_config_failures=0
   local nvim_config_manifest_available=0
-  local nvim_config_selected
-  nvim_config_selected="$(selected_channel)"
   log "Configuration: $NVIM_CONFIG_ROOT"
-  log "Channel: $nvim_config_selected ($(channel_file))"
 
   if ! command -v git >/dev/null 2>&1; then
     warn "git is required"
@@ -191,12 +134,9 @@ doctor() {
     if [ -z "$nvim_config_branch" ]; then
       warn "Checkout: detached HEAD; update will refuse"
     elif [ -z "$nvim_config_upstream" ]; then
-      warn "Checkout: $nvim_config_branch has no upstream; update will attach the selected channel when origin is available"
+      warn "Checkout: $nvim_config_branch has no upstream; update will refuse"
     else
       log "Checkout: $nvim_config_branch -> $nvim_config_upstream"
-    fi
-    if [ -n "$nvim_config_branch" ] && [ "$nvim_config_branch" != "$nvim_config_selected" ]; then
-      warn "checkout branch $nvim_config_branch differs from channel $nvim_config_selected; nvim-update will switch it"
     fi
     if [ -n "$(git -C "$NVIM_CONFIG_ROOT" status --porcelain --untracked-files=all)" ]; then
       warn "worktree has local changes; update will refuse until it is clean"
@@ -216,8 +156,8 @@ doctor() {
 
 run_nvim() {
   local nvim_config_init="$NVIM_CONFIG_ROOT/init.lua"
-  env NVIM_CONFIG_ROOT="$NVIM_CONFIG_ROOT" NVIM_CONFIG_CHANNEL=bet \
-    NVIM_TOOLCHAIN_SYNC=1 NVIM_TREESITTER_SKIP_INSTALL=1 \
+  env NVIM_CONFIG_ROOT="$NVIM_CONFIG_ROOT" NVIM_TOOLCHAIN_SYNC=1 \
+    NVIM_TREESITTER_SKIP_INSTALL=1 \
     nvim --headless -u "$nvim_config_init" "$@"
 }
 
@@ -277,89 +217,46 @@ sync_changed() {
 }
 
 sync_development_plugins() {
-  local nvim_config_selected=$1
-  [ "${NVIM_CONFIG_SKIP_DEV_SYNC:-0}" != 1 ] || return 0
   local nvim_config_dev_dir=${NVIM_DEV_DIR:-$NVIM_CONFIG_ROOT/dev}
-  # Production installs use lockfile pins and do not need a dev fleet. Once a
-  # developer fleet exists, however, an explicit rollback to bet should leave
-  # those physical checkouts on bet as well.
-  if [ "$nvim_config_selected" = bet ] && [ ! -d "$nvim_config_dev_dir" ]; then
-    return 0
-  fi
+  # Ordinary installs use GitHub lockfile pins and never need physical plugin
+  # checkouts. A developer opts into the fleet by creating dev/ explicitly.
+  [ -d "$nvim_config_dev_dir" ] || return 0
   [ -x "$NVIM_CONFIG_ROOT/scripts/dev-plugins.sh" ] ||
     die "missing executable: $NVIM_CONFIG_ROOT/scripts/dev-plugins.sh"
-  log "Synchronizing account-owned plugins on $nvim_config_selected"
-  NVIM_DEV_DIR="$nvim_config_dev_dir" NVIM_DEV_GIT_BRANCH="$nvim_config_selected" \
-    "$NVIM_CONFIG_ROOT/scripts/dev-plugins.sh" sync
+  log "Synchronizing account-owned plugins on bluff"
+  NVIM_DEV_DIR="$nvim_config_dev_dir" "$NVIM_CONFIG_ROOT/scripts/dev-plugins.sh" sync
   NVIM_DEV_DIR="$nvim_config_dev_dir" "$NVIM_CONFIG_ROOT/scripts/dev-plugins.sh" check
 }
 
 post_update() {
   local nvim_config_before=$1
-  local nvim_config_selected
-  nvim_config_selected="$(selected_channel)"
   sync_changed "$nvim_config_before"
-  sync_development_plugins "$nvim_config_selected"
+  sync_development_plugins
   doctor
   log "Update complete. Restart Neovim to load the new configuration."
 }
 
 update_config() {
-  local nvim_config_target=${1:-}
   command -v git >/dev/null 2>&1 || die "git is required"
   git -C "$NVIM_CONFIG_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "not a Git worktree: $NVIM_CONFIG_ROOT"
   [ -z "$(git -C "$NVIM_CONFIG_ROOT" status --porcelain --untracked-files=all)" ] ||
     die "worktree is not clean; commit, stash, or remove local changes before updating"
 
-  [ -n "$nvim_config_target" ] || nvim_config_target="$(selected_channel)"
-  validate_channel "$nvim_config_target"
-
-  local nvim_config_branch nvim_config_upstream nvim_config_remote nvim_config_before nvim_config_target_ref
+  local nvim_config_branch nvim_config_upstream nvim_config_remote nvim_config_before
   nvim_config_branch="$(git -C "$NVIM_CONFIG_ROOT" symbolic-ref --quiet --short HEAD)" ||
     die "detached HEAD cannot be updated safely"
+  nvim_config_upstream="$(git -C "$NVIM_CONFIG_ROOT" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null)" ||
+    die "branch $nvim_config_branch has no upstream"
+  nvim_config_remote="$(git -C "$NVIM_CONFIG_ROOT" config --get "branch.$nvim_config_branch.remote")" ||
+    die "branch $nvim_config_branch has no configured remote"
   nvim_config_before="$(git -C "$NVIM_CONFIG_ROOT" rev-parse HEAD)"
 
-  nvim_config_remote="$(git -C "$NVIM_CONFIG_ROOT" config --get "branch.$nvim_config_target.remote" 2>/dev/null || true)"
-  if [ -z "$nvim_config_remote" ]; then
-    nvim_config_remote="$(git -C "$NVIM_CONFIG_ROOT" config --get "branch.$nvim_config_branch.remote" 2>/dev/null || true)"
-  fi
-  if [ -z "$nvim_config_remote" ] && git -C "$NVIM_CONFIG_ROOT" remote get-url origin >/dev/null 2>&1; then
-    nvim_config_remote=origin
-  fi
-  [ -n "$nvim_config_remote" ] || die "could not determine a Git remote for channel $nvim_config_target"
+  log "Fetching configured upstream $nvim_config_upstream"
+  if [ "$nvim_config_remote" != "." ]; then git -C "$NVIM_CONFIG_ROOT" fetch --prune "$nvim_config_remote"; fi
 
-  log "Fetching $nvim_config_remote for channel $nvim_config_target"
-  if [ "$nvim_config_remote" = "." ]; then
-    nvim_config_target_ref="refs/heads/$nvim_config_target"
-  else
-    nvim_config_target_ref="refs/remotes/$nvim_config_remote/$nvim_config_target"
-    if ! git -C "$NVIM_CONFIG_ROOT" fetch --prune "$nvim_config_remote" \
-      "+refs/heads/$nvim_config_target:$nvim_config_target_ref"; then
-      die "could not fetch channel $nvim_config_target from $nvim_config_remote"
-    fi
-  fi
-  git -C "$NVIM_CONFIG_ROOT" show-ref --verify --quiet "$nvim_config_target_ref" ||
-    die "channel $nvim_config_target does not exist on remote $nvim_config_remote"
-
-  if [ "$nvim_config_branch" != "$nvim_config_target" ]; then
-    log "Switching config from $nvim_config_branch to $nvim_config_target"
-    if git -C "$NVIM_CONFIG_ROOT" show-ref --verify --quiet "refs/heads/$nvim_config_target"; then
-      git -C "$NVIM_CONFIG_ROOT" switch "$nvim_config_target"
-    else
-      [ "$nvim_config_remote" != "." ] || die "local channel branch is missing: $nvim_config_target"
-      git -C "$NVIM_CONFIG_ROOT" switch --track -c "$nvim_config_target" "$nvim_config_remote/$nvim_config_target"
-    fi
-  fi
-
-  if [ "$nvim_config_remote" != "." ]; then
-    git -C "$NVIM_CONFIG_ROOT" branch --set-upstream-to="$nvim_config_remote/$nvim_config_target" "$nvim_config_target" >/dev/null
-  fi
-  nvim_config_upstream="$(git -C "$NVIM_CONFIG_ROOT" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)"
-  [ -n "$nvim_config_upstream" ] || nvim_config_upstream="$nvim_config_target_ref"
-
-  if git -C "$NVIM_CONFIG_ROOT" merge-base --is-ancestor HEAD "$nvim_config_target_ref"; then
-    git -C "$NVIM_CONFIG_ROOT" merge --ff-only "$nvim_config_target_ref"
-  elif git -C "$NVIM_CONFIG_ROOT" merge-base --is-ancestor "$nvim_config_target_ref" HEAD; then
+  if git -C "$NVIM_CONFIG_ROOT" merge-base --is-ancestor HEAD '@{upstream}'; then
+    git -C "$NVIM_CONFIG_ROOT" merge --ff-only '@{upstream}'
+  elif git -C "$NVIM_CONFIG_ROOT" merge-base --is-ancestor '@{upstream}' HEAD; then
     warn "local branch is ahead of $nvim_config_upstream; no local commits were changed"
   else
     die "local and upstream histories diverged; reconcile them manually"
@@ -370,32 +267,17 @@ update_config() {
   exec "$NVIM_CONFIG_ROOT/bin/nvim-config" _post-update "$nvim_config_before" "${nvim_config_post_args[@]}"
 }
 
-set_channel() {
-  local nvim_config_selected=$1
-  persist_channel "$nvim_config_selected"
-  update_config "$nvim_config_selected"
-}
-
 nvim_config_action=${1:-help}
 shift || true
 case "$nvim_config_action" in
-  update) update_config ;;
-  channel)
-    nvim_config_channel_arg=""
+  update)
     for nvim_config_arg in "$@"; do
       case "$nvim_config_arg" in
         --no-color) ;;
-        *)
-          [ -z "$nvim_config_channel_arg" ] || die "channel accepts at most one branch"
-          nvim_config_channel_arg=$nvim_config_arg
-          ;;
+        *) die "unknown update option: $nvim_config_arg" ;;
       esac
     done
-    if [ -n "$nvim_config_channel_arg" ]; then
-      set_channel "$nvim_config_channel_arg"
-    else
-      selected_channel
-    fi
+    update_config
     ;;
   _post-update) post_update "${1:?previous revision is required}" ;;
   sync)

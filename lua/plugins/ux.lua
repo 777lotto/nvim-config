@@ -1,4 +1,3 @@
-local channel = require("config.channel").current()
 local foundation_opts = { load_active = false }
 
 local function external_ownership()
@@ -15,13 +14,13 @@ end
 return {
   {
     "777lotto/UX-foundation.nvim",
-    branch = channel,
+    branch = "bluff",
     lazy = false,
     opts = foundation_opts,
   },
   {
     "777lotto/UX-chrome.nvim",
-    branch = channel,
+    branch = "bluff",
     lazy = false,
     dependencies = { "777lotto/UX-foundation.nvim" },
     opts = {
@@ -33,7 +32,7 @@ return {
   },
   {
     "777lotto/UX-styling.nvim",
-    branch = channel,
+    branch = "bluff",
     dependencies = { "777lotto/UX-foundation.nvim" },
     cmd = "UXStyling",
     opts = function()

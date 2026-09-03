@@ -9,9 +9,9 @@
 
 ## Validation
 
-- [ ] I targeted `bluff` for ordinary work, or this is a `bluff` → `bet` promotion.
+- [ ] I targeted the default `bluff` branch.
 - [ ] Commits are signed and show as verified on GitHub.
-- [ ] `bash -n bootstrap.sh bin/nvim-config` passes.
+- [ ] `bash -n bootstrap.sh bin/nvim-config bin/nvim-update` passes.
 - [ ] Lua compilation, toolchain validation, and core smoke checks pass.
 - [ ] I reviewed any `lazy-lock.json` change intentionally.
 - [ ] Runtime/tool changes preserve the Node 22 / 24 / 26 compatibility lanes.

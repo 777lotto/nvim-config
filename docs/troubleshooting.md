@@ -51,16 +51,17 @@ the provider are non-spending; submitting a prompt starts a live model turn.
 ## Configuration update is refused
 
 Run `nvim-config doctor` first. `nvim-update` deliberately stops when the
-config or selected plugin fleet has uncommitted/untracked files, is detached,
-is missing the selected remote branch, or has diverged from it. It will switch
-only to the explicitly persisted channel; it will not stash, reset, rewrite
-remote URLs, or modify SSH/network configuration on your behalf.
+config has uncommitted/untracked files, is detached, is missing its configured
+upstream, or has diverged from it. An existing local plugin fleet additionally
+requires every checkout to be clean, attached, and on `bluff`. The updater will
+not switch branches, stash, reset, rewrite remote URLs, or modify SSH/network
+configuration on your behalf.
 
-For ordinary public installs, use `nvim-update channel bet`; this workstation's
-nightly soak uses `nvim-update channel bluff`. Preserve any local edits on a
-separate branch and retry after every affected worktree is clean.
-If the branch has diverged, inspect it with GitPanel or standard Git commands
-and reconcile it explicitly rather than forcing the updater through the state.
+Preserve any local edits on a separate branch and retry after every affected
+checkout is clean. If the config branch has diverged, inspect it with GitPanel
+or standard Git commands and reconcile it explicitly. An installation left on
+the retired pre-September-2026 branch model needs one deliberate switch to
+`bluff`; `nvim-update` will then follow `origin/bluff` normally.
 
 ## Node is below the supported floor
 

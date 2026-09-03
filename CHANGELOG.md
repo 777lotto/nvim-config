@@ -7,13 +7,6 @@ versioning for release organization.
 
 ### Added
 
-- A persistent account-plugin channel, defaulting to `bet`, plus
-  `nvim-update channel <branch>` for clean, fast-forward-only config and fleet
-  switching. This workstation can remain on nightly `bluff` until the explicit
-  `nvim-update channel bet` rollback.
-- An in-editor `:NvimChannel` picker that distinguishes the currently loaded
-  channel, confirms the requested `bet`/`bluff` switch, delegates to the guarded
-  updater, and reports the required restart.
 - GitPanel connection profiles and diagnostics, including automatic selection
   of the credential-free Zemrip GitHub broker inside `zemrip-ai`.
 - The single `nvim-update` command and asynchronous `:NvimUpdate` entry point;
@@ -36,9 +29,9 @@ versioning for release organization.
   in-editor maintenance report.
 - A centralized Neovim, Node, Mason, LSP, and Treesitter compatibility
   manifest plus latest-tested dependency automation.
-- MCP Buff on the selected channel with an exact production `bet` pin,
+- MCP Buff on the account default `bluff` branch with an exact tested pin,
   restricted to the documented loopback endpoint.
-- Agent Manager on the selected channel with lazy-loadable workspace, provider,
+- Agent Manager on `bluff` with lazy-loadable workspace, provider,
   prompt, steering, interrupt, health, and close commands. Its shortcuts are
   `<leader>amm`, `<leader>amc`, and `<leader>ams`.
 - Optional Mise-aware Treesitter injections for config `run` scripts and Bash
@@ -49,20 +42,23 @@ versioning for release organization.
 - An optional `mise.toml` task façade over `bin/nvim-config` plus fleet tasks
   over a gitignored `dev/` directory. Mise declares no toolchain here and
   remains optional; every task has a direct equivalent.
-- Channel-gated lazy.nvim dev mode for this account's own plugins. Non-`bet`
-  sessions load matching `dev/` checkouts or symlinks; production always uses
-  the committed pins. Dev matching is off during pin maintenance so a local
-  checkout can never erase its production lock entry.
+- Presence-gated lazy.nvim dev mode for this account's own plugins. Editing
+  sessions load matching `dev/` checkouts or symlinks when present and fall
+  back to committed `bluff` pins otherwise. Dev matching is off during pin
+  maintenance so a local checkout cannot erase its lock entry.
 - Safe current-file rename on `<leader>fn` and focused buffer, search, Git,
   terminal, and window helpers.
 
 ### Changed
 
-- Nightly fleet sync now includes Agent Manager because nvim-config consumes
+- The repository now uses `bluff` as its only long-lived and default branch.
+  The persisted two-channel state, branch picker, promotion-only CI gate, and
+  updater branch-switching paths were removed.
+- Every account-owned plugin spec and lock entry now targets `bluff`; the pins
+  advance to current commits on that branch and include Agent Manager for
+  reproducible public installs.
+- Developer fleet sync now includes Agent Manager because nvim-config consumes
   its accepted M1 implementation.
-- Lua and the updater now read the same XDG channel-state path; Neovim no
-  longer inserts an extra application-name directory and silently falls back
-  to `bet` after the CLI selected `bluff`.
 - GitPanel uses the broker's prefixed Git remote and REST route in `zemrip-ai`,
   while workstation App and portable GitHub CLI/public REST behavior remain
   available as named profiles.
@@ -77,8 +73,7 @@ versioning for release organization.
 - Git workflows now use the dependency-free GitPanel exclusively; the
   Gitsigns, Diffview, Neogit, and Lazygit integrations and their keymaps were
   removed.
-- GitPanel now resolves to the responsive repository dashboard promoted to its
-  production `bet` branch.
+- GitPanel now resolves to the responsive repository dashboard on `bluff`.
 - `bootstrap.sh` is installation-only; existing checkouts use the safer
   clean-worktree, configured-upstream updater.
 - Node 22 is the supported floor, Node 24 is the recommended default, and Node
@@ -86,7 +81,7 @@ versioning for release organization.
   the managed Node-backed tools on all three lanes.
 - The copy-only clipboard providers now serve `p` from the text they last sent
   instead of an empty register. Neither provider reads the client clipboard.
-- The tested `git-panel.nvim` pin advances to its current `bet` head, which
+- The tested `git-panel.nvim` pin advances to its current `bluff` head, which
   carries the locally signed Git merge backend this configuration already
   selects when the workstation `gh-app` helper is installed.
 - `lazy-lock.json` is stored in lazy.nvim's own key order, so a plain

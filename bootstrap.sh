@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Install this Neovim configuration on a fresh machine. Updating an existing
-# checkout is intentionally delegated to bin/nvim-config. Bootstrap leaves an
-# existing checkout untouched unless NVIM_CONFIG_BRANCH explicitly requests a
-# persistent channel change.
+# checkout is intentionally delegated to bin/nvim-config. Bootstrap never
+# changes an existing checkout's branch or pulls it.
 set -euo pipefail
 
 REPO_URL="${NVIM_CONFIG_REPO:-https://github.com/777lotto/nvim-config.git}"
@@ -26,7 +25,7 @@ command -v git >/dev/null 2>&1 || die "git is required"
 command -v nvim >/dev/null 2>&1 || die "Neovim is required"
 
 if [ -d "$CONFIG_DIR/.git" ]; then
-  log "Using the existing checkout at $CONFIG_DIR"
+  log "Using the existing checkout at $CONFIG_DIR (bootstrap does not pull)"
 elif [ -e "$CONFIG_DIR" ] && [ -n "$(ls -A "$CONFIG_DIR" 2>/dev/null)" ]; then
   nvim_config_backup="$CONFIG_DIR.bak.$(date +%Y%m%d%H%M%S)"
   warn "$CONFIG_DIR exists and is not a Git repository; moving it to $nvim_config_backup"
@@ -59,11 +58,7 @@ install_command() {
 install_command nvim-config "$CONFIG_DIR/bin/nvim-config"
 install_command nvim-update "$CONFIG_DIR/bin/nvim-update"
 
-if [ -n "$BRANCH" ]; then
-  "$CONFIG_DIR/bin/nvim-config" channel "$BRANCH"
-else
-  "$CONFIG_DIR/bin/nvim-config" doctor
-fi
+"$CONFIG_DIR/bin/nvim-config" doctor
 "$CONFIG_DIR/bin/nvim-config" sync
 
 log "Installation complete. Restart Neovim, then use 'nvim-update' for future updates."

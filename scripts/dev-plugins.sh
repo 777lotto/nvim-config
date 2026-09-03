@@ -16,7 +16,7 @@ done
 dev_plugins_root="$(cd -P "$(dirname "$dev_plugins_source")/.." && pwd)"
 dev_plugins_dir="${NVIM_DEV_DIR:-$dev_plugins_root/dev}"
 dev_plugins_base="${NVIM_DEV_GIT_BASE:-https://github.com/777lotto}"
-dev_plugins_branch="${NVIM_DEV_GIT_BRANCH:-$("$dev_plugins_root/bin/nvim-config" channel --no-color)}"
+dev_plugins_branch=bluff
 
 # Keep this fleet limited to repositories that nvim-config actually loads.
 # lazy.nvim matches a dev plugin by its spec name, so these directory names are
@@ -65,12 +65,12 @@ dev_plugins_clone() {
 }
 
 dev_plugins_sync() {
-  local name path target_ref branch_holder physical_path failed=0
+  local name path branch target_ref failed=0
   dev_plugins_clone
 
-  # Fetch and validate the complete fleet before switching any checkout. A
-  # network or missing-branch failure therefore leaves every existing local
-  # branch untouched, and a rerun safely resumes after missing clones appear.
+  # Fetch and validate the complete fleet before fast-forwarding any checkout.
+  # A network, dirty-tree, or branch mismatch therefore leaves every existing
+  # checkout untouched, and a rerun safely resumes after missing clones appear.
   for name in "${dev_plugins_fleet[@]}"; do
     path="$dev_plugins_dir/$name"
     if ! dev_plugins_present "$path"; then
@@ -84,7 +84,13 @@ dev_plugins_sync() {
       continue
     fi
     if [ -n "$(git -C "$path" status --porcelain)" ]; then
-      warn "$name: refusing to switch a dirty checkout; commit or stash it first"
+      warn "$name: refusing to update a dirty checkout; commit or stash it first"
+      failed=1
+      continue
+    fi
+    branch="$(git -C "$path" symbolic-ref --quiet --short HEAD || true)"
+    if [ "$branch" != "$dev_plugins_branch" ]; then
+      warn "$name: expected $dev_plugins_branch, found ${branch:-detached HEAD}; switch it explicitly first"
       failed=1
       continue
     fi
@@ -107,26 +113,13 @@ dev_plugins_sync() {
       warn "$name: local $dev_plugins_branch and origin/$dev_plugins_branch diverged"
       failed=1
     fi
-    branch_holder="$(git -C "$path" worktree list --porcelain | awk \
-      -v target="refs/heads/$dev_plugins_branch" \
-      '$1 == "worktree" { worktree=$2 } $1 == "branch" && $2 == target { print worktree }')"
-    physical_path="$(cd -P "$path" && pwd)"
-    if [ -n "$branch_holder" ] && [ "$branch_holder" != "$physical_path" ]; then
-      warn "$name: $dev_plugins_branch is already checked out at $branch_holder"
-      failed=1
-    fi
   done
-  [ "$failed" -eq 0 ] || die "fleet preflight failed; no existing checkout branch was switched"
+  [ "$failed" -eq 0 ] || die "fleet preflight failed; no existing checkout was updated"
 
   for name in "${dev_plugins_fleet[@]}"; do
     path="$dev_plugins_dir/$name"
     target_ref="refs/remotes/origin/$dev_plugins_branch"
-    log "$name: selecting $dev_plugins_branch"
-    if git -C "$path" show-ref --verify --quiet "refs/heads/$dev_plugins_branch"; then
-      git -C "$path" switch "$dev_plugins_branch"
-    else
-      git -C "$path" switch --track -c "$dev_plugins_branch" "origin/$dev_plugins_branch"
-    fi
+    log "$name: fast-forwarding $dev_plugins_branch"
     git -C "$path" branch --set-upstream-to="origin/$dev_plugins_branch" "$dev_plugins_branch" >/dev/null
     if git -C "$path" merge-base --is-ancestor HEAD "$target_ref"; then
       git -C "$path" merge --ff-only "$target_ref"

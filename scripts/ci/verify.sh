@@ -19,10 +19,10 @@ if command -v shellcheck >/dev/null 2>&1 && shellcheck --version >/dev/null 2>&1
 fi
 
 nvim --headless --clean -l "$nvim_config_root/scripts/ci/check-lua.lua" "$nvim_config_root"
-NVIM_CONFIG_CHANNEL=bet NVIM_CLIPBOARD=native \
+NVIM_CLIPBOARD=native \
   nvim --headless --clean -l "$nvim_config_root/scripts/ci/smoke-core.lua" \
     "$nvim_config_root" native
-NVIM_CONFIG_CHANNEL=bet NVIM_CLIPBOARD=osc52 SSH_TTY=/dev/pts/0 \
+NVIM_CLIPBOARD=osc52 SSH_TTY=/dev/pts/0 \
   nvim --headless --clean -l "$nvim_config_root/scripts/ci/smoke-core.lua" \
     "$nvim_config_root" osc52
 

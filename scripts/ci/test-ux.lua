@@ -1,5 +1,4 @@
 local root = assert(arg[1], "repository root argument is required")
-local channel = require("config.channel").current()
 
 for _, command in ipairs({
   "AgentManager",
@@ -12,6 +11,27 @@ for _, command in ipairs({
 }) do
   assert(vim.fn.exists(":" .. command) == 2, command .. " is not registered")
 end
+
+if vim.env.NVIM_CONFIG_VERIFY_LOCK == "1" then
+  -- lazy.nvim reloads the spec graph during lock operations. An isolated
+  -- checkout must remain authoritative, while a dev-backed test must leave
+  -- the committed lockfile byte-for-byte untouched.
+  require("lazy.core.plugin").load()
+  local lazy_config = require("lazy.core.config")
+  for _, name in ipairs({ "UX-foundation.nvim", "UX-styling.nvim", "UX-chrome.nvim" }) do
+    assert(lazy_config.plugins[name], "isolated Lazy spec reload lost " .. name)
+  end
+  local lock_path = root .. "/lazy-lock.json"
+  local before = table.concat(vim.fn.readfile(lock_path), "\n")
+  require("lazy.manage.lock").update()
+  assert(table.concat(vim.fn.readfile(lock_path), "\n") == before,
+    "dev-backed lock update rewrote the committed lockfile")
+  local lock = vim.json.decode(before)
+  for _, name in ipairs({ "UX-foundation.nvim", "UX-styling.nvim", "UX-chrome.nvim" }) do
+    assert(lock[name] and lock[name].branch == "bluff", "committed lock lost " .. name)
+  end
+end
+
 for lhs, description in pairs({
   ["<leader>amm"] = "Agent Manager",
   ["<leader>amc"] = "Start Codex agent",
@@ -20,21 +40,6 @@ for lhs, description in pairs({
 }) do
   local mapping = vim.fn.maparg(lhs, "n", false, true)
   assert(mapping.lhs and mapping.desc == description, lhs .. " is not registered correctly")
-end
-
-if vim.env.NVIM_CONFIG_VERIFY_LOCK == "1" then
-  -- lazy.nvim reloads the spec graph during restore/update. An isolated
-  -- checkout must remain the source of truth across that reload.
-  require("lazy.core.plugin").load()
-  local lazy_config = require("lazy.core.config")
-  for _, name in ipairs({ "UX-foundation.nvim", "UX-styling.nvim", "UX-chrome.nvim" }) do
-    assert(lazy_config.plugins[name], "isolated Lazy spec reload lost " .. name)
-  end
-  require("lazy.manage.lock").update()
-  local lock = vim.json.decode(table.concat(vim.fn.readfile(root .. "/lazy-lock.json"), "\n"))
-  for _, name in ipairs({ "UX-foundation.nvim", "UX-styling.nvim", "UX-chrome.nvim" }) do
-    assert(lock[name] and lock[name].branch == "bet", "lock regeneration lost " .. name)
-  end
 end
 
 local function registration(plugin_id)
@@ -52,9 +57,7 @@ assert(foundation_state.profile_id == "default" and foundation_state.session_ent
 local chrome = require("ux_chrome")
 local chrome_state = chrome.state()
 assert(chrome_state.initialized, "UX Chrome did not initialize")
-if channel ~= "bet" then
-  assert(chrome.health().neovim_supported, "nightly Chrome rejected the tested Neovim runtime")
-end
+assert(chrome.health().neovim_supported, "UX Chrome rejected the tested Neovim runtime")
 assert(registration("ux.chrome"), "UX Chrome did not register with Foundation")
 for _, surface in ipairs({ "tabline", "statusline", "winbar", "statuscolumn", "windows", "scrollbar" }) do
   assert(chrome_state.ownership[surface] == "external", "Chrome owns guarded surface " .. surface)
@@ -96,8 +99,7 @@ for _, surface in ipairs({ "tabline", "statusline", "winbar", "statuscolumn", "w
     "Styling interaction activated guarded Chrome surface " .. surface)
 end
 
-io.stdout:write(("Guarded UX integration (%s) passed on Neovim %s with %d registrations\n"):format(
-  channel,
+io.stdout:write(("Guarded UX integration passed on Neovim %s with %d registrations\n"):format(
   vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
   #foundation.registrations()
 ))

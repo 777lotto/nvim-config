@@ -1,7 +1,7 @@
 return {
   {
     "777lotto/mcp-buff",
-    branch = require("config.channel").current(),
+    branch = "bluff",
     main = "mcp_buff",
     cmd = { "McpBuff" },
     keys = {
@@ -21,7 +21,7 @@ return {
 
   {
     "777lotto/agent-manager.nvimz",
-    branch = require("config.channel").current(),
+    branch = "bluff",
     main = "agent_manager",
     cmd = {
       "AgentManager",
