@@ -29,6 +29,9 @@ versioning for release organization.
   in-editor maintenance report.
 - A centralized Neovim, Node, Mason, LSP, and Treesitter compatibility
   manifest plus latest-tested dependency automation.
+- Stable-release notifications for every account-owned plugin. Dispatches name
+  the exact tagged commit, and dependency refresh proves its `bluff` ancestry
+  before changing only the publisher's lock entry.
 - MCP Buff on the account default `bluff` branch with an exact tested pin and
   separately authenticated Cloudflare and GitHub tabs restricted to their
   documented loopback endpoints.
@@ -55,6 +58,9 @@ versioning for release organization.
 - The repository now uses `bluff` as its only long-lived and default branch.
   The persisted two-channel state, branch picker, promotion-only CI gate, and
   updater branch-switching paths were removed.
+- Contributor and release guidance now records the actual ZemRip broker
+  boundary: `agent/**` pushes, ticketed workflow changes, expected unsigned
+  agent commits, and operator-owned tags, Releases, settings, and secrets.
 - Every account-owned plugin spec and lock entry now targets `bluff`; the pins
   advance to current commits on that branch and include Agent Manager for
   reproducible public installs.
