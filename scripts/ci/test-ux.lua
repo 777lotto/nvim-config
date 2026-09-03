@@ -42,6 +42,16 @@ for lhs, description in pairs({
   assert(mapping.lhs and mapping.desc == description, lhs .. " is not registered correctly")
 end
 
+local mcp_panel = require("mcp_buff")
+local github_tab
+for _, tab in ipairs(mcp_panel.tabs) do
+  if tab.id == "github" then github_tab = tab end
+end
+assert(github_tab, "MCP Buff did not create the GitHub broker tab")
+assert(github_tab.broker:configured(), "MCP Buff GitHub broker has no capability command")
+assert(github_tab.broker.config.endpoint == "http://127.0.0.1:8793",
+  "MCP Buff GitHub broker lost its loopback endpoint")
+
 local function registration(plugin_id)
   for _, item in ipairs(require("ux_foundation").registrations()) do
     if item.manifest.plugin.id == plugin_id then return item end

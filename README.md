@@ -28,7 +28,8 @@ Requires Neovim 0.12.2 or newer. The leader key is `<Space>`.
 - [Agent Manager](https://github.com/777lotto/agent-manager.nvimz) for native,
   keyboard-first Codex and Claude sessions inside Neovim.
 - [MCP Buff](https://github.com/777lotto/mcp-buff) for reviewing brokered
-  Cloudflare write tickets through an operator-controlled loopback tunnel.
+  Cloudflare and GitHub write tickets through operator-controlled loopback
+  tunnels.
 - Guarded UX Foundation, Styling, and Chrome integration. Chrome registers its
   complete contract while Bufferline, Lualine, and native surfaces remain the
   physical owners during the compatibility soak.
@@ -386,14 +387,17 @@ while submitting a prompt can consume provider quota.
 
 ## Brokered write review
 
-- `<leader>ar`: open MCP Buff's Cloudflare write-ticket review panel.
+- `<leader>ar`: open MCP Buff's Cloudflare and GitHub write-ticket review
+  panel.
 
-The plugin endpoint is fixed to `http://127.0.0.1:8792`. This repository does
-not expose the broker or connect to the container. Opening `:McpBuff` creates a
-loopback-only, panel-scoped SSH forward through the dedicated `zemrip-server`
-alias, which resolves to the server's WireGuard address. It then reads
-`zemrip/mcp/admin-capability` from the Toughbook's local `pass` store. Closing
-the panel revokes the forward and clears the in-memory capability.
+The Cloudflare and GitHub endpoints are fixed to `http://127.0.0.1:8792` and
+`http://127.0.0.1:8793`, respectively. This repository does not expose either
+broker or connect to the container. Each tab creates its own loopback-only,
+panel-scoped SSH forward through the dedicated `zemrip-server` alias, which
+resolves to the server's WireGuard address. The tabs read separate
+`zemrip/mcp/admin-capability` and `zemrip/github/admin-capability` entries from
+the Toughbook's local `pass` store. Closing the panel revokes both forwards and
+clears both in-memory capabilities.
 
 WireGuard is an always-on prerequisite managed outside Neovim. MCP Buff neither
 changes it nor falls back to `zemrip-server-lan`. The approval UI therefore

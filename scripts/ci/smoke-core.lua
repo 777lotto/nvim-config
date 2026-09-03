@@ -33,6 +33,18 @@ assert(mcp_buff.opts.tunnel.host == "zemrip-server",
   "MCP Buff must use the WireGuard zemrip-server SSH alias")
 assert(not mcp_buff.opts.tunnel.host:find("lan", 1, true),
   "MCP Buff must not fall back to a LAN SSH alias")
+local github_broker = assert(mcp_buff.opts.github, "MCP Buff GitHub broker config is missing")
+assert(github_broker.endpoint == "http://127.0.0.1:8793",
+  "MCP Buff GitHub endpoint must remain loopback-only")
+assert(vim.deep_equal(github_broker.capability_cmd,
+  { "pass", "show", "zemrip/github/admin-capability" }),
+  "MCP Buff must read the separate GitHub admin capability from pass")
+assert(github_broker.tunnel.host == "zemrip-server",
+  "MCP Buff GitHub broker must use the WireGuard zemrip-server SSH alias")
+assert(not github_broker.tunnel.host:find("lan", 1, true),
+  "MCP Buff GitHub broker must not fall back to a LAN SSH alias")
+assert(not vim.deep_equal(github_broker.capability_cmd, mcp_buff.opts.capability_cmd),
+  "MCP Buff brokers must never share a capability command")
 assert(mcp_buff.keys[1][1] == "<leader>ar", "MCP Buff review must use <leader>ar")
 
 local agent_manager = assert(operations[2], "Agent Manager plugin spec is missing")

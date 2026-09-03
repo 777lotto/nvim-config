@@ -16,6 +16,16 @@ return {
       tunnel = {
         host = "zemrip-server",
       },
+      -- The GitHub broker has a separate listener and bearer. Do not inherit
+      -- either from Cloudflare: each tab owns its own capability cache and
+      -- panel-scoped SSH process.
+      github = {
+        endpoint = "http://127.0.0.1:8793",
+        capability_cmd = { "pass", "show", "zemrip/github/admin-capability" },
+        tunnel = {
+          host = "zemrip-server",
+        },
+      },
     },
   },
 
