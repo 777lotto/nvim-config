@@ -17,15 +17,15 @@ description = "Restore the plugin lock and install missing tools"
 run = "bin/nvim-config sync"
 
 [tasks."plugins:clone"]
-description = "Ensure every fleet plugin checkout exists on the selected channel"
+description = "Ensure every fleet plugin checkout exists on bluff"
 run = "scripts/dev-plugins.sh clone"
 
 [tasks."plugins:pull"]
-description = "Select and fast-forward the channel in every dev/ plugin checkout"
+description = "Fast-forward bluff in every dev/ plugin checkout"
 run = "scripts/dev-plugins.sh pull"
 
 [tasks."plugins:sync"]
-description = "Select and fast-forward the channel in every dev/ plugin checkout"
+description = "Fast-forward bluff in every dev/ plugin checkout"
 run = "scripts/dev-plugins.sh sync"
 
 [tasks."plugins:status"]
@@ -37,9 +37,9 @@ description = "Compile-check every dev/ plugin that has Lua sources"
 run = "scripts/dev-plugins.sh check"
 
 [tasks.test-sync]
-description = "One-shot selected-channel sync before manual testing"
+description = "One-shot bluff sync before manual testing"
 run = "bin/nvim-update"
 
 [tasks.verify]
-description = "Run shell, core, updater, channel-fleet, UX integration, and performance gates"
+description = "Run shell, core, updater, bluff-fleet, UX integration, and performance gates"
 run = "scripts/ci/verify.sh"

@@ -5,16 +5,13 @@ should describe the user-facing problem first, then the proposed change.
 
 ## Branch model
 
-- `bet` is the production/default branch.
-- `bluff` is the persistent integration branch.
+- `bluff` is the default and only long-lived branch.
 - Short-lived work branches start from `bluff` and merge back into `bluff`.
-- A promotion pull request moves tested changes from `bluff` into `bet`.
-
-Do not target `bet` directly for ordinary changes.
+- Releases are signed tags from a tested `bluff` commit.
 
 ## Development workflow
 
-1. Fetch the latest branches and create a focused branch from `bluff`.
+1. Fetch the latest `bluff` and create a focused branch from it.
 2. Keep platform-specific policy in `lua/config/environment.lua` or
    `bootstrap.sh`, not in permanent operating-system branches.
 3. Update documentation and `CHANGELOG.md` when behavior changes.
@@ -22,8 +19,8 @@ Do not target `bet` directly for ordinary changes.
 5. Run the local checks:
 
    ```sh
-   bash -n bootstrap.sh bin/nvim-config scripts/ci/*.sh
-   shellcheck bootstrap.sh bin/nvim-config scripts/ci/*.sh
+   bash -n bootstrap.sh bin/nvim-config bin/nvim-update scripts/ci/*.sh
+   shellcheck bootstrap.sh bin/nvim-config bin/nvim-update scripts/ci/*.sh
    nvim --headless --clean -l scripts/ci/check-lua.lua .
    nvim --headless --clean -l scripts/toolchain.lua . validate
    nvim --headless --clean -l scripts/ci/smoke-core.lua . native

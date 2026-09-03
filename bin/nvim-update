@@ -9,7 +9,7 @@ while [ -h "$nvim_update_source" ]; do
 done
 nvim_update_bin_dir="$(cd -P "$(dirname "$nvim_update_source")" >/dev/null 2>&1 && pwd)"
 
-if [ "$#" -eq 0 ] || [ "${1:-}" = "--no-color" ]; then
-  exec "$nvim_update_bin_dir/nvim-config" update "$@"
-fi
-exec "$nvim_update_bin_dir/nvim-config" "$@"
+case "${1:-}" in
+  help|-h|--help) exec "$nvim_update_bin_dir/nvim-config" help ;;
+esac
+exec "$nvim_update_bin_dir/nvim-config" update "$@"

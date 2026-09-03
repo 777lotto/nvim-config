@@ -1,7 +1,7 @@
 return {
 {
   "777lotto/git-panel.nvim",
-  branch = require("config.channel").current(),
+  branch = "bluff",
   main = "git_panel",
   cmd = { "GitPanel", "GitPanelSplit", "GitPanelConnection", "GitPanelDoctor" },
   opts = function() return require("config.git_panel").options() end,

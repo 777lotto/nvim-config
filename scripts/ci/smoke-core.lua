@@ -2,7 +2,6 @@ local root = assert(arg[1], "repository root argument is required")
 local expected_clipboard = assert(arg[2], "expected clipboard mode argument is required")
 
 vim.opt.runtimepath:prepend(vim.fn.fnamemodify(root, ":p"))
-vim.env.NVIM_CONFIG_CHANNEL = "bet"
 
 local environment = require("config.environment")
 environment.setup()
@@ -25,7 +24,7 @@ assert(vim.list_contains(vim.treesitter.query.list_predicates(), "is-mise?"), "M
 local operations = assert(loadfile(root .. "/lua/plugins/operations.lua"))()
 local mcp_buff = assert(operations[1], "MCP Buff plugin spec is missing")
 assert(mcp_buff[1] == "777lotto/mcp-buff", "unexpected MCP Buff repository")
-assert(mcp_buff.branch == "bet", "MCP Buff must consume its production branch")
+assert(mcp_buff.branch == "bluff", "MCP Buff must consume the account default branch")
 assert(mcp_buff.opts.endpoint == "http://127.0.0.1:8792", "MCP Buff endpoint must remain loopback-only")
 assert(vim.deep_equal(mcp_buff.opts.capability_cmd,
   { "pass", "show", "zemrip/mcp/admin-capability" }),
@@ -38,7 +37,7 @@ assert(mcp_buff.keys[1][1] == "<leader>ar", "MCP Buff review must use <leader>ar
 
 local agent_manager = assert(operations[2], "Agent Manager plugin spec is missing")
 assert(agent_manager[1] == "777lotto/agent-manager.nvimz", "unexpected Agent Manager repository")
-assert(agent_manager.branch == "bet", "Agent Manager must consume its production branch")
+assert(agent_manager.branch == "bluff", "Agent Manager must consume the account default branch")
 assert(agent_manager.main == "agent_manager", "Agent Manager setup module is incorrect")
 for _, command in ipairs({
   "AgentManager",
@@ -58,7 +57,7 @@ assert(vim.deep_equal(agent_manager.keys, {
 }), "Agent Manager shortcuts changed unexpectedly")
 
 local git_specs = assert(loadfile(root .. "/lua/plugins/git.lua"))()
-assert(git_specs[1].branch == "bet", "Git Panel must consume the selected production channel")
+assert(git_specs[1].branch == "bluff", "Git Panel must consume the account default branch")
 assert(vim.list_contains(git_specs[1].cmd, "GitPanelConnection"),
   "Git Panel connection command is not lazy-loadable")
 assert(vim.list_contains(git_specs[1].cmd, "GitPanelDoctor"),
@@ -91,46 +90,6 @@ local portable_options = git_panel_config.options({
 }).github
 assert(portable_options.profile == nil and portable_options.merge_backend == "api",
   "portable GitPanel defaults changed unexpectedly")
-
-vim.env.NVIM_CONFIG_CHANNEL = "bluff"
-local nightly_operations = assert(loadfile(root .. "/lua/plugins/operations.lua"))()
-assert(nightly_operations[1].branch == "bluff",
-  "MCP Buff did not follow the nightly channel")
-assert(nightly_operations[2].branch == "bluff",
-  "Agent Manager did not follow the nightly channel")
-assert(assert(loadfile(root .. "/lua/plugins/git.lua"))()[1].branch == "bluff",
-  "Git Panel did not follow the nightly channel")
-vim.env.NVIM_CONFIG_CHANNEL = "nightly/feature-1"
-assert(require("config.channel").current() == "nightly/feature-1",
-  "valid nested channel was rejected")
-vim.env.NVIM_CONFIG_CHANNEL = "invalid channel"
-assert(require("config.channel").current() == "bet", "invalid Lua channel did not fall back safely")
-vim.env.NVIM_CONFIG_CHANNEL = "nightly/.hidden"
-assert(require("config.channel").current() == "bet", "invalid Git path component was accepted")
-vim.env.NVIM_CONFIG_CHANNEL = "bet"
-
-local original_channel_file = vim.env.NVIM_CONFIG_CHANNEL_FILE
-local original_state_home = vim.env.XDG_STATE_HOME
-local original_channel_home = vim.env.HOME
-vim.env.NVIM_CONFIG_CHANNEL_FILE = nil
-vim.env.XDG_STATE_HOME = "/tmp/nvim-config-state-home"
-assert(require("config.channel").state_file() == "/tmp/nvim-config-state-home/nvim-config/channel",
-  "Lua channel path drifted from the updater's XDG state path")
-vim.env.XDG_STATE_HOME = nil
-vim.env.HOME = "/tmp/nvim-config-home"
-assert(require("config.channel").state_file() == "/tmp/nvim-config-home/.local/state/nvim-config/channel",
-  "Lua channel path drifted from the updater's HOME fallback")
-vim.env.NVIM_CONFIG_CHANNEL_FILE = original_channel_file
-vim.env.XDG_STATE_HOME = original_state_home
-vim.env.HOME = original_channel_home
-
-local channel_module = require("config.channel")
-assert(channel_module.valid("bluff") and channel_module.valid("nightly/feature-1"),
-  "the exported channel validator rejected a usable branch")
-for _, rejected in ipairs({ "invalid channel", "nightly/.hidden", "../escape", "bet.lock", "@" }) do
-  assert(not channel_module.valid(rejected),
-    "the exported channel validator accepted " .. rejected)
-end
 
 -- Which lockfile a session may write. An editing session must never be handed
 -- the committed one: lazy.nvim rewrites it from the resolved plugin
@@ -173,17 +132,15 @@ vim.fn.delete(lock_root, "rf")
 vim.fn.delete(lock_state, "rf")
 
 local registered = vim.api.nvim_get_commands({})
-for _, command in ipairs({ "NvimUpdate", "NvimChannel", "NvimConfigDoctor", "DevPlugins" }) do
+for _, command in ipairs({ "NvimUpdate", "NvimConfigUpdate", "NvimConfigDoctor", "DevPlugins" }) do
   assert(registered[command], command .. " is not registered")
 end
--- The branch argument is the whole point of the command, so it must stay
--- optional rather than becoming required or being dropped.
-assert(registered.DevPlugins.nargs == "?", "DevPlugins must take an optional branch")
+assert(registered.DevPlugins.nargs == "0", "DevPlugins must not accept a retired channel argument")
 
 -- :DevPlugins shells out to the fleet script, so stub the spawn and assert on
--- the command and environment it would have run. Both refusals must happen
--- before any process starts: one bad keystroke should not clone six
--- repositories onto a production install that has no fleet by design.
+-- the command it would have run. The refusal must happen before any process
+-- starts: one command should not clone six repositories onto an ordinary
+-- install that has no fleet by design.
 local update = require("config.update")
 local original_root, original_dev = vim.env.NVIM_CONFIG_ROOT, vim.env.NVIM_DEV_DIR
 local original_notify, original_system = vim.notify, vim.system
@@ -196,11 +153,7 @@ end
 vim.env.NVIM_CONFIG_ROOT = root
 vim.env.NVIM_DEV_DIR = root .. "/dev"
 
-update.dev_plugins("../escape")
-assert(notices[#notices]:match("not a usable branch name"), "DevPlugins accepted a malformed branch")
-assert(not spawned, "DevPlugins spawned a process for a malformed branch")
-
-update.dev_plugins("bluff")
+update.dev_plugins()
 assert(notices[#notices]:match("no plugin fleet at"), "DevPlugins did not refuse an absent fleet")
 assert(notices[#notices]:match("plugins:clone"), "the fleet refusal does not say how to create one")
 assert(not spawned, "DevPlugins spawned a process with no fleet on disk")
@@ -208,14 +161,12 @@ assert(not spawned, "DevPlugins spawned a process with no fleet on disk")
 local fleet = vim.fn.tempname()
 vim.fn.mkdir(fleet, "p")
 vim.env.NVIM_DEV_DIR = fleet
-update.dev_plugins("bluff")
+update.dev_plugins()
 assert(spawned, "DevPlugins did not run the fleet script")
 assert(spawned.command[1]:match("scripts/dev%-plugins%.sh$") and spawned.command[2] == "sync",
   "DevPlugins ran the wrong command: " .. vim.inspect(spawned.command))
 assert(not vim.list_contains(spawned.command, "--no-color"),
   "dev-plugins.sh takes no flags; --no-color belongs to the nvim-config CLI")
-assert(spawned.options.env.NVIM_DEV_GIT_BRANCH == "bluff",
-  "DevPlugins did not pass the chosen branch to the fleet script")
 assert(not spawned.options.clear_env,
   "the fleet script must inherit the session environment, not replace it")
 vim.fn.delete(fleet, "rf")
@@ -228,23 +179,31 @@ local ux_specs = assert(loadfile(root .. "/lua/plugins/ux.lua"))()
 local foundation, chrome, styling = ux_specs[1], ux_specs[2], ux_specs[3]
 assert(foundation[1] == "777lotto/UX-foundation.nvim" and foundation.lazy == false,
   "UX Foundation must load eagerly")
-assert(foundation.branch == "bet" and foundation.opts.load_active == false,
-  "UX Foundation must use the selected channel without applying a profile")
-assert(chrome[1] == "777lotto/UX-chrome.nvim" and chrome.branch == "bet",
-  "UX Chrome spec is missing or on the wrong channel")
+assert(foundation.branch == "bluff" and foundation.opts.load_active == false,
+  "UX Foundation must use bluff without applying a profile")
+assert(chrome[1] == "777lotto/UX-chrome.nvim" and chrome.branch == "bluff",
+  "UX Chrome spec is missing or not on bluff")
 for _, surface in ipairs({ "tabline", "statusline", "winbar", "statuscolumn", "windows", "scrollbar" }) do
   assert(chrome.opts.ownership[surface] == "external",
     "UX Chrome must not take over " .. surface .. " during the compatibility soak")
 end
 assert(styling[1] == "777lotto/UX-styling.nvim" and styling.cmd == "UXStyling",
   "UX Styling must remain command-lazy")
+assert(styling.branch == "bluff", "UX Styling must consume the account default branch")
 
 local lock = vim.json.decode(table.concat(vim.fn.readfile(root .. "/lazy-lock.json"), "\n"))
-for _, name in ipairs({ "UX-foundation.nvim", "UX-styling.nvim", "UX-chrome.nvim" }) do
-  local pin = assert(lock[name], "production lock is missing " .. name)
-  assert(pin.branch == "bet", name .. " production pin must target bet")
+for _, name in ipairs({
+  "agent-manager.nvimz",
+  "git-panel.nvim",
+  "mcp-buff",
+  "UX-foundation.nvim",
+  "UX-styling.nvim",
+  "UX-chrome.nvim",
+}) do
+  local pin = assert(lock[name], "account plugin lock is missing " .. name)
+  assert(pin.branch == "bluff", name .. " lock pin must target bluff")
   assert(type(pin.commit) == "string" and pin.commit:match("^[0-9a-f]+$") and #pin.commit == 40,
-    name .. " production lock commit is invalid")
+    name .. " lock commit is invalid")
 end
 
 local baselines = require("config.ux_baselines")
@@ -364,11 +323,7 @@ assert(vim.fn.exists(":EnvironmentInfo") == 2, ":EnvironmentInfo was not registe
 assert(vim.fn.exists(":NvimConfigUpdate") == 2, ":NvimConfigUpdate was not registered")
 assert(vim.fn.exists(":NvimConfigDoctor") == 2, ":NvimConfigDoctor was not registered")
 assert(vim.fn.exists(":NvimUpdate") == 2, ":NvimUpdate was not registered")
-assert(vim.fn.exists(":NvimChannel") == 2, ":NvimChannel was not registered")
-local channel_choices = require("config.update").channel_choices()
-assert(channel_choices[1].id == "bet" and channel_choices[1].loaded,
-  "channel picker did not identify the loaded production channel")
-assert(channel_choices[2].id == "bluff", "channel picker is missing the integration channel")
+assert(vim.fn.exists(":NvimChannel") == 0, ":NvimChannel survived the single-branch cleanup")
 
 print(("Core smoke passed with clipboard mode %s"):format(environment.clipboard_mode))
 

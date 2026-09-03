@@ -37,28 +37,15 @@ done
 
 run_ux() {
   env NVIM_CONFIG_ROOT="$nvim_config_root" \
-    NVIM_CONFIG_DEV_ROOT="$nvim_config_dev" \
-    NVIM_CONFIG_CHANNEL=bluff \
+    NVIM_DEV_DIR="$nvim_config_dev" \
     NVIM_CONFIG_USE_DEV=1 \
+    NVIM_CONFIG_VERIFY_LOCK=1 \
     NVIM_TOOLCHAIN_SYNC=1 \
     NVIM_TREESITTER_SKIP_INSTALL=1 \
     nvim --headless \
       --cmd 'lua vim.opt.runtimepath:prepend(vim.env.NVIM_CONFIG_ROOT)' \
       -u "$nvim_config_root/init.lua" "$@"
 }
-
-# Reads the committed lockfile; must never rewrite it. Without the opt-out this
-# run qualifies as maintenance and records whatever commits the machine's shared
-# plugin root happens to hold, leaving a dirty tree after `mise run verify`.
-env NVIM_CONFIG_ROOT="$nvim_config_root" \
-  NVIM_CONFIG_CHANNEL=bet \
-  NVIM_CONFIG_VERIFY_LOCK=1 \
-  NVIM_CONFIG_SCRATCH_LOCK=1 \
-  NVIM_TOOLCHAIN_SYNC=1 \
-  NVIM_TREESITTER_SKIP_INSTALL=1 \
-  nvim --headless \
-    -u "$nvim_config_root/init.lua" \
-    -l "$nvim_config_root/scripts/ci/test-ux.lua" "$nvim_config_root"
 
 run_ux -l "$nvim_config_root/scripts/ci/test-ux.lua" "$nvim_config_root"
 run_ux -l "$nvim_config_root/scripts/ci/benchmark-ux.lua"

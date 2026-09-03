@@ -21,58 +21,47 @@ nvim_config_fleet=(
 for nvim_config_name in "${nvim_config_fleet[@]}"; do
   nvim_config_remote="$nvim_config_remote_root/$nvim_config_name.git"
   nvim_config_publisher="$nvim_config_test_root/publisher-$nvim_config_name"
-  git init --bare --quiet --initial-branch=bet "$nvim_config_remote"
-  git init --quiet --initial-branch=bet "$nvim_config_publisher"
-  printf '%s\n' bet > "$nvim_config_publisher/channel.txt"
-  git -C "$nvim_config_publisher" add channel.txt
-  git -C "$nvim_config_publisher" \
-    -c user.name='nvim-config CI' \
-    -c user.email='ci@example.invalid' \
-    -c commit.gpgsign=false \
-    commit --quiet --message='test: seed bet'
-  git -C "$nvim_config_publisher" remote add origin "$nvim_config_remote"
-  git -C "$nvim_config_publisher" push --quiet --set-upstream origin bet
-  git -C "$nvim_config_publisher" switch --quiet -c bluff
-  printf '%s\n' bluff > "$nvim_config_publisher/channel.txt"
-  git -C "$nvim_config_publisher" add channel.txt
+  git init --bare --quiet --initial-branch=bluff "$nvim_config_remote"
+  git init --quiet --initial-branch=bluff "$nvim_config_publisher"
+  printf '%s\n' bluff > "$nvim_config_publisher/branch.txt"
+  git -C "$nvim_config_publisher" add branch.txt
   git -C "$nvim_config_publisher" \
     -c user.name='nvim-config CI' \
     -c user.email='ci@example.invalid' \
     -c commit.gpgsign=false \
     commit --quiet --message='test: seed bluff'
+  git -C "$nvim_config_publisher" remote add origin "$nvim_config_remote"
   git -C "$nvim_config_publisher" push --quiet --set-upstream origin bluff
 done
 
 NVIM_DEV_DIR="$nvim_config_dev_root" \
 NVIM_DEV_GIT_BASE="$nvim_config_remote_root" \
-NVIM_DEV_GIT_BRANCH=bluff \
   "$nvim_config_root/scripts/dev-plugins.sh" sync
 
 for nvim_config_name in "${nvim_config_fleet[@]}"; do
   test "$(git -C "$nvim_config_dev_root/$nvim_config_name" branch --show-current)" = bluff
-  test "$(cat "$nvim_config_dev_root/$nvim_config_name/channel.txt")" = bluff
-done
-
-NVIM_DEV_DIR="$nvim_config_dev_root" \
-NVIM_DEV_GIT_BASE="$nvim_config_remote_root" \
-NVIM_DEV_GIT_BRANCH=bet \
-  "$nvim_config_root/scripts/dev-plugins.sh" sync
-
-for nvim_config_name in "${nvim_config_fleet[@]}"; do
-  test "$(git -C "$nvim_config_dev_root/$nvim_config_name" branch --show-current)" = bet
-  test "$(cat "$nvim_config_dev_root/$nvim_config_name/channel.txt")" = bet
+  test "$(cat "$nvim_config_dev_root/$nvim_config_name/branch.txt")" = bluff
 done
 
 printf '%s\n' dirty > "$nvim_config_dev_root/mcp-buff/dirty.txt"
 if NVIM_DEV_DIR="$nvim_config_dev_root" \
   NVIM_DEV_GIT_BASE="$nvim_config_remote_root" \
-  NVIM_DEV_GIT_BRANCH=bluff \
   "$nvim_config_root/scripts/dev-plugins.sh" sync; then
   echo "Fleet sync accepted a dirty plugin checkout" >&2
   exit 1
 fi
 for nvim_config_name in "${nvim_config_fleet[@]}"; do
-  test "$(git -C "$nvim_config_dev_root/$nvim_config_name" branch --show-current)" = bet
+  test "$(git -C "$nvim_config_dev_root/$nvim_config_name" branch --show-current)" = bluff
 done
 
-printf '%s\n' "Development plugin channel integration passed"
+rm -- "$nvim_config_dev_root/mcp-buff/dirty.txt"
+git -C "$nvim_config_dev_root/mcp-buff" switch --quiet -c feature/probe
+if NVIM_DEV_DIR="$nvim_config_dev_root" \
+  NVIM_DEV_GIT_BASE="$nvim_config_remote_root" \
+  "$nvim_config_root/scripts/dev-plugins.sh" sync; then
+  echo "Fleet sync switched a checkout away from its explicit branch" >&2
+  exit 1
+fi
+test "$(git -C "$nvim_config_dev_root/mcp-buff" branch --show-current)" = feature/probe
+
+printf '%s\n' "Development plugin bluff integration passed"

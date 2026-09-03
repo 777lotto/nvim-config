@@ -1,6 +1,6 @@
 # Neovim configuration
 
-[![CI](https://github.com/777lotto/nvim-config/actions/workflows/ci.yml/badge.svg?branch=bet)](https://github.com/777lotto/nvim-config/actions/workflows/ci.yml)
+[![CI](https://github.com/777lotto/nvim-config/actions/workflows/ci.yml/badge.svg?branch=bluff)](https://github.com/777lotto/nvim-config/actions/workflows/ci.yml)
 [![Neovim](https://img.shields.io/badge/Neovim-0.12.2%2B-57A143?logo=neovim&logoColor=white)](https://neovim.io/)
 [![Release](https://img.shields.io/github/v/release/777lotto/nvim-config)](https://github.com/777lotto/nvim-config/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -131,26 +131,16 @@ git clone https://github.com/777lotto/nvim-config.git \
 
 The installer follows the repository's GitHub default branch unless
 `NVIM_CONFIG_BRANCH` is set explicitly. It is safe to rerun, but intentionally
-does not pull an existing checkout unless that variable requests a channel
-change. Bootstrap provisions the checkout already on disk, restores plugins
-from `lazy-lock.json`, installs Mason tools, builds
-Treesitter parsers, and links `nvim-update` and `nvim-config` into
+does not pull or switch an existing checkout. Bootstrap provisions the checkout
+already on disk, restores plugins from `lazy-lock.json`, installs Mason tools,
+builds Treesitter parsers, and links `nvim-update` and `nvim-config` into
 `~/.local/bin` when those paths are free.
 
-The account-wide branch convention is `bet` for production and `bluff` for
-integration. Fresh clones therefore receive `bet`; to test the current staging
-state explicitly:
-
-```sh
-NVIM_CONFIG_BRANCH=bluff ~/.config/nvim/bootstrap.sh
-```
-
-That branch becomes the persistent channel for the config and every installed
-account-owned plugin in its runtime fleet. The default is `bet`; change this
-machine at any time with `nvim-update channel bluff` or roll it back with
-`nvim-update channel bet`. The selection is stored below
-`${XDG_STATE_HOME:-$HOME/.local/state}/nvim-config/channel` until explicitly
-changed.
+The account-wide default branch is `bluff`. Fresh clones receive it directly,
+and every account-owned plugin spec explicitly targets `bluff` as well.
+`NVIM_CONFIG_BRANCH` remains available only for deliberately cloning a
+different config branch on a fresh install; it does not change plugin branches
+or persist separate channel state.
 
 For a manual install, clone to `~/.config/nvim`, then run
 `~/.config/nvim/bin/nvim-config sync` and `:checkhealth`.
@@ -163,21 +153,19 @@ Routine maintenance is one command:
 nvim-update
 ```
 
-`nvim-update` refuses dirty or detached checkouts, selects the persisted branch
-on the existing remote, and permits only fast-forwards. A non-production
-channel also preflights, selects, fast-forwards, and compile-checks the complete
-`dev/` runtime plugin fleet. Rolling back to `bet` also converges an existing
-developer fleet, while an ordinary production install continues to use only
-lockfile pins. It never rewrites a remote URL, SSH host, tunnel, or network
-setting.
+`nvim-update` refuses dirty, detached, or divergent checkouts, fetches the
+configured upstream of the current config branch, and permits only a
+fast-forward. When an opt-in `dev/` fleet exists, it also requires every
+account-owned plugin checkout to be clean and on `bluff`, fast-forwards the
+fleet, and compile-checks its Lua sources. An ordinary install continues to
+use only exact lockfile pins. The updater never switches branches or rewrites a
+remote URL, SSH host, tunnel, or network setting.
 After a successful pull, it reconciles only the dependency classes affected by
 changed files. Restart Neovim after it completes.
 
 Inside Neovim, `:NvimUpdate` runs the same command asynchronously and opens its
 report without blocking the editor; `:NvimConfigUpdate` remains an alias.
-`:NvimChannel` presents the production `bet` and integration `bluff` channels,
-confirms the selection, then delegates to the same guarded updater. Restart
-Neovim after a successful switch.
+Restart Neovim after a successful update.
 `nvim-config doctor` and `:NvimConfigDoctor` check Git, Neovim, Node/npm,
 supporting executables, upstream state, and worktree
 cleanliness. `nvim-config sync --latest` is the explicit manual path for
@@ -192,7 +180,6 @@ refreshing unpinned Mason tools and parsers without changing plugin lock policy.
 ├── init.lua                         # intentionally tiny startup entrypoint
 ├── lua/
 │   ├── config/
-│   │   ├── channel.lua              # persistent bet/bluff branch selection
 │   │   ├── environment.lua          # environment detection and clipboard policy
 │   │   ├── mise.lua                 # Mise path predicate; no CLI dependency
 │   │   ├── options.lua              # environment-independent editor options
@@ -222,7 +209,7 @@ refreshing unpinned Mason tools and parsers without changing plugin lock policy.
 │   └── troubleshooting.md
 ├── scripts/ci/                      # dependency-light validation scripts
 ├── bin/nvim-config                  # doctor, update, and dependency sync CLI
-├── bin/nvim-update                  # single routine channel-aware update command
+├── bin/nvim-update                  # single routine guarded update command
 ├── lazy-lock.json                   # exact plugin commits
 ├── bootstrap.sh
 └── CHANGELOG.md
