@@ -35,8 +35,14 @@ should describe the user-facing problem first, then the proposed change.
    with isolated Bash, TOML, and KDL parsers and a Mise-free startup smoke test.
 
 6. Sign human commits using a GitHub-verified GPG, SSH, or S/MIME signature.
-   Approved dependency-refresh automation may use its GitHub bot identity.
+   Approved dependency-refresh automation may use its GitHub bot identity;
+   brokered `zemrip-ai` commits use the expected unsigned agent identity.
 7. Open a pull request into `bluff` and complete the pull-request checklist.
+
+On the ZemRip agent plane, use an `agent/**` branch. The broker refuses direct
+pushes to `bluff` and tags; a workflow-file push additionally requires an
+operator-approved one-use ticket. It cannot publish Releases or administer
+repository settings or secrets, which remain operator actions.
 
 ## Pull requests
 

@@ -133,27 +133,39 @@ so Mason resolves the latest registry release when `MasonToolsUpdateSync` runs.
 ## Automation
 
 `.github/workflows/dependency-update.yml` runs weekly and can receive a
-`plugin-release` repository dispatch with a `plugin` payload of
-`git-panel.nvim` or `mcp-buff`. A manual run can select the same focused target
-or refresh every lazy.nvim dependency. The workflow opens a pull request into
-`bluff`.
+`plugin-release` repository dispatch from any account-owned plugin. The payload
+names exactly one of `agent-manager.nvimz`, `git-panel.nvim`, `mcp-buff`,
+`UX-chrome.nvim`, `UX-foundation.nvim`, or `UX-styling.nvim` and includes the
+full tagged commit. The workflow proves that commit is reachable from the
+plugin's `bluff` branch, changes only that lock entry, and records the request
+in its pull-request body. A manual run can select the same focused targets or
+refresh every lazy.nvim dependency.
 
-For PR checks to run on an automation-created PR, configure a fine-grained
-`DEPENDENCY_UPDATE_TOKEN` repository secret with contents and pull-request
-write access. Without it, the workflow falls back to `GITHUB_TOKEN`; GitHub may
-suppress workflows triggered by that token.
+The workflow opens a pull request into `bluff`. It accepts an operator-managed,
+fine-grained `DEPENDENCY_UPDATE_TOKEN` repository secret with contents and
+pull-request write access and otherwise falls back to `GITHUB_TOKEN`; events
+created by that fallback follow GitHub's token-trigger policy.
 
-Plugin repositories may publish a release hook using a fine-grained
-`NVIM_CONFIG_DISPATCH_TOKEN` secret and this request shape:
+Each plugin repository contains a notification workflow for stable published
+Releases. It uses an operator-managed, fine-grained
+`NVIM_CONFIG_DISPATCH_TOKEN` scoped only to this repository with Contents write
+permission and sends this contract:
 
 ```sh
 gh api --method POST repos/777lotto/nvim-config/dispatches \
   --raw-field event_type=plugin-release \
-  --field 'client_payload[plugin]=git-panel.nvim'
+  --field 'client_payload[plugin]=git-panel.nvim' \
+  --field "client_payload[commit]=$PLUGIN_COMMIT" \
+  --field "client_payload[tag]=$PLUGIN_TAG"
 ```
 
-Use `mcp-buff` as the payload for that repository. Tokens remain repository
-secrets and are never stored in this config.
+The plugin name is the publisher's exact lazy.nvim key. The release workflow
+reads the secret only at its GitHub Actions process boundary and exits with a
+setup notice when it is absent. Provisioning that secret, creating signed tags,
+and publishing Releases are operator work. The credential-free ZemRip broker
+cannot read or write Actions secrets, create tags or Releases, or submit this
+cross-repository dispatch; do not put the token in the agent plane to work
+around those policy boundaries.
 
 ## MCP Buff boundary
 

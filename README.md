@@ -432,8 +432,9 @@ describes how that plugin should be separated from the colorscheme itself.
 `lazy-lock.json` pins exact plugin commits and belongs in Git. Public installs
 therefore reproduce the latest version that passed this repository's tests,
 not an unreviewed moving target. A scheduled workflow runs `:Lazy update`,
-validates the result, and opens a focused PR into `bluff`; GitPanel and MCP Buff
-release dispatches can target only their own lock entry.
+validates the result, and opens a focused PR into `bluff`. Stable releases from
+each account-owned plugin dispatch their tagged commit; the refresh proves that
+commit belongs to `bluff` and can change only the publisher's lock entry.
 
 Mason package names deliberately omit a version, which already means the
 latest registry release—there is no useful `--latest` suffix to add. The

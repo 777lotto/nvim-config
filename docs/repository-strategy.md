@@ -33,7 +33,8 @@ history, but current tooling and guidance use only `bluff`.
 
 1. update local `bluff`;
 2. create a focused branch;
-3. commit with verified signatures;
+3. retain explicit commit provenance (signed human commits or the expected
+   unsigned brokered-agent identity);
 4. open a pull request into `bluff`;
 5. require CI before merge.
 
@@ -53,8 +54,9 @@ Release checklist:
 1. update `CHANGELOG.md`;
 2. run CI and test the XFCE path on the actual client;
 3. review `lazy-lock.json` intentionally;
-4. create and push a signed `vX.Y.Z` tag from `bluff`;
-5. publish GitHub release notes and test a clean archive/bootstrap.
+4. have the operator create and push a signed `vX.Y.Z` tag from `bluff`;
+5. have the operator publish GitHub release notes, then test a clean
+   archive/bootstrap.
 
 ## GitHub presentation
 
@@ -82,10 +84,28 @@ The baseline workflow has these stable checks:
   (recommended), and Node 26 (canary), plus centralized-manifest validation;
 - `bootstrap`: the real installer in isolated XDG directories on Node 24.
 
-The `bluff` ruleset should block deletion and force pushes and require verified
-signatures and CI for pull requests. No approving review is required while the
-project has one maintainer. GitHub Environments are reserved for actual
-deployment or release secrets; they are not used to classify operating systems.
+The `bluff` ruleset should block deletion and force pushes and require CI for
+pull requests. Human commits and tags retain verified signatures; brokered
+agent commits are intentionally unsigned and identified as `zemrip-ai`.
+GitHub Environments are reserved for actual deployment or release secrets; they
+are not used to classify operating systems.
+
+### ZemRip broker boundary
+
+The credential-free agent plane is narrower than the public repository model:
+
+- Git pushes may update only `agent/**`; `bluff` and tag writes are refused.
+- A push containing `.github/workflows/**` needs one operator-approved ticket
+  for the exact repository and ref set. The approval unlocks one later push;
+  it does not execute the push.
+- Pull requests target `bluff`. Merge behavior comes from the broker's current
+  exact-head automerge/approval configuration, not from an assumed production
+  branch or from GitHub's repository rules alone.
+- The API route cannot create Releases, dispatch workflows, or administer
+  settings and Actions secrets. Those are explicit operator actions.
+- `gh-agent` addresses the repository selected with `-R`, its reviewed
+  environment setting, or the current checkout's broker remote. It must never
+  silently fall back to `zemRip` merely because no repository was named.
 
 ## GitHub Project
 

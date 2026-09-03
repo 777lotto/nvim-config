@@ -12,8 +12,12 @@ on:
         default: all
         options:
           - all
+          - agent-manager.nvimz
           - git-panel.nvim
           - mcp-buff
+          - UX-chrome.nvim
+          - UX-foundation.nvim
+          - UX-styling.nvim
   repository_dispatch:
     types:
       - plugin-release
@@ -58,7 +62,9 @@ jobs:
 
       - name: Refresh requested plugin commits
         env:
+          DISPATCH_COMMIT: ${{ github.event.client_payload.commit }}
           DISPATCH_PLUGIN: ${{ github.event.client_payload.plugin }}
+          EVENT_NAME: ${{ github.event_name }}
           INPUT_PLUGIN: ${{ inputs.plugin }}
           NVIM_CONFIG_ROOT: ${{ github.workspace }}
           NVIM_TOOLCHAIN_SYNC: "1"
@@ -68,12 +74,16 @@ jobs:
 
           plugin="${INPUT_PLUGIN:-${DISPATCH_PLUGIN:-all}}"
           case "$plugin" in
-            all|git-panel.nvim|mcp-buff) ;;
+            all|agent-manager.nvimz|git-panel.nvim|mcp-buff|UX-chrome.nvim|UX-foundation.nvim|UX-styling.nvim) ;;
             *)
               echo "Unsupported dependency refresh target: $plugin" >&2
               exit 1
               ;;
           esac
+          if [[ "$EVENT_NAME" == "repository_dispatch" && -z "${DISPATCH_COMMIT:-}" ]]; then
+            echo "plugin-release dispatches must name the released commit" >&2
+            exit 1
+          fi
 
           # Load the configuration the way an install does. `-u init.lua` leaves the
           # checkout's lua/ off the runtimepath, so init.lua dies on its first require,
@@ -87,6 +97,7 @@ jobs:
           export XDG_DATA_HOME="$xdg/data"
           export XDG_STATE_HOME="$xdg/state"
           export XDG_CACHE_HOME="$xdg/cache"
+          export REFRESH_COMMIT="${DISPATCH_COMMIT:-}"
           export REFRESH_PLUGIN="$plugin"
 
           # Capture the committed pins before Neovim starts: lazy.nvim's startup
@@ -102,11 +113,23 @@ jobs:
           -- exits non-zero, including "the configuration never loaded" -- which the old
           -- `-u init.lua` invocation reported as a success.
           local target = vim.env.REFRESH_PLUGIN or "all"
+          local requested_commit = vim.env.REFRESH_COMMIT
+          if requested_commit == "" then requested_commit = nil end
 
           local function die(message)
             io.stderr:write("dependency refresh: " .. message .. "\n")
             io.stderr:flush()
             os.exit(1)
+          end
+
+          if requested_commit then
+            requested_commit = requested_commit:lower()
+            if target == "all" then
+              die("a released commit requires one named plugin target")
+            end
+            if #requested_commit ~= 40 or not requested_commit:match("^[0-9a-f]+$") then
+              die("released commit must be one full SHA-1")
+            end
           end
 
           local loaded, lazy = pcall(require, "lazy")
@@ -204,6 +227,50 @@ jobs:
             lazy.update(update)
           end)
 
+          -- A release notification identifies the tagged commit, not whatever
+          -- happens to be the branch head when this runner starts. Prove the
+          -- requested object belongs to the plugin's configured branch, check
+          -- it out in the ephemeral lazy root, and then record that exact pin.
+          if requested_commit then
+            local plugin = Config.plugins[target]
+            local branch = plugin.branch
+            if type(branch) ~= "string" or branch == "" then
+              die(("%q has no configured branch for release ancestry validation"):format(target))
+            end
+
+            local function git(arguments, label, accepted)
+              local command = { "git", "-C", plugin.dir }
+              vim.list_extend(command, arguments)
+              local result = vim.system(command, { text = true }):wait()
+              accepted = accepted or { [0] = true }
+              if not accepted[result.code] then
+                local detail = vim.trim(result.stderr or "")
+                die(("%s failed%s"):format(label, detail == "" and "" or ": " .. detail))
+              end
+              return result
+            end
+
+            git({ "cat-file", "-e", requested_commit .. "^{commit}" }, "resolve released commit")
+            git({ "rev-parse", "--verify", "origin/" .. branch .. "^{commit}" },
+              "resolve configured branch")
+            local ancestry = git(
+              { "merge-base", "--is-ancestor", requested_commit, "origin/" .. branch },
+              "validate released commit ancestry",
+              { [0] = true, [1] = true }
+            )
+            if ancestry.code == 1 then
+              die(("released commit %s is not reachable from %s's %s branch")
+                :format(requested_commit, target, branch))
+            end
+
+            local current = git({ "rev-parse", "HEAD" }, "read refreshed commit").stdout
+            if vim.trim(current or "") ~= requested_commit then
+              git({ "checkout", "--detach", "--force", requested_commit },
+                "check out released commit")
+            end
+            Lock.update()
+          end
+
           -- The refreshed lockfile must still describe every managed plugin. lazy.nvim
           -- omits a plugin it treats as local, which is how a refresh can quietly delete
           -- a committed pin instead of moving it.
@@ -230,6 +297,10 @@ jobs:
           end
           if target ~= "all" and not lock[target] then
             die(("the refreshed lockfile has no entry for %q"):format(target))
+          end
+          if requested_commit and lock[target].commit ~= requested_commit then
+            die(("release pin mismatch for %q: expected %s, wrote %s")
+              :format(target, requested_commit, tostring(lock[target].commit)))
           end
 
           -- A targeted refresh may move exactly one pin. Anything else that moved is a
@@ -280,6 +351,10 @@ jobs:
           title: "chore(deps): refresh tested plugin lock"
           body: |
             Automated latest-tested dependency refresh.
+
+            Requested plugin: `${{ github.event.client_payload.plugin || inputs.plugin || 'all' }}`
+            Published tag: `${{ github.event.client_payload.tag || 'not supplied' }}`
+            Requested commit: `${{ github.event.client_payload.commit || 'latest configured branch head' }}`
 
             The lockfile keeps installs reproducible; CI validates the refreshed
             commits across the supported Node floor, recommended release, and
