@@ -31,7 +31,7 @@ jobs:
     name: refresh tested lock
     runs-on: ubuntu-24.04
     steps:
-      - name: Check out integration branch
+      - name: Check out default branch
         uses: actions/checkout@v7
         with:
           ref: bluff
@@ -266,10 +266,10 @@ jobs:
         run: |
           nvim --headless --clean -l scripts/ci/check-lua.lua .
           nvim --headless --clean -l scripts/toolchain.lua . validate
-          bash -n bootstrap.sh bin/nvim-config
+          bash -n bootstrap.sh bin/nvim-config bin/nvim-update
           git diff --check
 
-      - name: Open integration pull request
+      - name: Open dependency pull request
         uses: peter-evans/create-pull-request@v8.1.1
         with:
           token: ${{ secrets.DEPENDENCY_UPDATE_TOKEN || github.token }}
@@ -283,7 +283,7 @@ jobs:
 
             The lockfile keeps installs reproducible; CI validates the refreshed
             commits across the supported Node floor, recommended release, and
-            canary release before this enters bluff.
+            canary release before this enters the default branch.
           labels: |
             type:maintenance
             area:automation
