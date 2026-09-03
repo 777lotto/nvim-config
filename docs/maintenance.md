@@ -15,6 +15,7 @@ upgrades so each operation has one predictable responsibility.
 | `nvim-config sync`             | Restore locked plugins and install missing managed tools/parsers                                        |
 | `nvim-config sync --latest`    | Update unpinned Mason tools and Treesitter parsers                                                      |
 | `:NvimUpdate`                  | Run the same channel-aware update asynchronously from Neovim                                            |
+| `:DevPlugins [branch]`         | Fetch and fast-forward the `dev/` fleet on a chosen branch, from inside Neovim                          |
 | `:NvimConfigUpdate`            | Backward-compatible alias for `:NvimUpdate`                                                             |
 | `:NvimConfigDoctor`            | Run the doctor asynchronously from Neovim                                                               |
 | `:NvimChannel`                 | Select `bet` or `bluff`, confirm, then run the guarded channel update                                   |
@@ -87,13 +88,47 @@ uses the committed production pins.
 touching your work; resolve those in the plugin's own repository. `dev/` is
 gitignored and never enters a commit here.
 
+`plugins:pull` and `:DevPlugins` are the only things that move the `dev/`
+fleet. lazy.nvim never does: every one of its Git tasks skips a plugin resolved
+outside its own root, so `:Lazy update` passes silently over all six. Conversely
+`:DevPlugins` never touches a third-party plugin. The two update commands do not
+overlap, and neither replaces the other.
+
+## Which lockfile a session writes
+
 A dependency pin still moves only through the documented dependency-refresh
-flow. `update` and `sync` do rewrite `lazy-lock.json` through lazy.nvim, as
-they always have, but they write the same content on a machine with `dev/`
-populated as on one without it: `bin/nvim-config` sets `NVIM_TOOLCHAIN_SYNC`,
-and `lua/config/lazy.lua` turns dev matching off when it is set. Without that
-guard lazy.nvim would treat each dev plugin as local and drop its pin from the
-lockfile entirely.
+flow, and `lazy-lock.json` stays committed — it is what makes a `bet` install
+reproducible and what a rollback returns to.
+
+But lazy.nvim rewrites its lockfile after every install, update, restore, and
+clean, from whatever the resolved plugin directories currently hold, and an
+editing session cannot do that faithfully here. Two reasons:
+
+- **dev matching** resolves the account's own plugins from `dev/`, outside
+  lazy's root, so lazy treats them as local — and its writer omits every local
+  plugin. It _deletes_ their committed pins rather than moving them.
+- **the plugin root is shared.** Everything under `stdpath("data")/lazy` is one
+  directory per machine, used by every checkout and worktree, so a session
+  records whatever commits those directories hold — which an unrelated
+  `:Lazy update` may already have moved.
+
+Either way the session leaves a modified tracked file and the next
+`nvim-update` refuses to fast-forward until it is committed or stashed. So a
+session that cannot write the committed lockfile faithfully does not write it
+at all. `lua/config/lockfile.lua` hands the committed path only to a
+maintenance run resolving the committed pins — every `bin/nvim-config` run and
+the dependency-refresh workflow, which is what `NVIM_TOOLCHAIN_SYNC` marks —
+and gives every other session a per-machine scratch copy at
+`${XDG_STATE_HOME:-$HOME/.local/state}/nvim/nvim-config/lazy-lock.local.json`,
+seeded from the committed pins whenever those are newer. A run that holds
+`NVIM_TOOLCHAIN_SYNC` only to switch dev matching and tool installation off —
+the UX suite does — declines the write with `NVIM_CONFIG_SCRATCH_LOCK=1`.
+
+The consequence to know: an interactive `:Lazy update` still updates
+third-party plugins on disk, but no longer proposes a lockfile change you can
+commit, and the next `nvim-config sync` restores the committed pins over it.
+That is the latest-tested model working as intended — automation proposes,
+CI tests, merging advances the lock.
 
 ## Version policy
 
