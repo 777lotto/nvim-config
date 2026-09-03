@@ -29,8 +29,9 @@ versioning for release organization.
   in-editor maintenance report.
 - A centralized Neovim, Node, Mason, LSP, and Treesitter compatibility
   manifest plus latest-tested dependency automation.
-- MCP Buff on the account default `bluff` branch with an exact tested pin,
-  restricted to the documented loopback endpoint.
+- MCP Buff on the account default `bluff` branch with an exact tested pin and
+  separately authenticated Cloudflare and GitHub tabs restricted to their
+  documented loopback endpoints.
 - Agent Manager on `bluff` with lazy-loadable workspace, provider,
   prompt, steering, interrupt, health, and close commands. Its shortcuts are
   `<leader>amm`, `<leader>amc`, and `<leader>ams`.
@@ -63,10 +64,11 @@ versioning for release organization.
   while workstation App and portable GitHub CLI/public REST behavior remain
   available as named profiles.
 
-- `:McpBuff` and `<leader>ar` now open their own loopback-only SSH forward
-  through the WireGuard `zemrip-server` alias and read the Toughbook's local
-  pass-backed admin capability. Closing the review session revokes both; no
-  per-launch tunnel command or LAN fallback remains.
+- `:McpBuff` and `<leader>ar` now give the Cloudflare and GitHub brokers their
+  own loopback-only SSH forwards through the WireGuard `zemrip-server` alias
+  and their own Toughbook pass-backed admin capabilities. Closing the review
+  session revokes both; no per-launch tunnel command, shared bearer, or LAN
+  fallback remains.
 - GitPanel uses the repository-scoped `gh-app` API wrapper and locally signed
   Git merges when the workstation helper is installed, while other installs
   retain the standard `gh` API backend.

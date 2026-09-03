@@ -157,11 +157,13 @@ secrets and are never stored in this config.
 
 ## MCP Buff boundary
 
-The MCP Buff spec uses only `http://127.0.0.1:8792` and reads the admin
-capability from `pass` on the Toughbook. `:McpBuff` owns a temporary,
-loopback-only SSH forward through `zemrip-server` for the visible review
-session, then terminates that exact child. It cannot reach a bridge address,
-container address, or Cloudflare directly.
+The MCP Buff spec uses only the loopback endpoints `http://127.0.0.1:8792` for
+Cloudflare and `http://127.0.0.1:8793` for GitHub. It reads their separate
+`zemrip/mcp/admin-capability` and `zemrip/github/admin-capability` entries from
+`pass` on the Toughbook. Each tab owns a temporary SSH forward through
+`zemrip-server` for its visible review session, then terminates that exact
+child. Neither broker inherits the other's endpoint, bearer, or tunnel, and
+the plugin cannot reach a bridge or container address directly.
 
 The `zemrip-server` SSH alias is the WireGuard route and is maintained outside
 this repository. WireGuard is expected to remain active; the plugin does not
