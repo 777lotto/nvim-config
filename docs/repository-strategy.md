@@ -176,6 +176,13 @@ and the dependency-refresh workflow already set `NVIM_TOOLCHAIN_SYNC`, and
 resolves those plugins from their pins and rewrites `lazy-lock.json`
 faithfully, exactly as it does on a machine with no `dev/` at all.
 
+An editing session keeps dev matching and is denied the committed lockfile
+instead — see "Which lockfile a session writes" in
+[maintenance](maintenance.md). That is also why `:Lazy update` cannot move this
+fleet: lazy skips every Git task for a plugin outside its root. `:DevPlugins`
+and `mise run plugins:pull` are the commands that move it, on whichever branch
+you name.
+
 ## Published plugins
 
 [git-panel.nvim](https://github.com/777lotto/git-panel.nvim) is an independent

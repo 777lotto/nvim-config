@@ -21,7 +21,11 @@ local function state_file()
   return state_home() .. "/nvim-config/channel"
 end
 
-local function valid(channel)
+--- Accept only a branch name Git can resolve and that cannot escape a ref
+--- path. Exported so every caller that takes a branch from the user -- the
+--- channel selector and the dev-plugin fleet command both do -- validates it
+--- the same way.
+function M.valid(channel)
   local shape_valid = type(channel) == "string"
     and channel:match("^[%w][%w._/-]*$") ~= nil
     and channel ~= "@"
@@ -49,11 +53,11 @@ end
 function M.current()
   local requested = vim.env.NVIM_CONFIG_CHANNEL
   if requested and requested ~= "" then
-    return valid(requested) and requested or DEFAULT_CHANNEL
+    return M.valid(requested) and requested or DEFAULT_CHANNEL
   end
 
   local persisted = read_file(state_file())
-  return valid(persisted) and persisted or DEFAULT_CHANNEL
+  return M.valid(persisted) and persisted or DEFAULT_CHANNEL
 end
 
 function M.is_development()

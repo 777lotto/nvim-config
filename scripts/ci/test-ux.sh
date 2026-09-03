@@ -47,9 +47,13 @@ run_ux() {
       -u "$nvim_config_root/init.lua" "$@"
 }
 
+# Reads the committed lockfile; must never rewrite it. Without the opt-out this
+# run qualifies as maintenance and records whatever commits the machine's shared
+# plugin root happens to hold, leaving a dirty tree after `mise run verify`.
 env NVIM_CONFIG_ROOT="$nvim_config_root" \
   NVIM_CONFIG_CHANNEL=bet \
   NVIM_CONFIG_VERIFY_LOCK=1 \
+  NVIM_CONFIG_SCRATCH_LOCK=1 \
   NVIM_TOOLCHAIN_SYNC=1 \
   NVIM_TREESITTER_SKIP_INSTALL=1 \
   nvim --headless \

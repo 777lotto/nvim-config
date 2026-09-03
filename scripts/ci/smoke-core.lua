@@ -124,6 +124,106 @@ vim.env.NVIM_CONFIG_CHANNEL_FILE = original_channel_file
 vim.env.XDG_STATE_HOME = original_state_home
 vim.env.HOME = original_channel_home
 
+local channel_module = require("config.channel")
+assert(channel_module.valid("bluff") and channel_module.valid("nightly/feature-1"),
+  "the exported channel validator rejected a usable branch")
+for _, rejected in ipairs({ "invalid channel", "nightly/.hidden", "../escape", "bet.lock", "@" }) do
+  assert(not channel_module.valid(rejected),
+    "the exported channel validator accepted " .. rejected)
+end
+
+-- Which lockfile a session may write. An editing session must never be handed
+-- the committed one: lazy.nvim rewrites it from the resolved plugin
+-- directories, which drops the dev/ fleet's pins and picks up whatever the
+-- shared plugin root currently holds, leaving a modified tracked file that
+-- `nvim-config update` then refuses to fast-forward over.
+local lockfile = require("config.lockfile")
+local lock_root, lock_state = vim.fn.tempname(), vim.fn.tempname()
+vim.fn.mkdir(lock_root, "p")
+vim.fn.writefile({ '{ "probe": 1 }' }, lock_root .. "/lazy-lock.json")
+
+local committed_path, is_committed = lockfile.select({
+  config_root = lock_root, state_dir = lock_state, use_dev = false, maintenance = true,
+})
+assert(is_committed and committed_path == lock_root .. "/lazy-lock.json",
+  "a maintenance run resolving the committed pins must write them back")
+
+local scratch_path, scratch_is_committed = lockfile.select({
+  config_root = lock_root, state_dir = lock_state, use_dev = false, maintenance = false,
+})
+assert(not scratch_is_committed, "an editing session must not write the committed lockfile")
+assert(scratch_path == lock_state .. "/" .. lockfile.SCRATCH_BASENAME,
+  "the scratch lockfile left the per-machine state directory")
+assert(table.concat(vim.fn.readfile(scratch_path), "\n") == '{ "probe": 1 }',
+  "the scratch lockfile was not seeded from the committed pins")
+
+local dev_path, dev_is_committed = lockfile.select({
+  config_root = lock_root, state_dir = lock_state, use_dev = true, maintenance = true,
+})
+assert(not dev_is_committed and dev_path == scratch_path,
+  "dev matching must deny the committed lockfile even on a maintenance run")
+
+vim.fn.writefile({ '{ "probe": 2 }' }, scratch_path)
+lockfile.select({
+  config_root = lock_root, state_dir = lock_state, use_dev = false, maintenance = false,
+})
+assert(table.concat(vim.fn.readfile(scratch_path), "\n") == '{ "probe": 2 }',
+  "a scratch lockfile newer than the committed pins was overwritten")
+vim.fn.delete(lock_root, "rf")
+vim.fn.delete(lock_state, "rf")
+
+local registered = vim.api.nvim_get_commands({})
+for _, command in ipairs({ "NvimUpdate", "NvimChannel", "NvimConfigDoctor", "DevPlugins" }) do
+  assert(registered[command], command .. " is not registered")
+end
+-- The branch argument is the whole point of the command, so it must stay
+-- optional rather than becoming required or being dropped.
+assert(registered.DevPlugins.nargs == "?", "DevPlugins must take an optional branch")
+
+-- :DevPlugins shells out to the fleet script, so stub the spawn and assert on
+-- the command and environment it would have run. Both refusals must happen
+-- before any process starts: one bad keystroke should not clone six
+-- repositories onto a production install that has no fleet by design.
+local update = require("config.update")
+local original_root, original_dev = vim.env.NVIM_CONFIG_ROOT, vim.env.NVIM_DEV_DIR
+local original_notify, original_system = vim.notify, vim.system
+local notices, spawned = {}, nil
+vim.notify = function(message) notices[#notices + 1] = message end
+vim.system = function(command, options)
+  spawned = { command = command, options = options }
+  return { wait = function() return { code = 0 } end }
+end
+vim.env.NVIM_CONFIG_ROOT = root
+vim.env.NVIM_DEV_DIR = root .. "/dev"
+
+update.dev_plugins("../escape")
+assert(notices[#notices]:match("not a usable branch name"), "DevPlugins accepted a malformed branch")
+assert(not spawned, "DevPlugins spawned a process for a malformed branch")
+
+update.dev_plugins("bluff")
+assert(notices[#notices]:match("no plugin fleet at"), "DevPlugins did not refuse an absent fleet")
+assert(notices[#notices]:match("plugins:clone"), "the fleet refusal does not say how to create one")
+assert(not spawned, "DevPlugins spawned a process with no fleet on disk")
+
+local fleet = vim.fn.tempname()
+vim.fn.mkdir(fleet, "p")
+vim.env.NVIM_DEV_DIR = fleet
+update.dev_plugins("bluff")
+assert(spawned, "DevPlugins did not run the fleet script")
+assert(spawned.command[1]:match("scripts/dev%-plugins%.sh$") and spawned.command[2] == "sync",
+  "DevPlugins ran the wrong command: " .. vim.inspect(spawned.command))
+assert(not vim.list_contains(spawned.command, "--no-color"),
+  "dev-plugins.sh takes no flags; --no-color belongs to the nvim-config CLI")
+assert(spawned.options.env.NVIM_DEV_GIT_BRANCH == "bluff",
+  "DevPlugins did not pass the chosen branch to the fleet script")
+assert(not spawned.options.clear_env,
+  "the fleet script must inherit the session environment, not replace it")
+vim.fn.delete(fleet, "rf")
+
+update.running = false
+vim.notify, vim.system = original_notify, original_system
+vim.env.NVIM_CONFIG_ROOT, vim.env.NVIM_DEV_DIR = original_root, original_dev
+
 local ux_specs = assert(loadfile(root .. "/lua/plugins/ux.lua"))()
 local foundation, chrome, styling = ux_specs[1], ux_specs[2], ux_specs[3]
 assert(foundation[1] == "777lotto/UX-foundation.nvim" and foundation.lazy == false,

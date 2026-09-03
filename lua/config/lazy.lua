@@ -23,11 +23,25 @@ require("config.ux_baselines")
 local use_dev = channel.is_development()
   and (vim.env.NVIM_TOOLCHAIN_SYNC ~= "1" or vim.env.NVIM_CONFIG_USE_DEV == "1")
 
+-- Maintenance jobs may run this config from an isolated checkout. Normal
+-- sessions use stdpath(config); the explicit root keeps a lockfile write in
+-- the repository being updated instead of whichever config is installed.
+-- Which of the two lockfiles this session may write, and why an editing
+-- session may not write the committed one, is config.lockfile.
+local lockfile = require("config.lockfile").select({
+  config_root = config_root,
+  state_dir = vim.fn.stdpath("state") .. "/nvim-config",
+  use_dev = use_dev,
+  -- NVIM_TOOLCHAIN_SYNC marks every bin/nvim-config run and the dependency
+  -- refresh -- the runs whose whole purpose is to record pins. A test run
+  -- borrows the flag to turn dev matching and tool installation off without
+  -- wanting the write, and declines it with NVIM_CONFIG_SCRATCH_LOCK.
+  maintenance = vim.env.NVIM_TOOLCHAIN_SYNC == "1"
+    and vim.env.NVIM_CONFIG_SCRATCH_LOCK ~= "1",
+})
+
 require("lazy").setup("plugins", {
-  -- Maintenance jobs may run this config from an isolated checkout. Normal
-  -- sessions use stdpath(config); the explicit root keeps lockfile writes in
-  -- the repository being updated instead of whichever config is installed.
-  lockfile = config_root .. "/lazy-lock.json",
+  lockfile = lockfile,
   -- On an explicitly selected non-production channel, resolve this account's
   -- own plugins from working checkouts under dev/ so config and plugins can be
   -- tested together. Production bet always resolves the committed GitHub pins;
@@ -38,7 +52,8 @@ require("lazy").setup("plugins", {
   -- `nvim-config sync` on a machine with dev/ populated would silently delete
   -- exactly those plugins' committed pins. NVIM_TOOLCHAIN_SYNC already marks
   -- every bin/nvim-config run and the dependency refresh; with dev matching
-  -- off they resolve from the pins and rewrite the lock faithfully.
+  -- off they resolve from the pins and rewrite the lock faithfully. An editing
+  -- session keeps dev matching and is denied the committed lockfile instead.
   dev = {
     path = vim.env.NVIM_CONFIG_DEV_ROOT
       or config_root .. "/dev",

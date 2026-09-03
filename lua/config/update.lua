@@ -56,12 +56,12 @@ local function run(action, executable_name, extra_args, options)
     return vim.notify("nvim-config: another maintenance command is still running", vim.log.levels.WARN)
   end
   executable_name = executable_name or "nvim-config"
-  local executable = config_root() .. "/bin/" .. executable_name
+  local executable = config_root() .. "/" .. (options.directory or "bin") .. "/" .. executable_name
   local report_title = options.title or (executable_name == "nvim-update" and "NvimUpdate"
     or "NvimConfig " .. action
   )
   if vim.fn.executable(executable) ~= 1 then
-    return vim.notify("nvim-config CLI is missing or not executable: " .. executable, vim.log.levels.ERROR)
+    return vim.notify("missing or not executable: " .. executable, vim.log.levels.ERROR)
   end
 
   M.running = true
@@ -70,10 +70,16 @@ local function run(action, executable_name, extra_args, options)
     vim.log.levels.INFO)
   local command = { executable, action }
   vim.list_extend(command, extra_args or {})
-  command[#command + 1] = "--no-color"
+  -- Only the nvim-config CLI takes this flag; scripts/ helpers do not.
+  if options.no_color ~= false then
+    command[#command + 1] = "--no-color"
+  end
   vim.system(command, {
     text = true,
     cwd = config_root(),
+    -- Merged into the inherited environment; vim.system only replaces it
+    -- wholesale when clear_env is set, which nothing here wants.
+    env = options.env,
   }, function(result)
     vim.schedule(function()
       M.running = false
@@ -134,12 +140,62 @@ function M.select_channel(selected)
   end)
 end
 
+local function dev_directory()
+  local configured = vim.env.NVIM_DEV_DIR
+  if configured and configured ~= "" then return configured end
+  return config_root() .. "/dev"
+end
+
+--- Fetch and fast-forward this account's own plugins on a chosen branch.
+---
+--- lazy.nvim never does this: every one of its Git tasks skips a plugin it
+--- resolved outside its own root, so `:Lazy update` silently passes over the
+--- dev/ fleet. scripts/dev-plugins.sh is what actually moves them -- it
+--- preflights the whole fleet before switching any checkout, so a network
+--- failure or a dirty plugin leaves every existing branch untouched. This is
+--- the editor entry point to it, and the branch argument is the one thing the
+--- CLI could not take from a keystroke.
+function M.dev_plugins(branch)
+  local channel_module = require("config.channel")
+  local selected = (branch and branch ~= "") and branch or channel_module.current()
+  if not channel_module.valid(selected) then
+    return vim.notify("nvim-config: not a usable branch name: " .. selected, vim.log.levels.ERROR)
+  end
+
+  -- Refuse rather than clone. dev-plugins.sh creates the whole fleet when it
+  -- is absent, which is right for an explicit CLI call and wrong for a
+  -- mistyped command on a production install that has no fleet by design.
+  local directory = dev_directory()
+  if vim.fn.isdirectory(directory) ~= 1 then
+    return vim.notify(
+      "nvim-config: no plugin fleet at " .. directory
+        .. "; create one with 'mise run plugins:clone' or 'nvim-update channel bluff'",
+      vim.log.levels.ERROR)
+  end
+
+  run("sync", "dev-plugins.sh", nil, {
+    directory = "scripts",
+    no_color = false,
+    env = { NVIM_DEV_GIT_BRANCH = selected },
+    title = "DevPlugins",
+    action_label = "sync " .. selected,
+    success_footer = "Restart Neovim to load the updated plugins.",
+  })
+end
+
 function M.setup()
   api.nvim_create_user_command("NvimUpdate", function() run("update", "nvim-update") end, {
     desc = "Update the persistent config/plugin channel and reconcile dependencies",
   })
   api.nvim_create_user_command("NvimConfigUpdate", function() run("update", "nvim-update") end, {
     desc = "Fast-forward this config and reconcile changed dependencies",
+  })
+  api.nvim_create_user_command("DevPlugins", function(options)
+    M.dev_plugins(options.args)
+  end, {
+    desc = "Fetch and fast-forward this account's own plugins on a chosen branch",
+    nargs = "?",
+    complete = function() return { "bet", "bluff" } end,
   })
   api.nvim_create_user_command("NvimConfigDoctor", function() run("doctor") end, {
     desc = "Check Neovim config, Git, Node, and toolchain prerequisites",
