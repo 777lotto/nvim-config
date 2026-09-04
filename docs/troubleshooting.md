@@ -45,9 +45,13 @@ outcome resolution finishes.
 
 Run `:AgentManagerHealth` first. `:AgentManager`, `:AgentManagerStart`, and the
 other Agent Manager commands are registered lazily, so their complete absence
-usually means this config predates the Agent Manager plugin spec. A source
-checkout also needs a built `agent-manager-broker` and the locked Python worker
-environment; startup deliberately does not build or install either one.
+usually means this config predates the Agent Manager plugin spec. For a `dev/`
+checkout, run `:DevPlugins` (or `mise run plugins:sync`): fleet reconciliation
+builds the broker and locked Python worker once per Agent Manager commit and
+retries an incomplete build. `:AgentManagerHealth` reports either artifact if
+it remains unavailable. A remote lazy.nvim checkout still requires a broker on
+`PATH` and, for Claude, an explicitly configured worker Python; editor startup
+never acquires a compiler toolchain.
 
 The shortcut is `<leader>am` for the workspace. Start Codex and enter prompts
 inside Agent Manager; opening the workspace and starting a provider are

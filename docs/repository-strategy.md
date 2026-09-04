@@ -161,6 +161,14 @@ repositories consumed by nvim-config belong to this fleet.
 detached, divergent, or differently branched checkouts instead of switching or
 rewriting them.
 
+Agent Manager is the only fleet member with a native/Python source runtime.
+Fleet clone and sync read its Rust, Python, and uv pins from its own
+`mise.toml`, install those exact tools through Mise, and build the broker plus
+locked worker environment when its verified runtime stamp does not match the
+checkout commit. No-op syncs perform only behavioral probes. This is scoped to
+the opt-in `dev/` fleet; ordinary lazy.nvim installs do not acquire a compiler
+toolchain during editor startup.
+
 Dev matching is deliberately off during maintenance. lazy.nvim treats a
 plugin resolved outside its own root as local and omits local plugins from the
 lockfile it writes, so a `nvim-config sync` on a machine with `dev/` populated

@@ -14,16 +14,17 @@ upgrades so each operation has one predictable responsibility.
 | `nvim-config sync`          | Restore locked plugins and install missing managed tools/parsers               |
 | `nvim-config sync --latest` | Update unpinned Mason tools and Treesitter parsers                             |
 | `:NvimUpdate`               | Run the same guarded update asynchronously from Neovim                         |
-| `:DevPlugins`               | Fetch and fast-forward an existing `dev/` plugin fleet on `bluff`              |
+| `:DevPlugins`               | Update an existing `dev/` fleet and reconcile Agent Manager's source runtime   |
 | `:NvimConfigUpdate`         | Backward-compatible alias for `:NvimUpdate`                                    |
 | `:NvimConfigDoctor`         | Run the doctor asynchronously from Neovim                                      |
 
 The updater requires a clean, attached checkout with a configured upstream. It
 fetches that remote, accepts only a fast-forward, and never changes branches.
 If `dev/` exists, it then preflights the complete account-owned plugin fleet,
-fast-forwards each clean `bluff` checkout, and compile-checks every Lua plugin.
-An ordinary install has no `dev/` directory and continues using only exact
-GitHub pins.
+fast-forwards each clean `bluff` checkout, reconciles Agent Manager's compiled
+broker and locked Python worker, and compile-checks every Lua plugin. An
+ordinary install has no `dev/` directory and continues using only exact GitHub
+pins.
 
 The updater does not stash, reset, rewrite remote URLs, switch branches, or
 modify SSH/network configuration. Dirty, detached, differently branched, or
@@ -42,17 +43,19 @@ Git switch to `bluff`; subsequent `nvim-update` runs follow its normal
 `mise.toml` at the repository root is a thin façade over `bin/nvim-config`
 plus fleet operations on `dev/`. It declares no `[tools]`:
 `lua/config/toolchain.lua`, Mason, and the machine's own Mise configuration
-already own tool provisioning. Mise stays optional—nothing in the editor,
-`bootstrap.sh`, or `bin/nvim-config` invokes or requires it.
+already own the ordinary editor toolchain. Mise stays optional for an ordinary
+install. An explicitly created developer fleet uses it to install the exact
+Rust, Python, and uv versions declared by Agent Manager when that checkout's
+source runtime needs to be built.
 
 | Task                      | Runs                                                       |
 | ------------------------- | ---------------------------------------------------------- |
 | `mise run update`         | `bin/nvim-update`                                          |
 | `mise run doctor`         | `bin/nvim-config doctor`                                   |
 | `mise run sync`           | `bin/nvim-config sync`                                     |
-| `mise run plugins:clone`  | ensure every fleet checkout exists under `dev/` on `bluff` |
-| `mise run plugins:pull`   | fast-forward `bluff` in every `dev/` checkout              |
-| `mise run plugins:sync`   | explicit alias for the same fleet convergence              |
+| `mise run plugins:clone`  | create the fleet and bootstrap Agent Manager when needed    |
+| `mise run plugins:pull`   | fast-forward the fleet and reconcile Agent Manager          |
+| `mise run plugins:sync`   | explicit alias for the same fleet convergence               |
 | `mise run plugins:status` | one line of branch/dirty/ahead-behind per checkout         |
 | `mise run plugins:check`  | compile-check every `dev/` plugin that has Lua             |
 | `mise run test-sync`      | backward-compatible alias for `bin/nvim-update`            |
@@ -75,6 +78,13 @@ nvim-update
 Restart Neovim afterwards. lazy.nvim resolves account-owned plugins from the
 local `dev/` checkouts when present and falls back to the tested `bluff` pins
 for every missing checkout.
+
+Fleet clone and sync write a verified commit stamp beside Agent Manager's
+ignored Cargo output. They run the broker/worker bootstrap only when that stamp
+is absent or differs from `HEAD`, or when a behavioral runtime probe fails.
+Consequently every `:DevPlugins` invocation checks the runtime, while an
+already-current checkout does not rebuild it. A failed or interrupted build
+does not advance the stamp, so the next invocation retries safely.
 
 `plugins:pull` refuses loudly on a dirty, detached, divergent, or non-`bluff`
 checkout rather than touching it. Resolve the state in that plugin's own
