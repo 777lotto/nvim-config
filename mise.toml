@@ -17,15 +17,15 @@ description = "Restore the plugin lock and install missing tools"
 run = "bin/nvim-config sync"
 
 [tasks."plugins:clone"]
-description = "Ensure every fleet plugin checkout exists on bluff"
+description = "Create the bluff fleet and bootstrap Agent Manager when needed"
 run = "scripts/dev-plugins.sh clone"
 
 [tasks."plugins:pull"]
-description = "Fast-forward bluff in every dev/ plugin checkout"
+description = "Fast-forward the bluff fleet and reconcile Agent Manager"
 run = "scripts/dev-plugins.sh pull"
 
 [tasks."plugins:sync"]
-description = "Fast-forward bluff in every dev/ plugin checkout"
+description = "Fast-forward the bluff fleet and reconcile Agent Manager"
 run = "scripts/dev-plugins.sh sync"
 
 [tasks."plugins:status"]

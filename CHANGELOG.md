@@ -55,6 +55,10 @@ versioning for release organization.
 
 ### Changed
 
+- Developer-fleet clone and sync now bootstrap Agent Manager's release broker
+  and locked Python worker automatically. A verified commit stamp makes
+  current `:DevPlugins` runs probe-only, while interrupted or stale builds are
+  retried.
 - which-key now owns the `d`, `g`, `s`, and `t` triggers used by Agent
   Manager's buffer-local menus, avoiding recursive `which-key.show()` mappings.
 - The repository now uses `bluff` as its only long-lived and default branch.
