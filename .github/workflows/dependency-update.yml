@@ -6,13 +6,12 @@ on:
   workflow_dispatch:
     inputs:
       plugin:
-        description: Plugin to refresh (all uses every lazy.nvim dependency)
+        description: Plugin to refresh (all excludes release-coupled Agent Manager)
         type: choice
         required: true
         default: all
         options:
           - all
-          - agent-manager.nvimz
           - git-panel.nvim
           - mcp-buff
           - UX-chrome.nvim
@@ -64,7 +63,9 @@ jobs:
         env:
           DISPATCH_COMMIT: ${{ github.event.client_payload.commit }}
           DISPATCH_PLUGIN: ${{ github.event.client_payload.plugin }}
+          DISPATCH_TAG: ${{ github.event.client_payload.tag }}
           EVENT_NAME: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
           INPUT_PLUGIN: ${{ inputs.plugin }}
           NVIM_CONFIG_ROOT: ${{ github.workspace }}
           NVIM_TOOLCHAIN_SYNC: "1"
@@ -73,6 +74,7 @@ jobs:
           set -euo pipefail
 
           plugin="${INPUT_PLUGIN:-${DISPATCH_PLUGIN:-all}}"
+          tag="${DISPATCH_TAG:-}"
           case "$plugin" in
             all|agent-manager.nvimz|git-panel.nvim|mcp-buff|UX-chrome.nvim|UX-foundation.nvim|UX-styling.nvim) ;;
             *)
@@ -83,6 +85,20 @@ jobs:
           if [[ "$EVENT_NAME" == "repository_dispatch" && -z "${DISPATCH_COMMIT:-}" ]]; then
             echo "plugin-release dispatches must name the released commit" >&2
             exit 1
+          fi
+          if [[ "$plugin" == "agent-manager.nvimz" ]]; then
+            if [[ "$EVENT_NAME" != "repository_dispatch" || ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "Agent Manager advances only from a stable release dispatch." >&2
+              exit 1
+            fi
+            read -r published_tag draft prerelease < <(
+              gh api "repos/777lotto/agent-manager.nvimz/releases/tags/$tag" \
+                --jq '[.tag_name, .draft, .prerelease] | @tsv'
+            )
+            if [[ "$published_tag" != "$tag" || "$draft" != "false" || "$prerelease" != "false" ]]; then
+              echo "$tag is not a published stable Agent Manager release." >&2
+              exit 1
+            fi
           fi
 
           # Load the configuration the way an install does. `-u init.lua` leaves the
@@ -99,6 +115,7 @@ jobs:
           export XDG_CACHE_HOME="$xdg/cache"
           export REFRESH_COMMIT="${DISPATCH_COMMIT:-}"
           export REFRESH_PLUGIN="$plugin"
+          export REFRESH_TAG="$tag"
 
           # Capture the committed pins before Neovim starts: lazy.nvim's startup
           # auto-install rewrites lazy-lock.json in place from whatever the plugin
@@ -115,6 +132,8 @@ jobs:
           local target = vim.env.REFRESH_PLUGIN or "all"
           local requested_commit = vim.env.REFRESH_COMMIT
           if requested_commit == "" then requested_commit = nil end
+          local requested_tag = vim.env.REFRESH_TAG
+          if requested_tag == "" then requested_tag = nil end
 
           local function die(message)
             io.stderr:write("dependency refresh: " .. message .. "\n")
@@ -130,6 +149,9 @@ jobs:
             if #requested_commit ~= 40 or not requested_commit:match("^[0-9a-f]+$") then
               die("released commit must be one full SHA-1")
             end
+          end
+          if target == "agent-manager.nvimz" and (not requested_commit or not requested_tag) then
+            die("Agent Manager is release-coupled and requires a published tag and commit")
           end
 
           local loaded, lazy = pcall(require, "lazy")
@@ -220,12 +242,22 @@ jobs:
           end)
 
           local update = { wait = true, show = false }
-          if target ~= "all" then
+          if target == "all" then
+            update.plugins = {}
+            for name in pairs(Config.plugins) do
+              if name ~= "agent-manager.nvimz" then
+                update.plugins[#update.plugins + 1] = name
+              end
+            end
+            table.sort(update.plugins)
+          else
             update.plugins = { target }
           end
-          step("update", function()
-            lazy.update(update)
-          end)
+          if target ~= "agent-manager.nvimz" or not requested_commit then
+            step("update", function()
+              lazy.update(update)
+            end)
+          end
 
           -- A release notification identifies the tagged commit, not whatever
           -- happens to be the branch head when this runner starts. Prove the
@@ -250,6 +282,9 @@ jobs:
               return result
             end
 
+            git({ "fetch", "--no-tags", "origin",
+              "+refs/heads/" .. branch .. ":refs/remotes/origin/" .. branch },
+              "fetch configured branch")
             git({ "cat-file", "-e", requested_commit .. "^{commit}" }, "resolve released commit")
             git({ "rev-parse", "--verify", "origin/" .. branch .. "^{commit}" },
               "resolve configured branch")
@@ -262,6 +297,17 @@ jobs:
               die(("released commit %s is not reachable from %s's %s branch")
                 :format(requested_commit, target, branch))
             end
+            if target == "agent-manager.nvimz" then
+              git({ "fetch", "--no-tags", "origin",
+                "+refs/tags/" .. requested_tag .. ":refs/tags/" .. requested_tag },
+                "fetch released tag")
+              local tagged = git({ "rev-list", "-n", "1", "refs/tags/" .. requested_tag },
+                "resolve released tag").stdout
+              if vim.trim(tagged or "") ~= requested_commit then
+                die(("published tag %s does not select requested commit %s")
+                  :format(requested_tag, requested_commit))
+              end
+            end
 
             local current = git({ "rev-parse", "HEAD" }, "read refreshed commit").stdout
             if vim.trim(current or "") ~= requested_commit then
@@ -269,6 +315,11 @@ jobs:
                 "check out released commit")
             end
             Lock.update()
+            if target == "agent-manager.nvimz" then
+              step("build released Agent Manager runtime", function()
+                lazy.build({ plugins = { target }, wait = true, show = false })
+              end)
+            end
           end
 
           -- The refreshed lockfile must still describe every managed plugin. lazy.nvim
