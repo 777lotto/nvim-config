@@ -161,6 +161,15 @@ repositories consumed by nvim-config belong to this fleet.
 detached, divergent, or differently branched checkouts instead of switching or
 rewriting them.
 
+The entire `dev/` directory is optional and may be removed on a machine that is
+not developing these plugins. Lazy then uses its own managed remote clones and
+the exact commits in `lazy-lock.json`; Agent Manager's remote pin also installs
+its matching prebuilt runtime and is marked `pin = true` so only its published
+release dispatch can advance it. Entries kept in `dev/` must each be real Git
+worktrees with an `origin` exposing `bluff`, because `:DevPlugins` is explicitly
+a fleet fetch/fast-forward operation. A plain directory without that repository
+and remote contract is not a dev plugin and is intentionally refused.
+
 Dev matching is deliberately off during maintenance. lazy.nvim treats a
 plugin resolved outside its own root as local and omits local plugins from the
 lockfile it writes, so a `nvim-config sync` on a machine with `dev/` populated

@@ -123,9 +123,33 @@ doctor() {
     warn "npm is required"
     nvim_config_failures=$((nvim_config_failures + 1))
   fi
-  for nvim_config_tool in rg python3 cc unzip curl tar; do
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    warn "Python 3.11 or newer is required for packaged-runtime verification"
+    nvim_config_failures=$((nvim_config_failures + 1))
+  else
+    local nvim_config_python_version
+    nvim_config_python_version="$(python3 -c 'import platform; print(platform.python_version())')"
+    if ! version_at_least "$nvim_config_python_version" 3.11.0; then
+      warn "Python $nvim_config_python_version is below the required 3.11"
+      nvim_config_failures=$((nvim_config_failures + 1))
+    else
+      log "Python: $nvim_config_python_version (minimum 3.11)"
+    fi
+  fi
+
+  for nvim_config_tool in rg cc unzip curl tar realpath flock; do
     command -v "$nvim_config_tool" >/dev/null 2>&1 || warn "$nvim_config_tool is missing; some features or installs may fail"
   done
+
+  local nvim_config_agent_broker nvim_config_agent_worker
+  nvim_config_agent_broker="${XDG_BIN_HOME:-$HOME/.local/bin}/agent-manager-broker"
+  nvim_config_agent_worker="${XDG_DATA_HOME:-$HOME/.local/share}/agent-manager/venv/bin/python"
+  if [ -x "$nvim_config_agent_broker" ] && [ -x "$nvim_config_agent_worker" ]; then
+    log "Agent Manager runtime: packaged broker and worker available"
+  else
+    warn "Agent Manager packaged runtime is missing or incomplete; nvim-config sync will reconcile it"
+  fi
 
   if command -v git >/dev/null 2>&1 && git -C "$NVIM_CONFIG_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     local nvim_config_branch nvim_config_upstream
@@ -164,6 +188,8 @@ run_nvim() {
 sync_plugins() {
   log "Restoring tested plugin commits and cleaning retired plugins"
   run_nvim "+Lazy! restore" "+Lazy! clean" +qa
+  log "Verifying the packaged Agent Manager runtime"
+  run_nvim "+Lazy! build agent-manager.nvimz" +qa
 }
 
 sync_mason() {

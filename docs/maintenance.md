@@ -11,7 +11,7 @@ upgrades so each operation has one predictable responsibility.
 | `nvim-update`               | Fast-forward the config and an existing local plugin fleet                     |
 | `nvim-config doctor`        | Validate Git, Neovim, Node/npm, supporting tools, upstream, and worktree state |
 | `nvim-config update`        | Backward-compatible implementation behind `nvim-update`                        |
-| `nvim-config sync`          | Restore locked plugins and install missing managed tools/parsers               |
+| `nvim-config sync`          | Restore locked plugins/runtime and install missing managed tools/parsers       |
 | `nvim-config sync --latest` | Update unpinned Mason tools and Treesitter parsers                             |
 | `:NvimUpdate`               | Run the same guarded update asynchronously from Neovim                         |
 | `:DevPlugins`               | Fetch and fast-forward an existing `dev/` plugin fleet on `bluff`              |
@@ -24,6 +24,14 @@ If `dev/` exists, it then preflights the complete account-owned plugin fleet,
 fast-forwards each clean `bluff` checkout, and compile-checks every Lua plugin.
 An ordinary install has no `dev/` directory and continues using only exact
 GitHub pins.
+
+After restoring plugins, `nvim-config sync` asks Lazy to rebuild only Agent
+Manager. For the reviewed remote pin, that build is an idempotent packaged
+runtime verification/install: it downloads only when the exact release is
+missing and never invokes Cargo, uv, or pip. For a local `dev/` override it is a
+no-op because the fleet's source-build path owns that runtime. `:DevPlugins`
+therefore never performs the packaged install and never rebuilds unrelated
+plugins.
 
 The updater does not stash, reset, rewrite remote URLs, switch branches, or
 modify SSH/network configuration. Dirty, detached, differently branched, or
@@ -107,8 +115,12 @@ even when it sets `NVIM_TOOLCHAIN_SYNC` for tool isolation.
 
 The practical consequence is that interactive `:Lazy update` can move
 third-party plugins on disk, but it does not propose a lockfile change to
-commit. The next `nvim-config sync` restores the reviewed pins. Automation
-proposes updates, CI tests them, and merging advances the lock.
+commit. The next `nvim-config sync` restores the reviewed pins. Agent Manager
+is additionally release-coupled: generic updates leave its pin unchanged, and
+the Lazy spec itself is pinned so an interactive update cannot bypass the
+release gate. Its build hook installs only a runtime whose source revision
+matches the exact released commit. Automation proposes updates, CI tests them,
+and merging advances the lock.
 
 ## Version policy
 
@@ -138,8 +150,10 @@ names exactly one of `agent-manager.nvimz`, `git-panel.nvim`, `mcp-buff`,
 `UX-chrome.nvim`, `UX-foundation.nvim`, or `UX-styling.nvim` and includes the
 full tagged commit. The workflow proves that commit is reachable from the
 plugin's `bluff` branch, changes only that lock entry, and records the request
-in its pull-request body. A manual run can select the same focused targets or
-refresh every lazy.nvim dependency.
+in its pull-request body. Agent Manager advances only through this published
+release event; weekly, generic `all`, and manual branch-head refreshes exclude
+it so its Lua and packaged runtime cannot drift apart. A manual run can select
+the other focused targets or refresh the remaining lazy.nvim dependencies.
 
 The workflow opens a pull request into `bluff`. It accepts an operator-managed,
 fine-grained `DEPENDENCY_UPDATE_TOKEN` repository secret with contents and

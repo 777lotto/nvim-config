@@ -26,7 +26,8 @@ Requires Neovim 0.12.2 or newer. The leader key is `<Space>`.
 - A dependency-free custom
   [GitPanel](https://github.com/777lotto/git-panel.nvim) for Git workflows.
 - [Agent Manager](https://github.com/777lotto/agent-manager.nvimz) for native,
-  keyboard-first Codex and Claude sessions inside Neovim.
+  keyboard-first Codex and Claude sessions inside Neovim, with a prebuilt,
+  self-contained runtime installed through lazy.nvim's build lifecycle.
 - [MCP Buff](https://github.com/777lotto/mcp-buff) for reviewing brokered
   Cloudflare and GitHub write tickets through operator-controlled loopback
   tunnels.
@@ -104,18 +105,19 @@ bootstrap or `nvim-config sync` and updated by `nvim-config sync --latest`.
 
 ## Requirements
 
-| Need                    | Purpose                                          | Debian setup                                          |
-| ----------------------- | ------------------------------------------------ | ----------------------------------------------------- |
-| Neovim 0.12.2+          | Editor, UX contract, and current Treesitter APIs | Current upstream build                                |
-| Git and curl            | Config, lazy.nvim, Mason                         | `apt install git curl ca-certificates`                |
-| GitHub CLI (optional)   | Create and publish a remote from GitPanel        | `apt install gh`, then `gh auth login`                |
-| C compiler              | Treesitter parser builds                         | `apt install build-essential`                         |
-| Node 22+ and npm        | Web LSPs, Prettier, markdownlint                 | Node 24 LTS recommended; 22 is the CI floor           |
-| ripgrep                 | Telescope live grep                              | `apt install ripgrep`                                 |
-| Python 3                | Python tooling/providers                         | `apt install python3`                                 |
-| unzip and tar           | Mason packages                                   | `apt install unzip tar`                               |
-| Xfce Terminal and xclip | Client terminal and local X11 clipboard          | `apt install xfce4-terminal xclip` on the XFCE client |
-| Nerd Font               | File/type icons                                  | Configure Xfce Terminal on the client                 |
+| Need                     | Purpose                                          | Debian setup                                          |
+| ------------------------ | ------------------------------------------------ | ----------------------------------------------------- |
+| Neovim 0.12.2+           | Editor, UX contract, and current Treesitter APIs | Current upstream build                                |
+| Git and curl             | Config, lazy.nvim, Mason                         | `apt install git curl ca-certificates`                |
+| GitHub CLI (optional)    | Create and publish a remote from GitPanel        | `apt install gh`, then `gh auth login`                |
+| C compiler               | Treesitter parser builds                         | `apt install build-essential`                         |
+| Node 22+ and npm         | Web LSPs, Prettier, markdownlint                 | Node 24 LTS recommended; 22 is the CI floor           |
+| ripgrep                  | Telescope live grep                              | `apt install ripgrep`                                 |
+| Python 3.11+             | Archive verification and Python tooling          | `apt install python3`                                 |
+| Coreutils and util-linux | Atomic runtime install and serialization         | `apt install coreutils util-linux`                    |
+| unzip and tar            | Mason packages                                   | `apt install unzip tar`                               |
+| Xfce Terminal and xclip  | Client terminal and local X11 clipboard          | `apt install xfce4-terminal xclip` on the XFCE client |
+| Nerd Font                | File/type icons                                  | Configure Xfce Terminal on the client                 |
 
 Mason installs the required tree-sitter CLI, LSP servers, Prettier, and
 markdownlint-cli2. A C compiler is still needed to build parsers.
@@ -134,8 +136,10 @@ The installer follows the repository's GitHub default branch unless
 `NVIM_CONFIG_BRANCH` is set explicitly. It is safe to rerun, but intentionally
 does not pull or switch an existing checkout. Bootstrap provisions the checkout
 already on disk, restores plugins from `lazy-lock.json`, installs Mason tools,
-builds Treesitter parsers, and links `nvim-update` and `nvim-config` into
-`~/.local/bin` when those paths are free.
+installs Agent Manager's matching prebuilt broker/worker runtime, builds
+Treesitter parsers, and links `nvim-update` and `nvim-config` into
+`~/.local/bin` when those paths are free. No Rust or Python dependency build is
+performed on the destination machine.
 
 The account-wide default branch is `bluff`. Fresh clones receive it directly,
 and every account-owned plugin spec explicitly targets `bluff` as well.
@@ -159,8 +163,10 @@ configured upstream of the current config branch, and permits only a
 fast-forward. When an opt-in `dev/` fleet exists, it also requires every
 account-owned plugin checkout to be clean and on `bluff`, fast-forwards the
 fleet, and compile-checks its Lua sources. An ordinary install continues to
-use only exact lockfile pins. The updater never switches branches or rewrites a
-remote URL, SSH host, tunnel, or network setting.
+use only exact lockfile pins. When an Agent Manager release pin changes, Lazy
+runs its packaged-runtime build hook; an unchanged healthy runtime takes a
+network-free verification path. The updater never switches branches or
+rewrites a remote URL, SSH host, tunnel, or network setting.
 After a successful pull, it reconciles only the dependency classes affected by
 changed files. Restart Neovim after it completes.
 

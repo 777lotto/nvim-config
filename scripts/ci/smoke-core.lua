@@ -50,7 +50,16 @@ assert(mcp_buff.keys[1][1] == "<leader>ar", "MCP Buff review must use <leader>ar
 local agent_manager = assert(operations[2], "Agent Manager plugin spec is missing")
 assert(agent_manager[1] == "777lotto/agent-manager.nvimz", "unexpected Agent Manager repository")
 assert(agent_manager.branch == "bluff", "Agent Manager must consume the account default branch")
+assert(type(agent_manager.build) == "function", "Agent Manager must install its runtime through Lazy's build lifecycle")
+assert(agent_manager.pin == true, "interactive Lazy updates must not bypass Agent Manager releases")
 assert(agent_manager.main == "agent_manager", "Agent Manager setup module is incorrect")
+local legacy_build = coroutine.create(function()
+  agent_manager.build({ dir = vim.fn.tempname(), _ = {} })
+end)
+local legacy_ok, legacy_message = coroutine.resume(legacy_build)
+assert(legacy_ok and tostring(legacy_message):match("predates packaged runtime"),
+  "a pre-release Agent Manager pin must remain installable")
+assert(coroutine.resume(legacy_build), "legacy Agent Manager build did not finish cleanly")
 for _, command in ipairs({
   "AgentManager",
   "AgentManagerStart",
