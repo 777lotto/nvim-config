@@ -142,6 +142,13 @@ directory, or one missing a particular plugin checkout, resolves that plugin
 from its tested `bluff` pin. No channel setting or persisted branch-state file
 is involved.
 
+The fleet is a maintainer source override, not a separate class of plugin and
+not a more integrated runtime mode. A plugin loaded from `dev/` and the same
+commit loaded from lazy.nvim use the same Neovim APIs and have the same runtime
+behavior. Machines that are not editing these repositories should omit the
+fleet and let lazy.nvim restore the reviewed pins; this avoids six writable
+checkouts and their Git update preflights.
+
 Each entry may be a real clone or a symlink to a canonical checkout:
 
 ```text
@@ -168,6 +175,13 @@ locked worker environment when its verified runtime stamp does not match the
 checkout commit. No-op syncs perform only behavioral probes. This is scoped to
 the opt-in `dev/` fleet; ordinary lazy.nvim installs do not acquire a compiler
 toolchain during editor startup.
+
+That source bootstrap is the developer fallback, not the intended production
+installation boundary. The efficient normal installation keeps Agent
+Manager's Lua frontend under lazy.nvim and installs its compatible broker and
+worker as a versioned user-level runtime. Durable deployments should run one
+supervised broker and connect Neovim over its owner-only Unix socket, avoiding
+per-editor compilation and preserving sessions across editor restarts.
 
 Dev matching is deliberately off during maintenance. lazy.nvim treats a
 plugin resolved outside its own root as local and omits local plugins from the

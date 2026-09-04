@@ -67,8 +67,8 @@ Mise's command instead of this repository's task.
 
 ### Manual testing loop
 
-Create the developer fleet once, then use the same routine update command as
-an ordinary install:
+Create the developer fleet only on a machine that edits or tests these plugin
+repositories, then use the same routine update command as an ordinary install:
 
 ```sh
 mise run plugins:clone
