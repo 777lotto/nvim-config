@@ -162,11 +162,10 @@ nvim-update
 configured upstream of the current config branch, and permits only a
 fast-forward. When an opt-in `dev/` fleet exists, it also requires every
 account-owned plugin checkout to be clean and on `bluff`, fast-forwards the
-fleet, and compile-checks its Lua sources. An ordinary install continues to
-use only exact lockfile pins. When an Agent Manager release pin changes, Lazy
-runs its packaged-runtime build hook; an unchanged healthy runtime takes a
-network-free verification path. The updater never switches branches or
-rewrites a remote URL, SSH host, tunnel, or network setting.
+fleet, reconciles Agent Manager's compiled source runtime when its commit
+changed, and compile-checks its Lua sources. An ordinary install continues to
+use only exact lockfile pins. The updater never switches branches or rewrites a
+remote URL, SSH host, tunnel, or network setting.
 After a successful pull, it reconciles only the dependency classes affected by
 changed files. Restart Neovim after it completes.
 

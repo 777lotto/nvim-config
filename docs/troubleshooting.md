@@ -45,23 +45,13 @@ outcome resolution finishes.
 
 Run `:AgentManagerHealth` first. `:AgentManager`, `:AgentManagerStart`, and the
 other Agent Manager commands are registered lazily, so their complete absence
-usually means this config predates the Agent Manager plugin spec. A source
-checkout also needs a built `agent-manager-broker` and the locked Python worker
-environment. An ordinary Lazy checkout instead receives the matching prebuilt
-runtime during `bootstrap.sh`, `nvim-config sync`, or a reviewed plugin update.
-Run `nvim-config sync` to repair a missing runtime; it forces only Agent
-Manager's idempotent Lazy build hook and does not compile Rust or resolve Python
-packages. The installed broker is discovered at
-`${XDG_BIN_HOME:-$HOME/.local/bin}/agent-manager-broker` even when that
-directory is absent from `PATH`.
-
-If the build report says the release is unavailable, the config pin has moved
-before its signed GitHub Release was published. Keep the previous lock pin and
-publish the matching release first. If it refuses activation because the
-durable service is active, stop that user service only after live agents have
-finished, rerun `nvim-config sync`, and start it again. `:DevPlugins` never
-installs the packaged runtime; it updates only an explicitly opted-in source
-fleet, whose Agent Manager checkout uses its separately verified source build.
+usually means this config predates the Agent Manager plugin spec. For a `dev/`
+checkout, run `:DevPlugins` (or `mise run plugins:sync`): fleet reconciliation
+builds the broker and locked Python worker once per Agent Manager commit and
+retries an incomplete build. `:AgentManagerHealth` reports either artifact if
+it remains unavailable. A remote lazy.nvim checkout still requires a broker on
+`PATH` and, for Claude, an explicitly configured worker Python; editor startup
+never acquires a compiler toolchain.
 
 The shortcut is `<leader>am` for the workspace. Start Codex and enter prompts
 inside Agent Manager; opening the workspace and starting a provider are

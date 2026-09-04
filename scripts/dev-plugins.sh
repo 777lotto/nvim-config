@@ -17,6 +17,7 @@ dev_plugins_root="$(cd -P "$(dirname "$dev_plugins_source")/.." && pwd)"
 dev_plugins_dir="${NVIM_DEV_DIR:-$dev_plugins_root/dev}"
 dev_plugins_base="${NVIM_DEV_GIT_BASE:-https://github.com/777lotto}"
 dev_plugins_branch=bluff
+dev_plugins_mise="${NVIM_DEV_MISE:-mise}"
 
 # Keep this fleet limited to repositories that nvim-config actually loads.
 # lazy.nvim matches a dev plugin by its spec name, so these directory names are
@@ -48,6 +49,88 @@ dev_plugins_is_repo() {
   top="$(git -C "$1" rev-parse --show-toplevel 2>/dev/null)" || return 1
   [ -n "$top" ] || return 1
   [ "$(cd -P "$1" >/dev/null 2>&1 && pwd)" = "$(cd -P "$top" >/dev/null 2>&1 && pwd)" ]
+}
+
+dev_plugins_command_available() {
+  if [[ "$1" == */* ]]; then
+    [ -x "$1" ]
+  else
+    command -v "$1" >/dev/null 2>&1
+  fi
+}
+
+dev_plugins_agent_manager_healthy() {
+  local path=$1
+  local broker="$path/target/release/agent-manager-broker"
+  local python="$path/python/.venv/bin/python"
+  [ -x "$broker" ] \
+    && [ -x "$python" ] \
+    && "$broker" contract-info >/dev/null 2>&1 \
+    && "$python" -B -I -c 'import agent_manager_claude_worker, claude_agent_sdk' \
+      >/dev/null 2>&1
+}
+
+# Agent Manager is the one fleet plugin with a compiled broker and locked
+# worker environment. Keep a commit stamp beside its ignored Cargo output so a
+# no-op fleet sync performs only the cheap behavioral checks below. A missing,
+# stale, or unhealthy runtime is rebuilt from the exact tool versions declared
+# by that checkout. The stamp is written only after both runtime probes pass,
+# making an interrupted or failed bootstrap safe to retry.
+dev_plugins_bootstrap_agent_manager() {
+  local path="$dev_plugins_dir/agent-manager.nvimz"
+  local commit branch stamp recorded tool_output stamp_tmp
+  local -a tool_specs
+
+  dev_plugins_is_repo "$path" || die "agent-manager.nvimz: not a Git checkout"
+  [ -z "$(git -C "$path" status --porcelain)" ] \
+    || die "agent-manager.nvimz: refusing to bootstrap a dirty checkout"
+  branch="$(git -C "$path" symbolic-ref --quiet --short HEAD || true)"
+  [ "$branch" = "$dev_plugins_branch" ] \
+    || die "agent-manager.nvimz: expected $dev_plugins_branch, found ${branch:-detached HEAD}"
+
+  commit="$(git -C "$path" rev-parse HEAD)"
+  stamp="$path/target/.nvim-dev-runtime.commit"
+  recorded="$(cat "$stamp" 2>/dev/null || true)"
+  if [ "$recorded" = "$commit" ] && dev_plugins_agent_manager_healthy "$path"; then
+    log "agent-manager.nvimz: source runtime is current (${commit:0:12})"
+    return
+  fi
+
+  dev_plugins_command_available "$dev_plugins_mise" \
+    || die "agent-manager.nvimz: Mise is required to bootstrap its source runtime"
+  tool_output="$(
+    nvim --headless --clean -l "$dev_plugins_root/scripts/agent-manager-tools.lua" \
+      "$path/mise.toml"
+  )" || die "agent-manager.nvimz: could not read its pinned tool versions"
+  mapfile -t tool_specs <<< "$tool_output"
+  [ "${#tool_specs[@]}" -eq 3 ] \
+    || die "agent-manager.nvimz: expected Rust, Python, and uv tool pins"
+
+  log "agent-manager.nvimz: bootstrapping source runtime (${commit:0:12})"
+  "$dev_plugins_mise" -C "${TMPDIR:-/tmp}" install "${tool_specs[@]}"
+  # The inner shell receives the checkout as positional argument 1; expansion
+  # must happen there, after Mise has placed the pinned tools on PATH.
+  # shellcheck disable=SC2016
+  "$dev_plugins_mise" -C "${TMPDIR:-/tmp}" exec "${tool_specs[@]}" -- \
+    bash -c '
+      set -euo pipefail
+      agent_manager_root=$1
+      cd "$agent_manager_root/python"
+      uv sync --frozen --all-groups
+      cd "$agent_manager_root"
+      cargo build --release --locked -p agent-manager-broker
+    ' bash "$path"
+
+  dev_plugins_agent_manager_healthy "$path" \
+    || die "agent-manager.nvimz: source runtime verification failed"
+  [ "$(git -C "$path" rev-parse HEAD)" = "$commit" ] \
+    || die "agent-manager.nvimz: checkout changed during source runtime bootstrap"
+  mkdir -p "$path/target"
+  stamp_tmp="$(mktemp "$path/target/.nvim-dev-runtime.commit.tmp.XXXXXX")"
+  printf '%s\n' "$commit" > "$stamp_tmp"
+  chmod 0600 "$stamp_tmp"
+  mv -- "$stamp_tmp" "$stamp"
+  log "agent-manager.nvimz: source runtime verified"
 }
 
 dev_plugins_clone() {
@@ -186,9 +269,9 @@ dev_plugins_check() {
 }
 
 case "${1:-}" in
-  clone)  dev_plugins_clone ;;
-  pull)   dev_plugins_sync ;;
-  sync)   dev_plugins_sync ;;
+  clone)  dev_plugins_clone; dev_plugins_bootstrap_agent_manager ;;
+  pull)   dev_plugins_sync; dev_plugins_bootstrap_agent_manager ;;
+  sync)   dev_plugins_sync; dev_plugins_bootstrap_agent_manager ;;
   status) dev_plugins_status ;;
   check)  dev_plugins_check ;;
   *) die "usage: dev-plugins.sh clone|pull|sync|status|check" ;;
