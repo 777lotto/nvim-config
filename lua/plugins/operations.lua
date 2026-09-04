@@ -43,9 +43,7 @@ return {
       "AgentManagerClose",
     },
     keys = {
-      { "<leader>amm", "<cmd>AgentManager<cr>", desc = "Agent Manager" },
-      { "<leader>amc", "<cmd>AgentManagerStart codex<cr>", desc = "Start Codex agent" },
-      { "<leader>ams", "<cmd>AgentManagerSend<cr>", desc = "Send agent prompt" },
+      { "<leader>am", "<cmd>AgentManager<cr>", desc = "Agent Manager" },
     },
     opts = {},
   },

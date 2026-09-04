@@ -33,13 +33,14 @@ if vim.env.NVIM_CONFIG_VERIFY_LOCK == "1" then
 end
 
 for lhs, description in pairs({
-  ["<leader>amm"] = "Agent Manager",
-  ["<leader>amc"] = "Start Codex agent",
-  ["<leader>ams"] = "Send agent prompt",
+  ["<leader>am"] = "Agent Manager",
   ["<leader>ar"] = "MCP Buff review",
 }) do
   local mapping = vim.fn.maparg(lhs, "n", false, true)
   assert(mapping.lhs and mapping.desc == description, lhs .. " is not registered correctly")
+end
+for _, lhs in ipairs({ "<leader>amm", "<leader>amc", "<leader>ams" }) do
+  assert(vim.fn.maparg(lhs, "n") == "", "retired Agent Manager shortcut remains: " .. lhs)
 end
 
 local mcp_panel = require("mcp_buff")

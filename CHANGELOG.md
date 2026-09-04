@@ -36,8 +36,8 @@ versioning for release organization.
   separately authenticated Cloudflare and GitHub tabs restricted to their
   documented loopback endpoints.
 - Agent Manager on `bluff` with lazy-loadable workspace, provider,
-  prompt, steering, interrupt, health, and close commands. Its shortcuts are
-  `<leader>amm`, `<leader>amc`, and `<leader>ams`.
+  prompt, steering, interrupt, health, and close commands. `<leader>am` opens
+  its workspace; provider and prompt actions stay inside it.
 - Optional Mise-aware Treesitter injections for config `run` scripts and Bash
   file-task MISE/USAGE directives, with managed Bash, TOML, and KDL parsers.
 - A copy-only Toughbook clipboard bridge for SSH sessions. `NVIM_CLIPBOARD=auto`
@@ -55,6 +55,8 @@ versioning for release organization.
 
 ### Changed
 
+- which-key now owns the `d`, `g`, `s`, and `t` triggers used by Agent
+  Manager's buffer-local menus, avoiding recursive `which-key.show()` mappings.
 - The repository now uses `bluff` as its only long-lived and default branch.
   The persisted two-channel state, branch picker, promotion-only CI gate, and
   updater branch-switching paths were removed.
@@ -97,9 +99,9 @@ versioning for release organization.
   reorder that changes no pin.
 - Leader shortcuts now use a case-aware alphabetical which-key taxonomy:
   lowercase `a b c d e f g n q s w`, followed by uppercase `S T W`. Bufferline
-  actions use the `(b)uffer` group, Agent Manager uses the nested `<leader>am`
-  group, MCP Buff uses `<leader>ar`, sessions and terminals use uppercase
-  groups, and undo/redo use `<leader>fu` / `<leader>fr`.
+  actions use the `(b)uffer` group, Agent Manager opens on `<leader>am`, MCP
+  Buff uses `<leader>ar`, sessions and terminals use uppercase groups, and
+  undo/redo use `<leader>fu` / `<leader>fr`.
 
 ## 0.1.0 - 2026-08-15
 

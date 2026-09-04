@@ -49,9 +49,9 @@ usually means this config predates the Agent Manager plugin spec. A source
 checkout also needs a built `agent-manager-broker` and the locked Python worker
 environment; startup deliberately does not build or install either one.
 
-The shortcuts are `<leader>amm` for the workspace, `<leader>amc` to start
-Codex, and `<leader>ams` to enter a prompt. Opening the workspace and starting
-the provider are non-spending; submitting a prompt starts a live model turn.
+The shortcut is `<leader>am` for the workspace. Start Codex and enter prompts
+inside Agent Manager; opening the workspace and starting a provider are
+non-spending, while submitting a prompt starts a live model turn.
 
 ## Configuration update is refused
 

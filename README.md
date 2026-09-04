@@ -232,44 +232,41 @@ categories appear first, followed by uppercase categories; case deliberately
 distinguishes `w` (word) from `W` (window), `s` (search) from `S` (session),
 and `t` is left unused while `T` owns terminals.
 
-| Prefix       | which-key label | Scope                                                  |
-| ------------ | --------------- | ------------------------------------------------------ |
-| `<leader>a`  | `(a)gent`       | Agent sessions and brokered review                     |
-| `<leader>am` | `(m)anager`     | Agent Manager workspace, startup, and prompts          |
-| `<leader>b`  | `(b)uffer`      | Buffer bar creation, selection, movement, and deletion |
-| `<leader>c`  | `(c)ode`        | Code actions, formatting, and rendered Markdown        |
-| `<leader>d`  | `(d)iagnostic`  | Diagnostic and TODO views                              |
-| `<leader>e`  | `(e)dit`        | Selection, indentation, lines, comments, and lists     |
-| `<leader>f`  | `(f)ile`        | Files, save, rename, undo, and redo                    |
-| `<leader>g`  | `(g)it`         | GitPanel plus branch, commit, and status pickers       |
-| `<leader>n`  | `(n)avigate`    | Lines, paragraphs, brackets, and jump history          |
-| `<leader>q`  | `(q)uit`        | Quit the current window or all windows                 |
-| `<leader>s`  | `(s)earch`      | Buffer, help, keymap, TODO, and workspace search       |
-| `<leader>w`  | `(w)ord`        | Word occurrences, selection, case, and symbol rename   |
-| `<leader>S`  | `(S)ession`     | Restore or suppress persistence sessions               |
-| `<leader>T`  | `(T)erminal`    | New, split, and persistent floating terminals          |
-| `<leader>W`  | `(W)indow`      | Split, focus, close, equalize, and maximize windows    |
+| Prefix      | which-key label | Scope                                                  |
+| ----------- | --------------- | ------------------------------------------------------ |
+| `<leader>a` | `(a)gent`       | Agent sessions and brokered review                     |
+| `<leader>b` | `(b)uffer`      | Buffer bar creation, selection, movement, and deletion |
+| `<leader>c` | `(c)ode`        | Code actions, formatting, and rendered Markdown        |
+| `<leader>d` | `(d)iagnostic`  | Diagnostic and TODO views                              |
+| `<leader>e` | `(e)dit`        | Selection, indentation, lines, comments, and lists     |
+| `<leader>f` | `(f)ile`        | Files, save, rename, undo, and redo                    |
+| `<leader>g` | `(g)it`         | GitPanel plus branch, commit, and status pickers       |
+| `<leader>n` | `(n)avigate`    | Lines, paragraphs, brackets, and jump history          |
+| `<leader>q` | `(q)uit`        | Quit the current window or all windows                 |
+| `<leader>s` | `(s)earch`      | Buffer, help, keymap, TODO, and workspace search       |
+| `<leader>w` | `(w)ord`        | Word occurrences, selection, case, and symbol rename   |
+| `<leader>S` | `(S)ession`     | Restore or suppress persistence sessions               |
+| `<leader>T` | `(T)erminal`    | New, split, and persistent floating terminals          |
+| `<leader>W` | `(W)indow`      | Split, focus, close, equalize, and maximize windows    |
 
-Keep current and future Agent Manager actions under `<leader>am`; `<leader>ar`
-is reserved for the brokered MCP Buff review panel.
+Agent Manager opens directly on `<leader>am`; its remaining actions live inside
+the workspace. `<leader>ar` is reserved for the brokered MCP Buff review panel.
 
 The most frequently used file and agent mappings are:
 
-| Key           | Action                                                                        |
-| ------------- | ----------------------------------------------------------------------------- |
-| `<leader>amm` | Open Agent Manager                                                            |
-| `<leader>amc` | Start a Codex agent                                                           |
-| `<leader>ams` | Send a prompt through Agent Manager                                           |
-| `<leader>ar`  | Open MCP Buff                                                                 |
-| `<leader>fe`  | Toggle the file explorer                                                      |
-| `<leader>ff`  | Find files                                                                    |
-| `<leader>fh`  | Open undo history                                                             |
-| `<leader>fn`  | Rename the current file after checking for unsaved changes and name conflicts |
-| `<leader>fo`  | Open a recent file                                                            |
-| `<leader>fr`  | Redo                                                                          |
-| `<leader>fs`  | Save the current file                                                         |
-| `<leader>fu`  | Undo                                                                          |
-| `<leader>fS`  | Save all files                                                                |
+| Key          | Action                                                                        |
+| ------------ | ----------------------------------------------------------------------------- |
+| `<leader>am` | Open Agent Manager                                                            |
+| `<leader>ar` | Open MCP Buff                                                                 |
+| `<leader>fe` | Toggle the file explorer                                                      |
+| `<leader>ff` | Find files                                                                    |
+| `<leader>fh` | Open undo history                                                             |
+| `<leader>fn` | Rename the current file after checking for unsaved changes and name conflicts |
+| `<leader>fo` | Open a recent file                                                            |
+| `<leader>fr` | Redo                                                                          |
+| `<leader>fs` | Save the current file                                                         |
+| `<leader>fu` | Undo                                                                          |
+| `<leader>fS` | Save all files                                                                |
 
 The bufferline across the top is a buffer bar, not native Neovim tabs.
 All of its leader mappings therefore live under `b`:
@@ -378,12 +375,11 @@ profiles.
 
 ## Agent workspace
 
-`<leader>amm` opens Agent Manager, `<leader>amc` starts its Codex provider,
-and `<leader>ams` opens native prompt input for the selected agent. The same
-actions are available as `:AgentManager`, `:AgentManagerStart codex`, and
-`:AgentManagerSend`; steering, interrupt, health, and close commands are also
-lazy-loadable. Starting the workspace or provider does not send a model turn,
-while submitting a prompt can consume provider quota.
+`<leader>am` opens Agent Manager. Starting providers and sending prompts are
+managed inside that workspace; the corresponding `:AgentManagerStart codex`
+and `:AgentManagerSend` commands remain available, along with steering,
+interrupt, health, and close commands. Starting the workspace or provider does
+not send a model turn, while submitting a prompt can consume provider quota.
 
 ## Brokered write review
 
