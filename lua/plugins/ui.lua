@@ -46,13 +46,22 @@ return {
       -- Keep the popup alphabetical while making case meaningful: all
       -- lowercase categories appear before the uppercase categories.
       sort = { "case", "alphanum", "mod" },
+      -- Agent Manager uses built-in single-key prefixes inside its buffers.
+      -- which-key deliberately skips those during automatic trigger discovery,
+      -- so declare them here instead of mapping them to which-key.show().
+      triggers = {
+        { "<auto>", mode = "nxso" },
+        { "d", mode = "n" },
+        { "g", mode = "n" },
+        { "s", mode = "n" },
+        { "t", mode = "n" },
+      },
     })
 
     -- which-key reads each mapping's `desc` automatically. This list owns the
     -- category names and mirrors the case-aware alphabetical popup order.
     wk.add({
       { "<leader>a", group = "(a)gent" },
-      { "<leader>am", group = "(m)anager" },
       { "<leader>b", group = "(b)uffer" },
       { "<leader>bm", group = "(m)ove buffer" },
       { "<leader>c", group = "(c)ode" },

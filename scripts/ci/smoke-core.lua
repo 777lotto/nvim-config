@@ -63,9 +63,7 @@ for _, command in ipairs({
   assert(vim.list_contains(agent_manager.cmd, command), command .. " is not lazy-loadable")
 end
 assert(vim.deep_equal(agent_manager.keys, {
-  { "<leader>amm", "<cmd>AgentManager<cr>", desc = "Agent Manager" },
-  { "<leader>amc", "<cmd>AgentManagerStart codex<cr>", desc = "Start Codex agent" },
-  { "<leader>ams", "<cmd>AgentManagerSend<cr>", desc = "Send agent prompt" },
+  { "<leader>am", "<cmd>AgentManager<cr>", desc = "Agent Manager" },
 }), "Agent Manager shortcuts changed unexpectedly")
 
 local git_specs = assert(loadfile(root .. "/lua/plugins/git.lua"))()
@@ -249,9 +247,15 @@ assert(
   vim.deep_equal(which_key_setup.sort, { "case", "alphanum", "mod" }),
   "which-key must sort lowercase groups before uppercase groups"
 )
+assert(vim.deep_equal(which_key_setup.triggers, {
+  { "<auto>", mode = "nxso" },
+  { "d", mode = "n" },
+  { "g", mode = "n" },
+  { "s", mode = "n" },
+  { "t", mode = "n" },
+}), "which-key must own Agent Manager's built-in prefix triggers")
 local expected_groups = {
   ["<leader>a"] = "(a)gent",
-  ["<leader>am"] = "(m)anager",
   ["<leader>b"] = "(b)uffer",
   ["<leader>c"] = "(c)ode",
   ["<leader>d"] = "(d)iagnostic",
