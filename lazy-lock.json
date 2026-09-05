@@ -4,7 +4,7 @@
   "UX-chrome.nvim": { "branch": "bluff", "commit": "a6a20a2135603484cd451ba7f338cf0b6fa7dbad" },
   "UX-foundation.nvim": { "branch": "bluff", "commit": "7b8700db546b35e7b6a40b9a41b129354981587f" },
   "UX-styling.nvim": { "branch": "bluff", "commit": "3379b8ba03380316a5a8f3ad3671509e9283b518" },
-  "agent-manager.nvimz": { "branch": "bluff", "commit": "01ada4f9776bb29b05cf8a90a0d6f1e92a889b32" },
+  "agent-manager.nvimz": { "branch": "bluff", "commit": "58673ee70a8d510999ca5b82accc2038f5cca407" },
   "bufferline.nvim": { "branch": "main", "commit": "655133c3b4c3e5e05ec549b9f8cc2894ac6f51b3" },
   "catppuccin": { "branch": "main", "commit": "edefef779ab08ce1a4a404713e3012b0d202bd35" },
   "cmp-buffer": { "branch": "main", "commit": "b74fab3656eea9de20a9b8116afa3cfc4ec09657" },
