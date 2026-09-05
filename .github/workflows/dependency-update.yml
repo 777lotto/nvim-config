@@ -34,6 +34,15 @@ jobs:
     name: refresh tested lock
     runs-on: ubuntu-24.04
     steps:
+      - name: Require the credential that starts dependency PR checks
+        env:
+          GH_TOKEN: ${{ secrets.DEPENDENCY_UPDATE_TOKEN }}
+        run: |
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "::error::DEPENDENCY_UPDATE_TOKEN is required to create dependency PRs that trigger CI and can be automatically merged."
+            exit 1
+          fi
+
       - name: Check out default branch
         uses: actions/checkout@v7
         with:
@@ -394,7 +403,7 @@ jobs:
       - name: Open dependency pull request
         uses: peter-evans/create-pull-request@v8.1.1
         with:
-          token: ${{ secrets.DEPENDENCY_UPDATE_TOKEN || github.token }}
+          token: ${{ secrets.DEPENDENCY_UPDATE_TOKEN }}
           base: bluff
           branch: agent/dependency-refresh
           delete-branch: true

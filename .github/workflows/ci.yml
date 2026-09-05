@@ -38,6 +38,9 @@ jobs:
       - name: Reject whitespace errors
         run: git diff --check HEAD^ HEAD
 
+      - name: Test dependency merge policy
+        run: bash scripts/ci/test-merge-dependencies.sh
+
   debian-smoke:
     name: debian-smoke
     runs-on: ubuntu-24.04

@@ -27,6 +27,7 @@ NVIM_CLIPBOARD=osc52 SSH_TTY=/dev/pts/0 \
     "$nvim_config_root" osc52
 
 "$nvim_config_root/scripts/ci/test-dev-plugins.sh" "$nvim_config_root"
+bash "$nvim_config_root/scripts/ci/test-merge-dependencies.sh" "$nvim_config_root"
 "$nvim_config_root/scripts/ci/test-update.sh" "$nvim_config_root"
 "$nvim_config_root/scripts/ci/test-ux.sh" "$nvim_config_root"
 

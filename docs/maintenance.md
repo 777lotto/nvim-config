@@ -165,10 +165,19 @@ release event; weekly, generic `all`, and manual branch-head refreshes exclude
 it so its Lua and packaged runtime cannot drift apart. A manual run can select
 the other focused targets or refresh the remaining lazy.nvim dependencies.
 
-The workflow opens a pull request into `bluff`. It accepts an operator-managed,
+The workflow opens a pull request into `bluff`. It requires an operator-managed,
 fine-grained `DEPENDENCY_UPDATE_TOKEN` repository secret with contents and
-pull-request write access and otherwise falls back to `GITHUB_TOKEN`; events
-created by that fallback follow GitHub's token-trigger policy.
+pull-request write access so the PR starts CI. A missing credential fails
+visibly rather than creating a PR whose checks never run.
+
+`dependency-merge.yml` follows successful completion of the entire PR CI
+workflow. It accepts only the same-repository `agent/dependency-refresh` branch
+targeting `bluff`, with exactly one modified file, `lazy-lock.json`. Only commit
+values of existing pins may change; plugin names and branch metadata must stay
+the same. The merge API receives the exact tested head SHA and enforces the
+existing branch protections. A behind branch is updated and must pass fresh CI.
+Other PRs are unaffected. This automatically adopts tested plugin updates; it
+does not publish an ordinary nvim-config Release.
 
 Each plugin repository contains a notification workflow for stable published
 Releases. It uses an operator-managed, fine-grained
