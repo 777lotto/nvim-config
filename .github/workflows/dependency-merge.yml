@@ -1,0 +1,35 @@
+name: Merge tested dependency update
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: dependency-merge-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      startsWith(github.event.workflow_run.head_branch, 'agent/dependency-refresh') &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-24.04
+    steps:
+      # Use only the trusted default-branch implementation, never PR code.
+      - uses: actions/checkout@v7
+        with:
+          ref: bluff
+          persist-credentials: false
+      - name: Merge the exact tested lock update
+        env:
+          GH_TOKEN: ${{ secrets.DEPENDENCY_UPDATE_TOKEN }}
+          TESTED_COMMIT: ${{ github.event.workflow_run.head_sha }}
+          REFRESH_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: bash scripts/ci/merge-dependencies.sh
