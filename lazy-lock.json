@@ -3,7 +3,7 @@
   "SchemaStore.nvim": { "branch": "main", "commit": "d34c58439271f5e73ed79c2b8d1a09731c4525f1" },
   "UX-chrome.nvim": { "branch": "bluff", "commit": "a6a20a2135603484cd451ba7f338cf0b6fa7dbad" },
   "UX-foundation.nvim": { "branch": "bluff", "commit": "7b8700db546b35e7b6a40b9a41b129354981587f" },
-  "UX-styling.nvim": { "branch": "bluff", "commit": "3379b8ba03380316a5a8f3ad3671509e9283b518" },
+  "UX-styling.nvim": { "branch": "bluff", "commit": "fa020737ab4e14a2cdc3d15552a401c95fc7ccb1" },
   "agent-manager.nvimz": { "branch": "bluff", "commit": "58673ee70a8d510999ca5b82accc2038f5cca407" },
   "bufferline.nvim": { "branch": "main", "commit": "655133c3b4c3e5e05ec549b9f8cc2894ac6f51b3" },
   "catppuccin": { "branch": "main", "commit": "edefef779ab08ce1a4a404713e3012b0d202bd35" },
