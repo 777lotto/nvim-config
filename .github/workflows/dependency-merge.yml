@@ -10,7 +10,7 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: dependency-refresh
+  group: dependency-merge-${{ github.event.workflow_run.head_branch }}
   cancel-in-progress: false
 
 jobs:
@@ -18,7 +18,7 @@ jobs:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.head_branch == 'agent/dependency-refresh' &&
+      startsWith(github.event.workflow_run.head_branch, 'agent/dependency-refresh') &&
       github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-24.04
     steps:
@@ -31,4 +31,5 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.DEPENDENCY_UPDATE_TOKEN }}
           TESTED_COMMIT: ${{ github.event.workflow_run.head_sha }}
+          REFRESH_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: bash scripts/ci/merge-dependencies.sh

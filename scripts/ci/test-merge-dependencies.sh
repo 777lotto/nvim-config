@@ -4,6 +4,7 @@ set -euo pipefail
 root="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)}"
 export GH_TOKEN=fixture GITHUB_REPOSITORY=fixture/config
 export TESTED_COMMIT=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+export REFRESH_BRANCH=agent/dependency-refresh-mcp-buff
 
 # Mock the API boundary; the production script runs unchanged and cannot
 # contact GitHub. No credentials or repository mutations are involved.
@@ -23,8 +24,8 @@ gh() {
       if [[ "$SCENARIO" == stale ]]; then
         printf '[]\n'
       else
-        jq -n --arg sha "$TESTED_COMMIT" '[{number: 1, draft: false,
-          head: {sha: $sha, repo: {full_name: "fixture/config"}}, base: {ref: "bluff"}}]'
+        jq -n --arg sha "$TESTED_COMMIT" --arg branch "$REFRESH_BRANCH" '[{number: 1, draft: false,
+          head: {sha: $sha, ref: $branch, repo: {full_name: "fixture/config"}}, base: {ref: "bluff"}}]'
       fi
       ;;
     repos/fixture/config/pulls/1)
@@ -77,6 +78,10 @@ for SCENARIO in clean stale behind extra_file branch_change invalid_pin dropped_
 done
 if GH_TOKEN='' bash "$root/scripts/ci/merge-dependencies.sh" >/dev/null 2>&1; then
   echo "Missing credential was accepted" >&2
+  exit 1
+fi
+if REFRESH_BRANCH=agent/dependency-refresh-untrusted bash "$root/scripts/ci/merge-dependencies.sh" >/dev/null 2>&1; then
+  echo "Unknown refresh branch was accepted" >&2
   exit 1
 fi
 echo "Dependency merge API fixtures passed"

@@ -4,15 +4,23 @@ set -euo pipefail
 : "${GH_TOKEN:?DEPENDENCY_UPDATE_TOKEN is required for dependency adoption}"
 : "${GITHUB_REPOSITORY:?}"
 : "${TESTED_COMMIT:?}"
+: "${REFRESH_BRANCH:?}"
 [[ "$TESTED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+case "$REFRESH_BRANCH" in
+  agent/dependency-refresh|agent/dependency-refresh-all|\
+  agent/dependency-refresh-agent-manager.nvimz|agent/dependency-refresh-git-panel.nvim|\
+  agent/dependency-refresh-mcp-buff|agent/dependency-refresh-UX-chrome.nvim|\
+  agent/dependency-refresh-UX-foundation.nvim|agent/dependency-refresh-UX-styling.nvim) ;;
+  *) echo "Not an approved dependency refresh branch." >&2; exit 1 ;;
+esac
 
 api="repos/$GITHUB_REPOSITORY"
 owner="${GITHUB_REPOSITORY%%/*}"
 pulls="$(gh api --method GET "$api/pulls" \
-  -f state=open -f base=bluff -f "head=$owner:agent/dependency-refresh")"
-number="$(jq -r --arg sha "$TESTED_COMMIT" --arg repo "$GITHUB_REPOSITORY" '
+  -f state=open -f base=bluff -f "head=$owner:$REFRESH_BRANCH")"
+number="$(jq -r --arg sha "$TESTED_COMMIT" --arg repo "$GITHUB_REPOSITORY" --arg branch "$REFRESH_BRANCH" '
   [.[] | select(.head.sha == $sha and .head.repo.full_name == $repo and
-    .base.ref == "bluff" and .draft == false)] |
+    .head.ref == $branch and .base.ref == "bluff" and .draft == false)] |
   if length == 1 then .[0].number else empty end' <<< "$pulls")"
 if [[ -z "$number" ]]; then
   echo "No open dependency PR matches the completed CI commit; nothing to merge."

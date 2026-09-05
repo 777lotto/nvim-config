@@ -171,13 +171,17 @@ pull-request write access so the PR starts CI. A missing credential fails
 visibly rather than creating a PR whose checks never run.
 
 `dependency-merge.yml` follows successful completion of the entire PR CI
-workflow. It accepts only the same-repository `agent/dependency-refresh` branch
-targeting `bluff`, with exactly one modified file, `lazy-lock.json`. Only commit
+workflow. It accepts only same-repository `agent/dependency-refresh-<plugin>`
+branches for the known plugin targets or `all` (plus the legacy unsuffixed
+branch), targeting `bluff`, with exactly one modified file, `lazy-lock.json`. Only commit
 values of existing pins may change; plugin names and branch metadata must stay
 the same. The merge API receives the exact tested head SHA and enforces the
 existing branch protections. A behind branch is updated and must pass fresh CI.
 Other PRs are unaffected. This automatically adopts tested plugin updates; it
 does not publish an ordinary nvim-config Release.
+
+Each plugin has its own refresh branch and concurrency group so simultaneous
+releases cannot overwrite each other on a shared pending dependency PR.
 
 Each plugin repository contains a notification workflow for stable published
 Releases. It uses an operator-managed, fine-grained
@@ -192,10 +196,12 @@ gh api --method POST repos/777lotto/nvim-config/dispatches \
   --field "client_payload[tag]=$PLUGIN_TAG"
 ```
 
-The plugin name is the publisher's exact lazy.nvim key. The release workflow
-reads the secret only at its GitHub Actions process boundary and exits with a
-setup notice when it is absent. Provisioning that secret, creating signed tags,
-and publishing Releases are operator work. The credential-free ZemRip broker
+The plugin name is the publisher's exact lazy.nvim key. The five Lua plugins
+publish unsigned version tags and Releases after successful push CI on their
+current `bluff` head, then directly send this notification. A missing dispatch
+secret is a visible failure; rerunning reuses the same release. Agent Manager
+retains its verified signed-tag and packaged-runtime release requirements.
+The operator provisions the dispatch secret. The credential-free ZemRip broker
 cannot read or write Actions secrets, create tags or Releases, or submit this
 cross-repository dispatch; do not put the token in the agent plane to work
 around those policy boundaries.
