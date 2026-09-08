@@ -16,12 +16,64 @@ local function move_buffer_to(command)
   end
 end
 
+local function invalid_basename(name)
+  return name == "."
+    or name == ".."
+    or name:find("/", 1, true)
+    or name:find("\\", 1, true)
+end
+
+-- An unnamed buffer has nothing on disk to rename, so the same prompt names
+-- it and writes it into the window's working directory instead.
+local function name_unnamed_buffer(bufnr)
+  local directory = vim.fs.normalize(vim.fn.getcwd())
+
+  vim.ui.input({
+    prompt = "File name / rename: ",
+    default = "",
+  }, function(input)
+    if input == nil then return end
+
+    local new_basename = vim.trim(input)
+    if new_basename == "" then return end
+    if invalid_basename(new_basename) then
+      notify("Enter a file name without a directory path.", vim.log.levels.ERROR, "File rename")
+      return
+    end
+
+    local new_path = vim.fs.joinpath(directory, new_basename)
+    if vim.uv.fs_stat(new_path) then
+      notify("A file with that name already exists.", vim.log.levels.ERROR, "File rename")
+      return
+    end
+
+    local ok, err = pcall(vim.api.nvim_buf_call, bufnr, function()
+      vim.cmd.saveas({ vim.fn.fnameescape(new_path) })
+      if vim.bo[bufnr].filetype == "" then vim.cmd.filetype("detect") end
+    end)
+    if not ok then
+      notify("Could not save the file: " .. tostring(err), vim.log.levels.ERROR, "File rename")
+      return
+    end
+    if not vim.uv.fs_stat(new_path) then
+      notify("The file was not saved.", vim.log.levels.ERROR, "File rename")
+      return
+    end
+
+    notify("Saved as " .. new_basename .. " in " .. directory, nil, "File rename")
+  end)
+end
+
 local function rename_current_file()
   local bufnr = vim.api.nvim_get_current_buf()
   local old_name = vim.api.nvim_buf_get_name(bufnr)
 
-  if old_name == "" or vim.bo[bufnr].buftype ~= "" then
+  if vim.bo[bufnr].buftype ~= "" then
     notify("The current buffer is not a file.", vim.log.levels.WARN, "File rename")
+    return
+  end
+  if old_name == "" then
+    name_unnamed_buffer(bufnr)
     return
   end
   if vim.bo[bufnr].modified then
@@ -40,11 +92,7 @@ local function rename_current_file()
 
     local new_basename = vim.trim(input)
     if new_basename == "" or new_basename == old_basename then return end
-    if new_basename == "."
-      or new_basename == ".."
-      or new_basename:find("/", 1, true)
-      or new_basename:find("\\", 1, true)
-    then
+    if invalid_basename(new_basename) then
       notify("Enter a file name without a directory path.", vim.log.levels.ERROR, "File rename")
       return
     end

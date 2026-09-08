@@ -269,7 +269,7 @@ The most frequently used file and agent mappings are:
 | `<leader>fe` | Toggle the file explorer                                                      |
 | `<leader>ff` | Find files                                                                    |
 | `<leader>fh` | Open undo history                                                             |
-| `<leader>fn` | Rename the current file after checking for unsaved changes and name conflicts |
+| `<leader>fn` | Name and save an unnamed buffer, or rename the current file after checking for unsaved changes and name conflicts |
 | `<leader>fo` | Open a recent file                                                            |
 | `<leader>fr` | Redo                                                                          |
 | `<leader>fs` | Save the current file                                                         |

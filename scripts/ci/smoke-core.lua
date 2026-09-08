@@ -385,6 +385,64 @@ pcall(vim.cmd, "bdelete!")
 vim.fn.delete(rename_root, "rf")
 assert(rename_ok, rename_error)
 
+-- The same mapping must name and write a fresh unnamed buffer: the default
+-- `[No Name]` buffer has no path to rename, and :write alone refuses it with
+-- E32, so this is the only leader path that can save it.
+local name_root = vim.fn.tempname()
+local named_path = name_root .. "/fresh.md"
+vim.fn.mkdir(name_root, "p")
+local original_cwd = vim.fn.getcwd()
+local original_input = vim.ui.input
+local original_notify = vim.notify
+local name_ok, name_error = pcall(function()
+  vim.cmd("enew")
+  vim.cmd("lcd " .. vim.fn.fnameescape(name_root))
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, { "# named from an unnamed buffer" })
+  assert(vim.api.nvim_buf_get_name(0) == "" and vim.bo.modified, "test buffer is not a fresh unnamed buffer")
+  local prompted = false
+  vim.ui.input = function(options, callback)
+    prompted = true
+    assert(options.default == "", "unnamed buffer prompt should start empty")
+    callback("fresh.md")
+  end
+  local notices = {}
+  vim.notify = function(message) notices[#notices + 1] = message end
+  file_rename.callback()
+  assert(prompted, "naming an unnamed buffer did not prompt")
+  assert(not vim.tbl_contains(notices, "The current buffer is not a file."),
+    "an unnamed buffer was rejected as not a file")
+  assert(vim.uv.fs_stat(named_path), "naming an unnamed buffer did not write the file")
+  assert(vim.fn.readfile(named_path)[1] == "# named from an unnamed buffer",
+    "the named buffer wrote the wrong contents")
+  assert(vim.fs.normalize(vim.api.nvim_buf_get_name(0)) == named_path,
+    "naming an unnamed buffer did not update the buffer name")
+  assert(not vim.bo.modified, "the named buffer is still marked modified")
+  assert(vim.bo.filetype == "markdown", "the named buffer did not detect its filetype")
+
+  -- A second name must not overwrite an existing file.
+  vim.cmd("enew")
+  vim.ui.input = function(_, callback) callback("fresh.md") end
+  file_rename.callback()
+  assert(vim.api.nvim_buf_get_name(0) == "", "naming onto an existing file renamed the buffer anyway")
+  assert(vim.tbl_contains(notices, "A file with that name already exists."),
+    "naming onto an existing file did not warn")
+  pcall(vim.cmd, "bdelete!")
+
+  -- Non-file buffers still get the guard.
+  vim.cmd("enew")
+  vim.bo.buftype = "nofile"
+  vim.ui.input = function() error("a nofile buffer must not prompt") end
+  file_rename.callback()
+  assert(vim.tbl_contains(notices, "The current buffer is not a file."),
+    "a nofile buffer was not rejected")
+end)
+vim.ui.input = original_input
+vim.notify = original_notify
+pcall(vim.cmd, "bdelete!")
+pcall(vim.cmd, "lcd " .. vim.fn.fnameescape(original_cwd))
+vim.fn.delete(name_root, "rf")
+assert(name_ok, name_error)
+
 assert(
   environment.clipboard_mode == expected_clipboard,
   ("expected clipboard mode %s, got %s"):format(expected_clipboard, environment.clipboard_mode)
