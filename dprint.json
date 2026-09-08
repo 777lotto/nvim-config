@@ -1,0 +1,9 @@
+{
+  "$schema": "https://dprint.dev/schemas/v0.json",
+  "markdown": {
+    "textWrap": "maintain"
+  },
+  "plugins": [
+    "https://github.com/dprint/dprint-plugin-markdown/releases/download/0.23.3/plugin.wasm@e554f8cc21e81000cce0d5f94b043a9da30a7a65a2a142c72c4c5c7e32deee50"
+  ]
+}

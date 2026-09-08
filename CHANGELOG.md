@@ -58,6 +58,14 @@ versioning for release organization.
 
 ### Changed
 
+- Formatting no longer uses Prettier. Biome formats JavaScript, TypeScript,
+  JSON, JSONC, and CSS, matching the account-wide Biome policy, and dprint
+  formats Markdown with the same settings and plugin pin as the zemrip wiki,
+  because Prettier 3.9.1 never converges on GFM task-list continuations. A
+  Markdown file outside any dprint project uses the `dprint.json` shipped at
+  the repository root. HTML, SCSS, Less, Vue, GraphQL, Handlebars, JSON5, YAML,
+  and MDX no longer format on save. Mason now installs Biome and dprint instead
+  of Prettier.
 - Developer-fleet clone and sync now bootstrap Agent Manager's release broker
   and locked Python worker automatically. A verified commit stamp makes
   current `:DevPlugins` runs probe-only, while interrupted or stale builds are

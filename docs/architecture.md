@@ -72,15 +72,15 @@ LSP + linters ──> diagnostic items ──> signs / underline / virtual text
                                       virtual lines / float / lists
 ```
 
-| Layer | What it contributes |
-| --- | --- |
-| Editor groups | Normal text, cursor line, selections, menus, splits, status lines |
-| Treesitter | Parses syntax and assigns captures such as function, string, type, and comment |
-| LSP semantic tokens | Refines meaning using project knowledge, such as distinguishing a type from a variable |
-| LSP features | Completion, hover, definitions, references, rename, code actions, symbols, and diagnostics |
-| Linters | Additional diagnostics based on style, correctness, or project rules |
-| Diagnostic renderer | Chooses where diagnostic data appears; it does not discover errors itself |
-| Plugins | Add UI and their own groups/extmarks, such as indent guides or rendered Markdown |
+| Layer               | What it contributes                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------------ |
+| Editor groups       | Normal text, cursor line, selections, menus, splits, status lines                          |
+| Treesitter          | Parses syntax and assigns captures such as function, string, type, and comment             |
+| LSP semantic tokens | Refines meaning using project knowledge, such as distinguishing a type from a variable     |
+| LSP features        | Completion, hover, definitions, references, rename, code actions, symbols, and diagnostics |
+| Linters             | Additional diagnostics based on style, correctness, or project rules                       |
+| Diagnostic renderer | Chooses where diagnostic data appears; it does not discover errors itself                  |
+| Plugins             | Add UI and their own groups/extmarks, such as indent guides or rendered Markdown           |
 
 Precedence can vary by extmark priority and group links. If one token looks
 wrong, inspect it with `:Inspect` and inspect the final group with
@@ -148,5 +148,6 @@ Language support is deliberately layered rather than hidden in one large table:
 6. open a representative file and verify `:Inspect`, `:LspInfo`,
    `:ConformInfo`, and `:checkhealth`.
 
-Do not assign Prettier to a filetype merely because no formatter is configured.
-Use a formatter that actually parses that language.
+Do not assign Biome or dprint to a filetype merely because no formatter is
+configured. Use a formatter that actually parses that language, and record the
+mapping in `lua/config/formatting.lua` so the smoke test keeps Prettier out.

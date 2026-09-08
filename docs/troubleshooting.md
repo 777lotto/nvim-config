@@ -167,9 +167,13 @@ the bootstrap process was interrupted.
 
 ## Formatting does not run
 
-Run `:ConformInfo`. For a Prettier-supported file, it should show either the
-project-local Prettier binary or Mason's fallback. Plain text, Lua, Python, C,
-and XML are intentionally not assigned to Prettier.
+Run `:ConformInfo`. For JavaScript, TypeScript, JSON, or CSS it should show
+either the project-local Biome binary or Mason's fallback; for Markdown it
+should show dprint. A Markdown file outside a dprint project uses the
+`dprint.json` shipped with this configuration, which downloads its Markdown
+plugin from a GitHub release on first use, so an offline machine may see a
+first-run failure. Plain text, Lua, Python, C, XML, HTML, YAML, and MDX are
+intentionally not assigned to any formatter.
 
 ## Mise embedded highlighting does not appear
 

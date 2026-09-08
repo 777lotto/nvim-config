@@ -56,18 +56,18 @@ install. An explicitly created developer fleet uses it to install the exact
 Rust, Python, and uv versions declared by Agent Manager when that checkout's
 source runtime needs to be built.
 
-| Task                      | Runs                                                       |
-| ------------------------- | ---------------------------------------------------------- |
-| `mise run update`         | `bin/nvim-update`                                          |
-| `mise run doctor`         | `bin/nvim-config doctor`                                   |
-| `mise run sync`           | `bin/nvim-config sync`                                     |
-| `mise run plugins:clone`  | create the fleet and bootstrap Agent Manager when needed    |
-| `mise run plugins:pull`   | fast-forward the fleet and reconcile Agent Manager          |
-| `mise run plugins:sync`   | explicit alias for the same fleet convergence               |
-| `mise run plugins:status` | one line of branch/dirty/ahead-behind per checkout         |
-| `mise run plugins:check`  | compile-check every `dev/` plugin that has Lua             |
-| `mise run test-sync`      | backward-compatible alias for `bin/nvim-update`            |
-| `mise run verify`         | shell, core, updater, fleet, UX, and performance gates     |
+| Task                      | Runs                                                     |
+| ------------------------- | -------------------------------------------------------- |
+| `mise run update`         | `bin/nvim-update`                                        |
+| `mise run doctor`         | `bin/nvim-config doctor`                                 |
+| `mise run sync`           | `bin/nvim-config sync`                                   |
+| `mise run plugins:clone`  | create the fleet and bootstrap Agent Manager when needed |
+| `mise run plugins:pull`   | fast-forward the fleet and reconcile Agent Manager       |
+| `mise run plugins:sync`   | explicit alias for the same fleet convergence            |
+| `mise run plugins:status` | one line of branch/dirty/ahead-behind per checkout       |
+| `mise run plugins:check`  | compile-check every `dev/` plugin that has Lua           |
+| `mise run test-sync`      | backward-compatible alias for `bin/nvim-update`          |
+| `mise run verify`         | shell, core, updater, fleet, UX, and performance gates   |
 
 Always use the explicit `mise run <task>` form. Mise ships its own top-level
 `doctor` and `sync` subcommands, so a bare `mise doctor` or `mise sync` runs

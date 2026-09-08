@@ -10,7 +10,7 @@ return {
   end,
 },
 
--- Auto-install CLI tools used by Treesitter, the formatter, and the linter.
+-- Auto-install CLI tools used by Treesitter, the formatters, and the linter.
 {
   "WhoIsSethDaniel/mason-tool-installer.nvim",
   dependencies = { "williamboman/mason.nvim" },
@@ -25,10 +25,11 @@ return {
   end,
 },
 
--- Prettier formats every core language it supports. It is intentionally not
--- assigned to Lua, Python, C, or plain text because Prettier has no parser for
--- those languages. Conform prefers a project's node_modules binary and falls
--- back to Mason's installation. <leader>cf also formats selections manually.
+-- Biome formats the source languages it parses and dprint formats Markdown;
+-- the mapping and the Prettier retirement rationale live in
+-- lua/config/formatting.lua. Conform prefers a project's node_modules binary
+-- and falls back to Mason's installation. <leader>cf also formats selections
+-- manually.
 {
   "stevearc/conform.nvim",
   event = { "BufWritePre" },
@@ -42,33 +43,16 @@ return {
     },
   },
   config = function()
+    local formatting = require("config.formatting")
     require("conform").setup({
-      formatters_by_ft = {
-        css = { "prettier" },
-        graphql = { "prettier" },
-        handlebars = { "prettier" },
-        html = { "prettier" },
-        htmlangular = { "prettier" },
-        javascript = { "prettier" },
-        javascriptreact = { "prettier" },
-        json = { "prettier" },
-        jsonc = { "prettier" },
-        json5 = { "prettier" },
-        less = { "prettier" },
-        markdown = { "prettier" },
-        ["markdown.mdx"] = { "prettier" },
-        scss = { "prettier" },
-        typescript = { "prettier" },
-        typescriptreact = { "prettier" },
-        vue = { "prettier" },
-        yaml = { "prettier" },
-      },
+      formatters_by_ft = formatting.formatters_by_ft,
+      formatters = formatting.formatters,
       format_on_save = { timeout_ms = 2000, lsp_format = "never" },
     })
   end,
 },
 
--- Linting (markdownlint-cli2). Runs on read and after save, so Prettier can
+-- Linting (markdownlint-cli2). Runs on read and after save, so dprint can
 -- normalize Markdown before the linter reports layout diagnostics.
 {
   "mfussenegger/nvim-lint",
