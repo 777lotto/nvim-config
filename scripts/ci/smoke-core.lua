@@ -38,7 +38,9 @@ assert(vim.list_contains(toolchain.mason_packages, "biome"), "Biome is not provi
 assert(vim.list_contains(toolchain.mason_packages, "dprint"), "dprint is not provisioned by Mason")
 
 local bundled_dprint = formatting.bundled_dprint_config()
-assert(bundled_dprint == vim.fs.normalize(root) .. "/dprint.json", "bundled dprint config resolved to " .. bundled_dprint)
+-- CI passes "." as the root, so compare against the absolute checkout path.
+local absolute_root = vim.fs.normalize(vim.fn.fnamemodify(root, ":p"))
+assert(bundled_dprint == vim.fs.joinpath(absolute_root, "dprint.json"), "bundled dprint config resolved to " .. bundled_dprint)
 assert(vim.uv.fs_stat(bundled_dprint), "the bundled dprint.json is missing")
 local dprint_config = vim.json.decode(table.concat(vim.fn.readfile(bundled_dprint), "\n"))
 assert(dprint_config.markdown.textWrap == "maintain", "bundled dprint config must preserve authored line breaks")
