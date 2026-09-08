@@ -7,6 +7,9 @@ versioning for release organization.
 
 ### Added
 
+- `<leader>fn` now names and saves a fresh `[No Name]` buffer into the working
+  directory instead of rejecting it as "not a file", so a buffer typed into a
+  new session can be saved from the leader menu.
 - GitPanel connection profiles and diagnostics, including automatic selection
   of the credential-free Zemrip GitHub broker inside `zemrip-ai`.
 - The single `nvim-update` command and asynchronous `:NvimUpdate` entry point;
