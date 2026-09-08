@@ -21,8 +21,8 @@ Requires Neovim 0.12.2 or newer. The leader key is `<Space>`.
   which-key discovery.
 - Diagnostics shown as signs, underlines, virtual text, current-line virtual
   lines, floating detail, native location/quickfix lists, and Trouble panels.
-- Project-aware Prettier formatting through conform.nvim.
-- Markdown rendering, Marksman, Prettier, and markdownlint-cli2.
+- Project-aware Biome and dprint formatting through conform.nvim.
+- Markdown rendering, Marksman, dprint, and markdownlint-cli2.
 - A dependency-free custom
   [GitPanel](https://github.com/777lotto/git-panel.nvim) for Git workflows.
 - [Agent Manager](https://github.com/777lotto/agent-manager.nvimz) for native,
@@ -66,26 +66,29 @@ the process before this configuration loads.
 
 ## Language coverage
 
-| Language        | Structure / highlighting                         | LSP                    | Formatter / linter           |
-| --------------- | ------------------------------------------------ | ---------------------- | ---------------------------- |
-| Lua             | Treesitter                                       | `lua_ls`               | —                            |
-| JavaScript, JSX | Treesitter                                       | `ts_ls`                | Prettier                     |
-| TypeScript, TSX | Treesitter                                       | `ts_ls`                | Prettier                     |
-| HTML            | Treesitter                                       | `html`                 | Prettier                     |
-| CSS             | Treesitter                                       | `cssls`                | Prettier                     |
-| JSON, JSONC     | Treesitter                                       | `jsonls` + SchemaStore | Prettier                     |
-| Python          | Treesitter                                       | `pyright`              | —                            |
-| Markdown, MDX   | Treesitter + render-markdown                     | `marksman`             | Prettier + markdownlint-cli2 |
-| XML             | Treesitter                                       | —                      | —                            |
-| Bash / shell    | Treesitter + Mise file-task injections           | —                      | —                            |
-| TOML            | Treesitter + Mise `run` injections               | —                      | —                            |
-| KDL             | Treesitter (including embedded Mise usage specs) | —                      | —                            |
+| Language        | Structure / highlighting                         | LSP                    | Formatter / linter         |
+| --------------- | ------------------------------------------------ | ---------------------- | -------------------------- |
+| Lua             | Treesitter                                       | `lua_ls`               | —                          |
+| JavaScript, JSX | Treesitter                                       | `ts_ls`                | Biome                      |
+| TypeScript, TSX | Treesitter                                       | `ts_ls`                | Biome                      |
+| HTML            | Treesitter                                       | `html`                 | —                          |
+| CSS             | Treesitter                                       | `cssls`                | Biome                      |
+| JSON, JSONC     | Treesitter                                       | `jsonls` + SchemaStore | Biome                      |
+| Python          | Treesitter                                       | `pyright`              | —                          |
+| Markdown        | Treesitter + render-markdown                     | `marksman`             | dprint + markdownlint-cli2 |
+| MDX             | Treesitter + render-markdown                     | `marksman`             | markdownlint-cli2          |
+| XML             | Treesitter                                       | —                      | —                          |
+| Bash / shell    | Treesitter + Mise file-task injections           | —                      | —                          |
+| TOML            | Treesitter + Mise `run` injections               | —                      | —                          |
+| KDL             | Treesitter (including embedded Mise usage specs) | —                      | —                          |
 
-Prettier is also configured for JSON5, SCSS, Less, Vue, GraphQL, Handlebars,
-Angular HTML, and YAML. It is deliberately not assigned to Lua, Python, C, XML,
-or plain text because Prettier does not parse those languages. Those can receive
-their own formatters later (for example StyLua or Ruff) without changing the
-Prettier policy.
+Biome formats only the languages it parses, and dprint's Markdown plugin does
+not parse MDX. HTML, SCSS, Less, Vue, GraphQL, Handlebars, JSON5, YAML, MDX,
+Lua, Python, C, XML, and plain text therefore have no formatter. Those can
+receive their own formatters later (for example StyLua or Ruff) without
+reintroducing a general-purpose fallback. Prettier is not installed: Biome
+replaced it for source files, and dprint replaced it for Markdown because
+Prettier 3.9.1 never converges on GFM task-list continuations.
 
 ### Optional Mise highlighting
 
@@ -111,7 +114,7 @@ bootstrap or `nvim-config sync` and updated by `nvim-config sync --latest`.
 | Git and curl             | Config, lazy.nvim, Mason                         | `apt install git curl ca-certificates`                |
 | GitHub CLI (optional)    | Create and publish a remote from GitPanel        | `apt install gh`, then `gh auth login`                |
 | C compiler               | Treesitter parser builds                         | `apt install build-essential`                         |
-| Node 22+ and npm         | Web LSPs, Prettier, markdownlint                 | Node 24 LTS recommended; 22 is the CI floor           |
+| Node 22+ and npm         | Web LSPs, Biome, markdownlint                    | Node 24 LTS recommended; 22 is the CI floor           |
 | ripgrep                  | Telescope live grep                              | `apt install ripgrep`                                 |
 | Python 3.11+             | Archive verification and Python tooling          | `apt install python3`                                 |
 | Coreutils and util-linux | Atomic runtime install and serialization         | `apt install coreutils util-linux`                    |
@@ -119,7 +122,7 @@ bootstrap or `nvim-config sync` and updated by `nvim-config sync --latest`.
 | Xfce Terminal and xclip  | Client terminal and local X11 clipboard          | `apt install xfce4-terminal xclip` on the XFCE client |
 | Nerd Font                | File/type icons                                  | Configure Xfce Terminal on the client                 |
 
-Mason installs the required tree-sitter CLI, LSP servers, Prettier, and
+Mason installs the required tree-sitter CLI, LSP servers, Biome, dprint, and
 markdownlint-cli2. A C compiler is still needed to build parsers.
 
 ## Install
@@ -308,10 +311,15 @@ Diagnostics are available through several complementary views:
 
 ## Formatting
 
-conform.nvim runs Prettier on save only for filetypes mapped to Prettier.
-`<leader>cf` formats the current buffer or visual selection manually. A
-project-local `node_modules/.bin/prettier` takes precedence over Mason's
-fallback, so repositories can control their own Prettier version and config.
+conform.nvim runs Biome on save for JavaScript, TypeScript, JSON, JSONC, and
+CSS, and dprint for Markdown; nothing else formats on save. `<leader>cf`
+formats the current buffer or visual selection manually. A project-local
+`node_modules/.bin` binary takes precedence over Mason's fallback, so
+repositories control their own formatter version, and each formatter reads the
+nearest project `biome.json` or `dprint.json`. A Markdown file outside any
+dprint project is formatted with the `dprint.json` at the root of this
+repository, which mirrors the zemrip wiki settings (authored line breaks are
+preserved) and pins the same Markdown plugin release.
 
 Formatting and linting are separate: a formatter rewrites layout; a linter
 reports questionable or invalid code as diagnostics.

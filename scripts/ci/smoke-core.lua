@@ -19,6 +19,65 @@ assert(toolchain.node.recommended_major == 24, "unexpected recommended Node rele
 assert(toolchain.node.canary_major == 26, "unexpected Node canary release")
 assert(#toolchain.parsers >= 10, "Treesitter parser inventory is incomplete")
 assert(#toolchain.mason_packages >= 10, "Mason package inventory is incomplete")
+
+-- Formatter policy: Biome for source, dprint for Markdown, Prettier nowhere.
+-- Prettier 3.9.1 never converges on GFM task-list continuations, so a stray
+-- Prettier mapping would fight the account-wide dprint formatting on save.
+local formatting = require("config.formatting")
+assert(vim.deep_equal(formatting.formatters_by_ft.markdown, { "dprint" }), "Markdown must format with dprint")
+assert(formatting.formatters_by_ft["markdown.mdx"] == nil, "dprint's Markdown plugin does not parse MDX")
+for filetype, formatters in pairs(formatting.formatters_by_ft) do
+  assert(not vim.list_contains(formatters, "prettier"), "Prettier is still mapped for " .. filetype)
+end
+for _, filetype in ipairs({ "javascript", "typescript", "typescriptreact", "json", "jsonc", "css" }) do
+  assert(vim.deep_equal(formatting.formatters_by_ft[filetype], { "biome" }), filetype .. " must format with Biome")
+end
+assert(not vim.list_contains(toolchain.mason_packages, "prettier"), "Prettier is still provisioned by Mason")
+assert(not vim.list_contains(toolchain.node_backed_packages, "prettier"), "Prettier is still a Node-backed package")
+assert(vim.list_contains(toolchain.mason_packages, "biome"), "Biome is not provisioned by Mason")
+assert(vim.list_contains(toolchain.mason_packages, "dprint"), "dprint is not provisioned by Mason")
+
+local bundled_dprint = formatting.bundled_dprint_config()
+assert(bundled_dprint == vim.fs.normalize(root) .. "/dprint.json", "bundled dprint config resolved to " .. bundled_dprint)
+assert(vim.uv.fs_stat(bundled_dprint), "the bundled dprint.json is missing")
+local dprint_config = vim.json.decode(table.concat(vim.fn.readfile(bundled_dprint), "\n"))
+assert(dprint_config.markdown.textWrap == "maintain", "bundled dprint config must preserve authored line breaks")
+assert(#dprint_config.plugins == 1 and dprint_config.plugins[1]:match("^https://github.com/dprint/dprint%-plugin%-markdown/releases/download/[%d.]+/plugin%.wasm@%x+$"),
+  "bundled dprint config must pin the Markdown plugin to a GitHub release asset with a checksum")
+
+local dprint_root = vim.fn.tempname()
+vim.fn.mkdir(dprint_root .. "/notes", "p")
+vim.fn.mkdir(dprint_root .. "/project/docs", "p")
+vim.fn.writefile({ "{}" }, dprint_root .. "/project/dprint.json")
+local loose_ctx = { filename = dprint_root .. "/notes/loose.md", buf = 0 }
+assert(formatting.dprint_cwd(nil, loose_ctx) == dprint_root .. "/notes",
+  "a Markdown file outside any dprint project must format from its own directory")
+assert(vim.deep_equal(formatting.dprint_args(nil, loose_ctx), { "fmt", "--config", bundled_dprint, "--stdin", "$FILENAME" }),
+  "a Markdown file outside any dprint project must use the bundled config")
+local project_ctx = { filename = dprint_root .. "/project/docs/page.md", buf = 0 }
+assert(formatting.dprint_cwd(nil, project_ctx) == dprint_root .. "/project",
+  "a Markdown file inside a dprint project must format from the project root")
+assert(vim.deep_equal(formatting.dprint_args(nil, project_ctx), { "fmt", "--stdin", "$FILENAME" }),
+  "a Markdown file inside a dprint project must use the project's own config")
+vim.fn.delete(dprint_root, "rf")
+
+-- The conform spec must hand exactly this policy to the plugin.
+local language_specs = assert(loadfile(root .. "/lua/plugins/languages.lua"))()
+local conform_spec
+for _, spec in ipairs(language_specs) do
+  if spec[1] == "stevearc/conform.nvim" then conform_spec = spec end
+end
+assert(conform_spec, "conform.nvim plugin spec is missing")
+local conform_setup
+local original_conform = package.loaded.conform
+package.loaded.conform = { setup = function(options) conform_setup = options end }
+conform_spec.config()
+package.loaded.conform = original_conform
+assert(conform_setup and conform_setup.formatters_by_ft == formatting.formatters_by_ft,
+  "conform.nvim is not configured from config.formatting")
+assert(conform_setup.formatters.dprint.args == formatting.dprint_args
+  and conform_setup.formatters.dprint.cwd == formatting.dprint_cwd,
+  "conform.nvim lost the dprint fallback config override")
 assert(vim.list_contains(vim.treesitter.query.list_predicates(), "is-mise?"), "Mise query predicate is missing")
 
 local operations = assert(loadfile(root .. "/lua/plugins/operations.lua"))()

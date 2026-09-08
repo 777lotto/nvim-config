@@ -36,7 +36,8 @@ M.lsp_servers = {
 -- executables here lets bootstrap, interactive startup, and the updater agree.
 M.mason_packages = {
   "tree-sitter-cli",
-  "prettier",
+  "biome",
+  "dprint",
   "markdownlint-cli2",
   "lua-language-server",
   "pyright",
@@ -48,7 +49,7 @@ M.mason_packages = {
 }
 
 M.node_backed_packages = {
-  "prettier",
+  "biome",
   "markdownlint-cli2",
   "pyright",
   "typescript-language-server",
