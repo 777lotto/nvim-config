@@ -1,5 +1,22 @@
 local group = vim.api.nvim_create_augroup("UserConfig", { clear = true })
 
+-- Markdown wraps to each window's width without changing authored line breaks.
+-- Window-local options can be inherited from a different buffer when splitting
+-- or switching windows, so reapply the display policy whenever Markdown enters.
+vim.api.nvim_create_autocmd({ "FileType", "BufWinEnter", "WinEnter" }, {
+  group = group,
+  callback = function(event)
+    local bo = vim.bo[event.buf]
+    if bo.filetype ~= "markdown" and bo.filetype ~= "markdown.mdx" then return end
+
+    vim.wo.wrap = true
+    vim.wo.linebreak = true
+    vim.wo.breakindent = true
+    bo.textwidth = 0
+    bo.wrapmargin = 0
+  end,
+})
+
 -- Strip accidental trailing whitespace without destroying Markdown's intentional
 -- two-space hard line breaks.
 vim.api.nvim_create_autocmd("BufWritePre", {
