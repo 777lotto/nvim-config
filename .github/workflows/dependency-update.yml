@@ -17,6 +17,7 @@ on:
           - UX-chrome.nvim
           - UX-foundation.nvim
           - UX-styling.nvim
+          - curate-review
   repository_dispatch:
     types:
       - plugin-release
@@ -85,7 +86,7 @@ jobs:
           plugin="${INPUT_PLUGIN:-${DISPATCH_PLUGIN:-all}}"
           tag="${DISPATCH_TAG:-}"
           case "$plugin" in
-            all|agent-manager.nvimz|git-panel.nvim|mcp-buff|UX-chrome.nvim|UX-foundation.nvim|UX-styling.nvim) ;;
+            all|agent-manager.nvimz|git-panel.nvim|mcp-buff|UX-chrome.nvim|UX-foundation.nvim|UX-styling.nvim|curate-review) ;;
             *)
               echo "Unsupported dependency refresh target: $plugin" >&2
               exit 1
