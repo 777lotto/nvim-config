@@ -197,7 +197,6 @@ refreshing unpinned Mason tools and parsers without changing plugin lock policy.
 │   │   ├── autocmds.lua             # general editor automation
 │   │   ├── toolchain.lua             # compatibility and managed-tool manifest
 │   │   ├── update.lua               # asynchronous editor maintenance commands
-│   │   ├── review.lua               # zemRip checkout discovery for nvim-review
 │   │   ├── ux_baselines.lua         # exact third-party setup rollback inputs
 │   │   └── lazy.lua                 # lazy.nvim bootstrap and plugin import
 │   └── plugins/                     # lazy.nvim specs grouped by concern
@@ -210,7 +209,7 @@ refreshing unpinned Mason tools and parsers without changing plugin lock policy.
 │       ├── editing.lua
 │       ├── git.lua
 │       ├── operations.lua            # Agent Manager and MCP Buff
-│       ├── review.lua                # zemRip manual-review lanes, directory-loaded
+│       ├── review.lua                # curate-review: zemRip manual-review lanes
 │       ├── ux.lua                    # guarded Foundation/Styling/Chrome integration
 │       └── ...
 ├── docs/
@@ -421,23 +420,17 @@ runs on this Toughbook; agents in `zemrip-ai` post tickets, and the broker on
 
 - `<leader>rv` or `:Review`: open the zemRip manual-review dashboard in the
   current window; `:Review tab` and `:Review split` open it elsewhere.
-- `:ReviewSync` and `:ReviewDiff` are the command forms of the dashboard's `S`
-  and `D` keys; `:ReviewStop` shuts the backend down early.
+- `:ReviewSync` and `:ReviewDiff` run the backend's sync and diff commands;
+  `:ReviewStop` shuts the backend down early.
 
-The plugin itself (`tools/nvim-review`) ships inside the
-[zemRip](https://github.com/777lotto/zemRip) monorepo next to the review
-backend it drives, so it is loaded by directory from a local checkout rather
-than pinned in `lazy-lock.json`. `lua/config/review.lua` looks for that
-checkout at `$NVIM_ZEMRIP_ROOT`, then `~/zemrip` (the agent container), then
-`~/works/zemrip` (the operator plane), and takes the first one that carries
-the plugin. Without one the spec is disabled and the editor starts as before,
-so `nvim-update` needs no per-machine step beyond keeping the zemRip checkout
-current.
-
-`:Review` starts the review backend from that checkout root, so it works from
-any working directory. The backend needs the local Postgres mirror to be up;
-its lanes, keys, and promotion gates are documented in the plugin's own
-README inside zemRip.
+[curate-review](https://github.com/777lotto/curate-review) is the account's
+fleet plugin for zemRip's review lanes, pinned from `bluff` like the other
+plugins. It renders whatever the zemRip review backend describes over a
+versioned contract and needs a zemRip checkout to run that backend from: it
+tries `$NVIM_ZEMRIP_ROOT`, then walks upward from Neovim's working directory,
+then `~/zemrip` (the agent container) and `~/works/zemrip` (the operator
+plane). The mirror must be up; lanes, keys, and gates are documented in the
+plugin's README.
 
 ## Project search and replace
 

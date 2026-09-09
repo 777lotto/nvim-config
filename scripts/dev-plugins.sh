@@ -29,6 +29,7 @@ dev_plugins_fleet=(
   UX-foundation.nvim
   UX-styling.nvim
   UX-chrome.nvim
+  curate-review
 )
 
 log()  { printf '==> %s\n' "$*"; }

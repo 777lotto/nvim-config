@@ -7,10 +7,11 @@ versioning for release organization.
 
 ### Added
 
-- zemRip's manual-review lanes on `<leader>rv` and `:Review`. The
-  `tools/nvim-review` plugin is loaded by directory from the first zemRip
-  checkout found at `$NVIM_ZEMRIP_ROOT`, `~/zemrip`, or `~/works/zemrip`, and
-  the spec is disabled on machines without one.
+- zemRip's manual-review lanes on `<leader>rv` and `:Review`, served by the
+  `curate-review` fleet plugin pinned from `bluff`. The plugin resolves the
+  zemRip checkout its backend runs from (`$NVIM_ZEMRIP_ROOT`, an upward
+  search, `~/zemrip`, `~/works/zemrip`); this config no longer loads it by
+  directory.
 - `<leader>fn` now names and saves a fresh `[No Name]` buffer into the working
   directory instead of rejecting it as "not a file", so a buffer typed into a
   new session can be saved from the leader menu.

@@ -158,7 +158,8 @@ dev/
 ├── mcp-buff            -> ../../mcp-buff
 ├── UX-foundation.nvim  -> ../../ux-foundation
 ├── UX-styling.nvim     -> ../../ux-styling
-└── UX-chrome.nvim      -> ../../ux-chrome
+├── UX-chrome.nvim      -> ../../ux-chrome
+└── curate-review       -> ../../curate-review
 ```
 
 Directory names are lazy.nvim plugin names and are case-sensitive. Only
