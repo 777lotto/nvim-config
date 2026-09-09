@@ -121,6 +121,28 @@ local legacy_ok, legacy_message = coroutine.resume(legacy_build)
 assert(legacy_ok and tostring(legacy_message):match("predates packaged runtime"),
   "a pre-release Agent Manager pin must remain installable")
 assert(coroutine.resume(legacy_build), "legacy Agent Manager build did not finish cleanly")
+-- The packaged installer runs inside the plugin checkout; a Mise shim on PATH
+-- must not refuse that checkout's untrusted mise.toml mid-install.
+local mise_policy = require("config.mise")
+assert(mise_policy.trusted_config_paths("/lazy/agent-manager.nvimz", "")
+  == "/lazy/agent-manager.nvimz/mise.toml", "installer must trust the plugin's own mise.toml")
+assert(mise_policy.trusted_config_paths("/lazy/agent-manager.nvimz", "/elsewhere/mise.toml")
+  == "/lazy/agent-manager.nvimz/mise.toml:/elsewhere/mise.toml",
+  "installer must preserve already-trusted Mise config paths")
+local installer_dir = vim.fn.tempname()
+vim.fn.mkdir(installer_dir .. "/ops/m5-release-install", "p")
+local probe = installer_dir .. "/ops/m5-release-install/install-current.sh"
+-- /bin/sh: the Mise-free replay runs this gate with a PATH that has no env.
+vim.fn.writefile({ "#!/bin/sh", 'printf "%s" "$MISE_TRUSTED_CONFIG_PATHS"' }, probe)
+vim.fn.setfperm(probe, "rwxr-xr-x")
+local trusted_build = coroutine.create(function()
+  agent_manager.build({ dir = installer_dir, _ = {} })
+end)
+local trusted_ok, trusted_output = coroutine.resume(trusted_build)
+assert(trusted_ok and tostring(trusted_output):find(installer_dir .. "/mise.toml", 1, true),
+  "the packaged installer did not receive the plugin's mise.toml as trusted")
+assert(coroutine.resume(trusted_build), "trusted Agent Manager build did not finish cleanly")
+vim.fn.delete(installer_dir, "rf")
 for _, command in ipairs({
   "AgentManager",
   "AgentManagerStart",
@@ -171,57 +193,22 @@ local portable_options = git_panel_config.options({
 assert(portable_options.profile == nil and portable_options.merge_backend == "api",
   "portable GitPanel defaults changed unexpectedly")
 
--- zemRip's manual-review plugin is directory-loaded from a local checkout.
--- Discovery must prefer an explicit override, then the agent container clone,
--- then the operator plane, and must disable the plugin outright when no
--- checkout carries it so a machine without zemRip still starts cleanly.
-local review = require("config.review")
-local function review_runtime(present, env)
-  return {
-    env = env or {},
-    expand = function(path) return (path:gsub("^~", "/home/probe")) end,
-    readable = function(path) return present[path] == true end,
-  }
-end
-assert(vim.deep_equal(review.candidates(review_runtime({})),
-  { "/home/probe/zemrip", "/home/probe/works/zemrip" }),
-  "zemRip checkout discovery order changed unexpectedly")
-assert(review.candidates(review_runtime({}, { NVIM_ZEMRIP_ROOT = "/srv/zemrip" }))[1] == "/srv/zemrip",
-  "NVIM_ZEMRIP_ROOT must be consulted before the default checkouts")
-assert(review.candidates(review_runtime({}, { NVIM_ZEMRIP_ROOT = "" }))[1] == "/home/probe/zemrip",
-  "an empty NVIM_ZEMRIP_ROOT must be ignored")
-local operator_plane = review.locate(review_runtime({
-  ["/home/probe/works/zemrip/tools/nvim-review/lua/review/init.lua"] = true,
-}))
-assert(operator_plane and operator_plane.root == "/home/probe/works/zemrip"
-  and operator_plane.plugin_dir == "/home/probe/works/zemrip/tools/nvim-review",
-  "the operator plane checkout was not located")
-assert(review.locate(review_runtime({ ["/home/probe/zemrip/pnpm-workspace.yaml"] = true })) == nil,
-  "a zemRip checkout without tools/nvim-review must not be selected")
-
-local review_present = review.spec(review_runtime({
-  ["/home/probe/zemrip/tools/nvim-review/lua/review/init.lua"] = true,
-  ["/home/probe/works/zemrip/tools/nvim-review/lua/review/init.lua"] = true,
-}))
-assert(review_present.enabled == true, "a located nvim-review checkout must be enabled")
-assert(review_present.dir == "/home/probe/zemrip/tools/nvim-review", "nvim-review must load from the preferred checkout")
-assert(review_present.name == "nvim-review" and review_present.main == "review", "nvim-review setup module is incorrect")
-assert(review_present.opts.cwd == "/home/probe/zemrip", "the review backend must resolve from the located checkout root")
-for _, command in ipairs({ "Review", "ReviewSync", "ReviewDiff", "ReviewStop" }) do
-  assert(vim.list_contains(review_present.cmd, command), command .. " is not lazy-loadable")
-end
-assert(vim.deep_equal(review_present.keys, {
-  { "<leader>rv", "<cmd>Review<cr>", desc = "Review dashboard" },
-}), "nvim-review shortcuts changed unexpectedly")
-local review_absent = review.spec(review_runtime({}))
-assert(review_absent.enabled == false, "a machine without a zemRip checkout must not try to load nvim-review")
-assert(type(review_absent.dir) == "string" and review_absent.dir ~= "", "a disabled nvim-review spec still needs a directory")
-assert(review_absent.opts.cwd == nil, "a disabled nvim-review spec must not invent a backend root")
+-- zemRip's manual-review lanes come from the curate-review fleet plugin. The
+-- plugin itself resolves the zemRip checkout its backend runs from, so the
+-- spec is a plain bluff pin like every other account plugin.
 local review_specs = assert(loadfile(root .. "/lua/plugins/review.lua"))()
-assert(#review_specs == 1 and review_specs[1].name == "nvim-review" and review_specs[1].main == "review",
-  "lua/plugins/review.lua does not hand config.review's spec to lazy.nvim")
-local committed_lock = vim.json.decode(table.concat(vim.fn.readfile(root .. "/lazy-lock.json"), "\n"))
-assert(committed_lock["nvim-review"] == nil, "a directory-loaded plugin must never gain a lockfile pin")
+local curate_review = assert(review_specs[1], "curate-review plugin spec is missing")
+assert(curate_review[1] == "777lotto/curate-review", "unexpected curate-review repository")
+assert(curate_review.branch == "bluff", "curate-review must consume the account default branch")
+assert(curate_review.main == "curate_review", "curate-review setup module is incorrect")
+for _, command in ipairs({ "Review", "ReviewSync", "ReviewDiff", "ReviewStop" }) do
+  assert(vim.list_contains(curate_review.cmd, command), command .. " is not lazy-loadable")
+end
+assert(vim.deep_equal(curate_review.keys, {
+  { "<leader>rv", "<cmd>Review<cr>", desc = "Review dashboard" },
+}), "curate-review shortcuts changed unexpectedly")
+assert(curate_review.opts.cwd == nil, "checkout discovery belongs to the plugin, not this config")
+assert(curate_review.dir == nil, "curate-review is a lockfile pin, not a directory-loaded plugin")
 local ui_source = table.concat(vim.fn.readfile(root .. "/lua/plugins/ui.lua"), "\n")
 assert(ui_source:find('{ "<leader>r", group = "(r)eview" }', 1, true), "which-key is missing the (r)eview group")
 
@@ -333,6 +320,7 @@ for _, name in ipairs({
   "UX-foundation.nvim",
   "UX-styling.nvim",
   "UX-chrome.nvim",
+  "curate-review",
 }) do
   local pin = assert(lock[name], "account plugin lock is missing " .. name)
   assert(pin.branch == "bluff", name .. " lock pin must target bluff")

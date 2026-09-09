@@ -43,6 +43,7 @@ nvim_config_fleet=(
   UX-foundation.nvim
   UX-styling.nvim
   UX-chrome.nvim
+  curate-review
 )
 nvim_config_agent_manager_publisher=
 
