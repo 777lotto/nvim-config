@@ -243,7 +243,7 @@ and `t` is left unused while `T` owns terminals.
 
 | Prefix      | which-key label | Scope                                                  |
 | ----------- | --------------- | ------------------------------------------------------ |
-| `<leader>a` | `(a)gent`       | Agent sessions and brokered review                     |
+| `<leader>a` | `(a)gent`       | Agent sessions, brokered review, and curation          |
 | `<leader>b` | `(b)uffer`      | Buffer bar creation, selection, movement, and deletion |
 | `<leader>c` | `(c)ode`        | Code actions, formatting, and rendered Markdown        |
 | `<leader>d` | `(d)iagnostic`  | Diagnostic and TODO views                              |
@@ -252,7 +252,6 @@ and `t` is left unused while `T` owns terminals.
 | `<leader>g` | `(g)it`         | GitPanel plus branch, commit, and status pickers       |
 | `<leader>n` | `(n)avigate`    | Lines, paragraphs, brackets, and jump history          |
 | `<leader>q` | `(q)uit`        | Quit the current window or all windows                 |
-| `<leader>r` | `(r)eview`      | zemRip manual-review lanes from a local checkout       |
 | `<leader>s` | `(s)earch`      | Buffer, help, keymap, TODO, and workspace search       |
 | `<leader>w` | `(w)ord`        | Word occurrences, selection, case, and symbol rename   |
 | `<leader>S` | `(S)ession`     | Restore or suppress persistence sessions               |
@@ -260,7 +259,8 @@ and `t` is left unused while `T` owns terminals.
 | `<leader>W` | `(W)indow`      | Split, focus, close, equalize, and maximize windows    |
 
 Agent Manager opens directly on `<leader>am`; its remaining actions live inside
-the workspace. `<leader>ar` is reserved for the brokered MCP Buff review panel.
+the workspace. `<leader>ar` opens MCP Buff; `<leader>av` opens the zemRip
+curation review workspace.
 
 The most frequently used file and agent mappings are:
 
@@ -268,7 +268,7 @@ The most frequently used file and agent mappings are:
 | ------------ | ----------------------------------------------------------------------------------------------------------------- |
 | `<leader>am` | Open Agent Manager                                                                                                |
 | `<leader>ar` | Open MCP Buff                                                                                                     |
-| `<leader>rv` | Open the zemRip review dashboard                                                                                  |
+| `<leader>av` | Open the zemRip review dashboard                                                                                  |
 | `<leader>fe` | Toggle the file explorer                                                                                          |
 | `<leader>ff` | Find files                                                                                                        |
 | `<leader>fh` | Open undo history                                                                                                 |
@@ -425,7 +425,7 @@ runs on this Toughbook; agents in `zemrip-ai` post tickets, and the broker on
 
 ## Manual review lanes
 
-- `<leader>rv` or `:Review`: open the zemRip manual-review dashboard in the
+- `<leader>av` or `:Review`: open the zemRip manual-review dashboard in the
   current window; `:Review tab` and `:Review split` open it elsewhere.
 - `:ReviewSync` and `:ReviewDiff` run the backend's sync and diff commands;
   `:ReviewStop` shuts the backend down early.

@@ -7,7 +7,7 @@ versioning for release organization.
 
 ### Added
 
-- zemRip's manual-review lanes on `<leader>rv` and `:Review`, served by the
+- zemRip's manual-review lanes on `<leader>av` and `:Review`, served by the
   `curate-review` fleet plugin pinned from `bluff`. The plugin resolves the
   zemRip checkout its backend runs from (`$NVIM_ZEMRIP_ROOT`, an upward
   search, `~/zemrip`, `~/works/zemrip`); this config no longer loads it by
@@ -68,6 +68,10 @@ versioning for release organization.
   `mise.toml` for that one process instead of reporting a missing Python.
 
 ### Changed
+
+- Curate Review now opens on `<leader>av` under `(a)gent`, alongside Agent
+  Manager and MCP Buff. The former `<leader>rv` launcher and empty `(r)eview`
+  group are removed.
 
 - Formatting no longer uses Prettier. Biome formats JavaScript, TypeScript,
   JSON, JSONC, and CSS, matching the account-wide Biome policy, and dprint

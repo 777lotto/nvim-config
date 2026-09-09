@@ -205,12 +205,13 @@ for _, command in ipairs({ "Review", "ReviewSync", "ReviewDiff", "ReviewStop" })
   assert(vim.list_contains(curate_review.cmd, command), command .. " is not lazy-loadable")
 end
 assert(vim.deep_equal(curate_review.keys, {
-  { "<leader>rv", "<cmd>Review<cr>", desc = "Review dashboard" },
+  { "<leader>av", "<cmd>Review<cr>", desc = "Review dashboard" },
 }), "curate-review shortcuts changed unexpectedly")
 assert(curate_review.opts.cwd == nil, "checkout discovery belongs to the plugin, not this config")
 assert(curate_review.dir == nil, "curate-review is a lockfile pin, not a directory-loaded plugin")
 local ui_source = table.concat(vim.fn.readfile(root .. "/lua/plugins/ui.lua"), "\n")
-assert(ui_source:find('{ "<leader>r", group = "(r)eview" }', 1, true), "which-key is missing the (r)eview group")
+assert(ui_source:find('{ "<leader>a", group = "(a)gent" }', 1, true), "which-key is missing the (a)gent group")
+assert(not ui_source:find('{ "<leader>r",', 1, true), "retired review group remains")
 
 -- Which lockfile a session may write. An editing session must never be handed
 -- the committed one: lazy.nvim rewrites it from the resolved plugin
