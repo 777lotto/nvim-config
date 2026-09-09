@@ -121,6 +121,28 @@ local legacy_ok, legacy_message = coroutine.resume(legacy_build)
 assert(legacy_ok and tostring(legacy_message):match("predates packaged runtime"),
   "a pre-release Agent Manager pin must remain installable")
 assert(coroutine.resume(legacy_build), "legacy Agent Manager build did not finish cleanly")
+-- The packaged installer runs inside the plugin checkout; a Mise shim on PATH
+-- must not refuse that checkout's untrusted mise.toml mid-install.
+local mise_policy = require("config.mise")
+assert(mise_policy.trusted_config_paths("/lazy/agent-manager.nvimz", "")
+  == "/lazy/agent-manager.nvimz/mise.toml", "installer must trust the plugin's own mise.toml")
+assert(mise_policy.trusted_config_paths("/lazy/agent-manager.nvimz", "/elsewhere/mise.toml")
+  == "/lazy/agent-manager.nvimz/mise.toml:/elsewhere/mise.toml",
+  "installer must preserve already-trusted Mise config paths")
+local installer_dir = vim.fn.tempname()
+vim.fn.mkdir(installer_dir .. "/ops/m5-release-install", "p")
+local probe = installer_dir .. "/ops/m5-release-install/install-current.sh"
+-- /bin/sh: the Mise-free replay runs this gate with a PATH that has no env.
+vim.fn.writefile({ "#!/bin/sh", 'printf "%s" "$MISE_TRUSTED_CONFIG_PATHS"' }, probe)
+vim.fn.setfperm(probe, "rwxr-xr-x")
+local trusted_build = coroutine.create(function()
+  agent_manager.build({ dir = installer_dir, _ = {} })
+end)
+local trusted_ok, trusted_output = coroutine.resume(trusted_build)
+assert(trusted_ok and tostring(trusted_output):find(installer_dir .. "/mise.toml", 1, true),
+  "the packaged installer did not receive the plugin's mise.toml as trusted")
+assert(coroutine.resume(trusted_build), "trusted Agent Manager build did not finish cleanly")
+vim.fn.delete(installer_dir, "rf")
 for _, command in ipairs({
   "AgentManager",
   "AgentManagerStart",

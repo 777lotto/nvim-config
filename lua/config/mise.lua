@@ -48,4 +48,21 @@ function M.setup()
   end, { force = true })
 end
 
+--- The MISE_TRUSTED_CONFIG_PATHS value that trusts one checkout's own
+--- mise.toml for a child process while preserving whatever the environment
+--- already trusts. Used when this config runs a pinned plugin's installer
+--- inside that plugin's directory, where a Mise shim on PATH would otherwise
+--- refuse the untrusted config and the installer would misreport a missing
+--- tool.
+function M.trusted_config_paths(dir, existing)
+  if existing == nil then
+    existing = vim.env.MISE_TRUSTED_CONFIG_PATHS
+  end
+  local trusted = dir .. "/mise.toml"
+  if type(existing) == "string" and existing ~= "" then
+    return trusted .. ":" .. existing
+  end
+  return trusted
+end
+
 return M

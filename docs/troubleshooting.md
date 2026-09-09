@@ -71,6 +71,19 @@ mismatch message names the backend and plugin versions; update whichever is
 behind. If the backend does not become ready, the local Postgres mirror is not
 running: bring it up from the zemRip checkout (`apps/local/db/db.sh status`).
 
+## Agent Manager build reports a missing Python during `nvim-update`
+
+`nvim-update` rebuilds the packaged Agent Manager runtime whenever plugin
+specs change. If the log shows `mise ERROR ... are not trusted` followed by
+`FAIL Python 3.11 or newer is required`, `python3` on `PATH` is a Mise shim and
+Mise refused to run inside the plugin checkout because that checkout's
+`mise.toml` was untrusted. The config now trusts the pinned checkout's own
+`mise.toml` for the installer process, so rerun `nvim-update` (or
+`nvim-config sync`). On an older config, `mise trust
+~/.local/share/nvim/lazy/agent-manager.nvimz/mise.toml` has the same effect.
+`nvim-config doctor` reporting the runtime as available means the previously
+installed release is still in place; the failure only concerned the rebuild.
+
 ## Configuration update is refused
 
 Run `nvim-config doctor` first. `nvim-update` deliberately stops when the

@@ -61,6 +61,12 @@ versioning for release organization.
 - Safe current-file rename on `<leader>fn` and focused buffer, search, Git,
   terminal, and window helpers.
 
+### Fixed
+
+- The packaged Agent Manager installer no longer fails on machines where
+  `python3` is a Mise shim: the build trusts the pinned checkout's own
+  `mise.toml` for that one process instead of reporting a missing Python.
+
 ### Changed
 
 - Formatting no longer uses Prettier. Biome formats JavaScript, TypeScript,
