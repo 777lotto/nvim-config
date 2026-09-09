@@ -10,7 +10,19 @@ local function install_agent_manager_runtime(plugin)
     return
   end
 
-  local result = vim.system({ installer }, { cwd = plugin.dir, text = true }):wait()
+  -- The installer runs inside the plugin checkout, whose own mise.toml is
+  -- untrusted on a fresh machine. When python3 or another tool on PATH is a
+  -- Mise shim, that untrusted config makes the shim refuse to run and the
+  -- installer reports a missing Python instead. Trusting the pinned
+  -- checkout's config for this one process adds no capability: Lazy is
+  -- already executing that checkout's installer script.
+  local result = vim.system({ installer }, {
+    cwd = plugin.dir,
+    text = true,
+    env = {
+      MISE_TRUSTED_CONFIG_PATHS = require("config.mise").trusted_config_paths(plugin.dir),
+    },
+  }):wait()
   local output = vim.trim(table.concat({ result.stdout or "", result.stderr or "" }, "\n"))
   if output ~= "" then coroutine.yield(output) end
   if result.code ~= 0 then
