@@ -327,6 +327,13 @@ preserved) and pins the same Markdown plugin release.
 Formatting and linting are separate: a formatter rewrites layout; a linter
 reports questionable or invalid code as diagnostics.
 
+Markdown visually wraps at word boundaries to fit each window or split. Opening
+or entering a Markdown window reapplies wrapping, and automatic hard wrapping
+is disabled so typing does not insert newlines at a fixed column. dprint keeps
+authored line breaks with `textWrap: "maintain"`. Neovim suppresses markdownlint's
+`MD013` source-line-length diagnostics, including when a project enables that
+rule; other Markdown diagnostics and the project's CLI/CI lint rules still apply.
+
 ## Sessions and quitting
 
 The `persistence.nvim` session commands remember the working directory, open

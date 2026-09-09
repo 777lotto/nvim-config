@@ -59,6 +59,16 @@ return {
   event = { "BufReadPre", "BufNewFile" },
   config = function()
     local lint = require("lint")
+    -- dprint preserves authored line breaks; windows handle visual wrapping.
+    -- Suppress only MD013 in the editor, preserving every project's other lint
+    -- rules. This also works outside this repository and with project configs
+    -- that explicitly enforce source line lengths for CI.
+    lint.linters["markdownlint-cli2"] = require("lint.util").wrap(lint.linters["markdownlint-cli2"], function(diagnostic)
+      -- CLI2 versions emit either "MD013/..." or "error MD013/...".
+      local rule = diagnostic.message:match("^(MD%d+)/")
+        or diagnostic.message:match("^%a+ (MD%d+)/")
+      if rule ~= "MD013" then return diagnostic end
+    end)
     lint.linters_by_ft = {
       markdown = { "markdownlint-cli2" },
     }
