@@ -71,7 +71,6 @@ return {
       { "<leader>g", group = "(g)it" },
       { "<leader>n", group = "(n)avigate", mode = { "n", "x" } },
       { "<leader>q", group = "(q)uit" },
-      { "<leader>r", group = "(r)eview" },
       { "<leader>s", group = "(s)earch", mode = { "n", "x" } },
       { "<leader>w", group = "(w)ord", mode = { "n", "x" } },
       { "<leader>S", group = "(S)ession" },

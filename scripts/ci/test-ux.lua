@@ -35,12 +35,13 @@ end
 for lhs, description in pairs({
   ["<leader>am"] = "Agent Manager",
   ["<leader>ar"] = "MCP Buff review",
+  ["<leader>av"] = "Review dashboard",
 }) do
   local mapping = vim.fn.maparg(lhs, "n", false, true)
   assert(mapping.lhs and mapping.desc == description, lhs .. " is not registered correctly")
 end
-for _, lhs in ipairs({ "<leader>amm", "<leader>amc", "<leader>ams" }) do
-  assert(vim.fn.maparg(lhs, "n") == "", "retired Agent Manager shortcut remains: " .. lhs)
+for _, lhs in ipairs({ "<leader>amm", "<leader>amc", "<leader>ams", "<leader>rv" }) do
+  assert(vim.fn.maparg(lhs, "n") == "", "retired shortcut remains: " .. lhs)
 end
 
 local mcp_panel = require("mcp_buff")

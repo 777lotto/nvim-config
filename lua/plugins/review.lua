@@ -9,7 +9,7 @@ return {
     main = "curate_review",
     cmd = { "Review", "ReviewSync", "ReviewDiff", "ReviewStop" },
     keys = {
-      { "<leader>rv", "<cmd>Review<cr>", desc = "Review dashboard" },
+      { "<leader>av", "<cmd>Review<cr>", desc = "Review dashboard" },
     },
     opts = {
       open = "buffer",
