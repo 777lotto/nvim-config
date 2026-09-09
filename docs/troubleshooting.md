@@ -57,6 +57,22 @@ The shortcut is `<leader>am` for the workspace. Start Codex and enter prompts
 inside Agent Manager; opening the workspace and starting a provider are
 non-spending, while submitting a prompt starts a live model turn.
 
+## `:Review` is not an editor command
+
+`:Review`, `:ReviewSync`, `:ReviewDiff`, and `:ReviewStop` come from zemRip's
+in-repo `tools/nvim-review` plugin, which this config loads by directory from
+a local zemRip checkout. `E492: Not an editor command: Review` means no
+checkout was found at startup. The lookup order is `$NVIM_ZEMRIP_ROOT`, then
+`~/zemrip`, then `~/works/zemrip`; the checkout must contain
+`tools/nvim-review/lua/review/init.lua`, so a clone that predates the plugin
+is skipped. Point `NVIM_ZEMRIP_ROOT` at the repository root (not the plugin
+directory) when the checkout lives elsewhere, then restart Neovim. `:Lazy`
+lists the plugin as `nvim-review`.
+
+If the command exists but `:Review` reports that the backend did not become
+ready, the local Postgres mirror is not running; bring it up from the zemRip
+checkout (`apps/local/db/db.sh status`) before retrying.
+
 ## Configuration update is refused
 
 Run `nvim-config doctor` first. `nvim-update` deliberately stops when the

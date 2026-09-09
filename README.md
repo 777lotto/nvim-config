@@ -197,6 +197,7 @@ refreshing unpinned Mason tools and parsers without changing plugin lock policy.
 │   │   ├── autocmds.lua             # general editor automation
 │   │   ├── toolchain.lua             # compatibility and managed-tool manifest
 │   │   ├── update.lua               # asynchronous editor maintenance commands
+│   │   ├── review.lua               # zemRip checkout discovery for nvim-review
 │   │   ├── ux_baselines.lua         # exact third-party setup rollback inputs
 │   │   └── lazy.lua                 # lazy.nvim bootstrap and plugin import
 │   └── plugins/                     # lazy.nvim specs grouped by concern
@@ -209,6 +210,7 @@ refreshing unpinned Mason tools and parsers without changing plugin lock policy.
 │       ├── editing.lua
 │       ├── git.lua
 │       ├── operations.lua            # Agent Manager and MCP Buff
+│       ├── review.lua                # zemRip manual-review lanes, directory-loaded
 │       ├── ux.lua                    # guarded Foundation/Styling/Chrome integration
 │       └── ...
 ├── docs/
@@ -251,6 +253,7 @@ and `t` is left unused while `T` owns terminals.
 | `<leader>g` | `(g)it`         | GitPanel plus branch, commit, and status pickers       |
 | `<leader>n` | `(n)avigate`    | Lines, paragraphs, brackets, and jump history          |
 | `<leader>q` | `(q)uit`        | Quit the current window or all windows                 |
+| `<leader>r` | `(r)eview`      | zemRip manual-review lanes from a local checkout       |
 | `<leader>s` | `(s)earch`      | Buffer, help, keymap, TODO, and workspace search       |
 | `<leader>w` | `(w)ord`        | Word occurrences, selection, case, and symbol rename   |
 | `<leader>S` | `(S)ession`     | Restore or suppress persistence sessions               |
@@ -262,19 +265,20 @@ the workspace. `<leader>ar` is reserved for the brokered MCP Buff review panel.
 
 The most frequently used file and agent mappings are:
 
-| Key          | Action                                                                        |
-| ------------ | ----------------------------------------------------------------------------- |
-| `<leader>am` | Open Agent Manager                                                            |
-| `<leader>ar` | Open MCP Buff                                                                 |
-| `<leader>fe` | Toggle the file explorer                                                      |
-| `<leader>ff` | Find files                                                                    |
-| `<leader>fh` | Open undo history                                                             |
+| Key          | Action                                                                                                            |
+| ------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `<leader>am` | Open Agent Manager                                                                                                |
+| `<leader>ar` | Open MCP Buff                                                                                                     |
+| `<leader>rv` | Open the zemRip review dashboard                                                                                  |
+| `<leader>fe` | Toggle the file explorer                                                                                          |
+| `<leader>ff` | Find files                                                                                                        |
+| `<leader>fh` | Open undo history                                                                                                 |
 | `<leader>fn` | Name and save an unnamed buffer, or rename the current file after checking for unsaved changes and name conflicts |
-| `<leader>fo` | Open a recent file                                                            |
-| `<leader>fr` | Redo                                                                          |
-| `<leader>fs` | Save the current file                                                         |
-| `<leader>fu` | Undo                                                                          |
-| `<leader>fS` | Save all files                                                                |
+| `<leader>fo` | Open a recent file                                                                                                |
+| `<leader>fr` | Redo                                                                                                              |
+| `<leader>fs` | Save the current file                                                                                             |
+| `<leader>fu` | Undo                                                                                                              |
+| `<leader>fS` | Save all files                                                                                                    |
 
 The bufferline across the top is a buffer bar, not native Neovim tabs.
 All of its leader mappings therefore live under `b`:
@@ -412,6 +416,28 @@ WireGuard is an always-on prerequisite managed outside Neovim. MCP Buff neither
 changes it nor falls back to `zemrip-server-lan`. The approval UI therefore
 runs on this Toughbook; agents in `zemrip-ai` post tickets, and the broker on
 `zemrip-server` executes only a locally reviewed decision.
+
+## Manual review lanes
+
+- `<leader>rv` or `:Review`: open the zemRip manual-review dashboard in the
+  current window; `:Review tab` and `:Review split` open it elsewhere.
+- `:ReviewSync` and `:ReviewDiff` are the command forms of the dashboard's `S`
+  and `D` keys; `:ReviewStop` shuts the backend down early.
+
+The plugin itself (`tools/nvim-review`) ships inside the
+[zemRip](https://github.com/777lotto/zemRip) monorepo next to the review
+backend it drives, so it is loaded by directory from a local checkout rather
+than pinned in `lazy-lock.json`. `lua/config/review.lua` looks for that
+checkout at `$NVIM_ZEMRIP_ROOT`, then `~/zemrip` (the agent container), then
+`~/works/zemrip` (the operator plane), and takes the first one that carries
+the plugin. Without one the spec is disabled and the editor starts as before,
+so `nvim-update` needs no per-machine step beyond keeping the zemRip checkout
+current.
+
+`:Review` starts the review backend from that checkout root, so it works from
+any working directory. The backend needs the local Postgres mirror to be up;
+its lanes, keys, and promotion gates are documented in the plugin's own
+README inside zemRip.
 
 ## Project search and replace
 
