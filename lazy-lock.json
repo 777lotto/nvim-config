@@ -13,7 +13,7 @@
   "cmp-path": { "branch": "main", "commit": "c642487086dbd9a93160e1679a1327be111cbc25" },
   "cmp_luasnip": { "branch": "master", "commit": "98d9cb5c2c38532bd9bdb481067b20fea8f32e90" },
   "conform.nvim": { "branch": "master", "commit": "016802de402556da54c36bd7359b441266b01cdd" },
-  "curate-review": { "branch": "bluff", "commit": "5d724397f80c415e61e2e5e56da80c2516e08101" },
+  "curate-review": { "branch": "bluff", "commit": "4b4f1ee4bef7f3daf0bebfceabde27c4ed951e4d" },
   "flash.nvim": { "branch": "main", "commit": "5f0f270fdc7c5b0c21d903ee85b9cb06f2ac636a" },
   "git-panel.nvim": { "branch": "bluff", "commit": "2b4a4f30b0077f0b7d90e02fbff9fb8fb5c35478" },
   "indent-blankline.nvim": { "branch": "master", "commit": "f1e186e44d3b7f9ae918008e2c28ce37c6023d2d" },
