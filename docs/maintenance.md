@@ -157,7 +157,8 @@ so Mason resolves the latest registry release when `MasonToolsUpdateSync` runs.
 `.github/workflows/dependency-update.yml` runs weekly and can receive a
 `plugin-release` repository dispatch from any account-owned plugin. The payload
 names exactly one of `agent-manager.nvimz`, `git-panel.nvim`, `mcp-buff`,
-`UX-chrome.nvim`, `UX-foundation.nvim`, or `UX-styling.nvim` and includes the
+`UX-chrome.nvim`, `UX-foundation.nvim`, `UX-styling.nvim`, or `curate-review`
+and includes the
 full tagged commit. The workflow proves that commit is reachable from the
 plugin's `bluff` branch, changes only that lock entry, and records the request
 in its pull-request body. Agent Manager advances only through this published
