@@ -4,7 +4,6 @@ set -euo pipefail
 root="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)}"
 export GH_TOKEN=fixture GITHUB_REPOSITORY=fixture/config
 export TESTED_COMMIT=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-export REFRESH_BRANCH=agent/dependency-refresh-mcp-buff
 
 # Mock the API boundary; the production script runs unchanged and cannot
 # contact GitHub. No credentials or repository mutations are involved.
@@ -65,23 +64,39 @@ gh() {
 }
 export -f gh
 
-for SCENARIO in clean stale behind extra_file branch_change invalid_pin dropped_pin protected; do
-  export SCENARIO
-  status=0
-  output="$(bash "$root/scripts/ci/merge-dependencies.sh" 2>&1)" || status=$?
-  case "$SCENARIO" in
-    clean) [[ "$status" == 0 && "$output" == *'Merged dependency PR'* ]] ;;
-    stale) [[ "$status" == 0 && "$output" == *'nothing to merge'* ]] ;;
-    behind) [[ "$status" == 0 && "$output" == *'waiting for its new CI run'* ]] ;;
-    *) [[ "$status" != 0 && "$output" != *'Merged dependency PR'* ]] ;;
-  esac
+# Exercise every publisher accepted by dependency-update.yml, the scheduled
+# refresh, and the legacy branch. A single-plugin fixture missed curate-review
+# being accepted by refresh but rejected by merge (PR #68).
+for target in curate-review agent-manager.nvimz git-panel.nvim mcp-buff \
+  UX-chrome.nvim UX-foundation.nvim UX-styling.nvim all ''; do
+  export REFRESH_BRANCH="agent/dependency-refresh${target:+-$target}"
+  for SCENARIO in clean stale behind extra_file branch_change invalid_pin dropped_pin protected; do
+    export SCENARIO
+    status=0
+    output="$(bash "$root/scripts/ci/merge-dependencies.sh" 2>&1)" || status=$?
+    if case "$SCENARIO" in
+      clean) [[ "$status" == 0 && "$output" == *'Merged dependency PR'* ]] ;;
+      stale) [[ "$status" == 0 && "$output" == *'nothing to merge'* ]] ;;
+      behind) [[ "$status" == 0 && "$output" == *'waiting for its new CI run'* ]] ;;
+      *) [[ "$status" != 0 && "$output" != *'Merged dependency PR'* ]] ;;
+    esac; then
+      continue
+    fi
+    printf 'Dependency merge fixture failed: %s (%s, exit %s)\n%s\n' \
+      "$REFRESH_BRANCH" "$SCENARIO" "$status" "$output" >&2
+    exit 1
+  done
 done
+export SCENARIO=clean
 if GH_TOKEN='' bash "$root/scripts/ci/merge-dependencies.sh" >/dev/null 2>&1; then
   echo "Missing credential was accepted" >&2
   exit 1
 fi
-if REFRESH_BRANCH=agent/dependency-refresh-untrusted bash "$root/scripts/ci/merge-dependencies.sh" >/dev/null 2>&1; then
-  echo "Unknown refresh branch was accepted" >&2
-  exit 1
-fi
+for REFRESH_BRANCH in agent/dependency-refresh-untrusted \
+  agent/dependency-refresh-curate-review-untrusted agent/dependency-refresh-curate-review/untrusted; do
+  if bash "$root/scripts/ci/merge-dependencies.sh" >/dev/null 2>&1; then
+    echo "Unknown refresh branch was accepted: $REFRESH_BRANCH" >&2
+    exit 1
+  fi
+done
 echo "Dependency merge API fixtures passed"

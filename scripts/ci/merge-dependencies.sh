@@ -10,7 +10,8 @@ case "$REFRESH_BRANCH" in
   agent/dependency-refresh|agent/dependency-refresh-all|\
   agent/dependency-refresh-agent-manager.nvimz|agent/dependency-refresh-git-panel.nvim|\
   agent/dependency-refresh-mcp-buff|agent/dependency-refresh-UX-chrome.nvim|\
-  agent/dependency-refresh-UX-foundation.nvim|agent/dependency-refresh-UX-styling.nvim) ;;
+  agent/dependency-refresh-UX-foundation.nvim|agent/dependency-refresh-UX-styling.nvim|\
+  agent/dependency-refresh-curate-review) ;;
   *) echo "Not an approved dependency refresh branch." >&2; exit 1 ;;
 esac
 
