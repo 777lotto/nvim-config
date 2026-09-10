@@ -181,6 +181,11 @@ existing branch protections. A behind branch is updated and must pass fresh CI.
 Other PRs are unaffected. This automatically adopts tested plugin updates; it
 does not publish an ordinary nvim-config Release.
 
+The workflow calls the merge API after CI succeeds, so GitHub's repository
+setting **Allow auto-merge** is not required. When adding a refresh target,
+update the branch allowlist in `scripts/ci/merge-dependencies.sh` and the
+publisher fixtures in `scripts/ci/test-merge-dependencies.sh` together.
+
 Each plugin has its own refresh branch and concurrency group so simultaneous
 releases cannot overwrite each other on a shared pending dependency PR.
 

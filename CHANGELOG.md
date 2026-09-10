@@ -63,6 +63,9 @@ versioning for release organization.
 
 ### Fixed
 
+- Automated `curate-review` dependency PRs now pass the merge allowlist and
+  merge after the full CI workflow succeeds. Merge-policy fixtures cover every
+  supported publisher, including stale heads and rejected lockfile changes.
 - The packaged Agent Manager installer no longer fails on machines where
   `python3` is a Mise shim: the build trusts the pinned checkout's own
   `mise.toml` for that one process instead of reporting a missing Python.
