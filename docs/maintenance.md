@@ -226,3 +226,24 @@ The `zemrip-server` SSH alias is the WireGuard route and is maintained outside
 this repository. WireGuard is expected to remain active; the plugin does not
 start, stop, or reconfigure it, and must never fall back to
 `zemrip-server-lan`.
+
+## Mirror boundary
+
+The nvim-dbee spec connects only to the zemRip mirror, as `neondb_owner` on
+`neondb`, through a URL that carries no credential: the mirror's Unix socket
+directly on zemrip-server, the operator's grant on `127.0.0.1:55432` inside
+`zemrip-ai`, or a panel-scoped forward on `127.0.0.1:55433` from the Toughbook.
+The forward is a no-shell SSH child through the WireGuard `zemrip-server`
+alias to `/run/zemrip/mirror/.s.PGSQL.5432`; sshd opens the socket as `zed`,
+whose `zemrip-mirror` group membership is the whole access control. It is
+created when the panel opens, terminated when the panel closes or Neovim
+exits, refuses an already-occupied local port, and must never fall back to
+`zemrip-server-lan` or bind anything but loopback.
+
+The pin is a third-party plugin on its own default branch (`master`), so the
+dependency-refresh workflow floats it like any other non-account plugin. Its Go
+backend is downloaded by the spec's synchronous build from the pinned commit's
+install manifest — dbee's own `install()` is fire-and-forget and a headless
+`Lazy! restore` would exit before it finished — and stamped with the manifest
+version under `~/.local/share/nvim/dbee/bin`, so a pin that does not move the
+manifest is a no-op on the next sync.

@@ -41,6 +41,40 @@ agent are available. Closing the panel with `q` or `:close` should remove both
 local listeners; an in-flight decision keeps only its broker's listener until
 outcome resolution finishes.
 
+## The mirror panel cannot reach the database
+
+Run `:MirrorStatus` first. It names the plane this session detected
+(`socket` on zemrip-server, `grant` inside `zemrip-ai`, `tunnel` elsewhere),
+the connection target, the forward state, and whether the dbee backend binary
+is installed. `NVIM_MIRROR_PLANE=socket|grant|tunnel` forces a plane for one
+launch when detection is wrong.
+
+- **"nvim-dbee is not installed"** or **Backend: missing** — run
+  `nvim-config sync` (or `nvim-update`); the backend is downloaded during the
+  plugin's build step, synchronously, from dbee's install manifest.
+- **"mirror-db is down"** on zemrip-server — the socket directory exists but
+  the unit is not running: `sudo -iu zemrip-infra systemctl --user start
+  mirror-db`.
+- **"no mirror grant on 127.0.0.1:55432"** inside `zemrip-ai` — the operator's
+  attended `apps/local/db/agent-mirror-grant.sh` is not running on the host.
+  The container never opens its own route to the mirror.
+- **"127.0.0.1:55433 already has a listener"** on the Toughbook — a stale
+  manual `ssh -L` or a `db.sh studio` bridge holds the port. Stop it and
+  retry; the panel refuses to send a trust-authenticated session through a
+  process it did not create.
+- **"the mirror SSH forward could not start"** — the message carries ssh's
+  own stderr. A network-unreachable error means the WireGuard route or the
+  `zemrip-server` alias, exactly as for MCP Buff; do not switch to
+  `zemrip-server-lan`. A "remote port forwarding failed" or "connect failed"
+  from sshd means it could not open the socket as `zed`: the mirror is down
+  on the server, or `zed` lost the `zemrip-mirror` group.
+- **"the mirror SSH forward closed unexpectedly"** while the panel is open —
+  the connection dropped. `:Mirror` re-establishes it under the open panel.
+
+Closing the panel by any route — `:MirrorClose`, `:Dbee close`, or `:q` in a
+dbee window — removes the forward; `ss -ltn` should then show nothing on
+`55433`.
+
 ## Agent Manager cannot start
 
 Run `:AgentManagerHealth` first. `:AgentManager`, `:AgentManagerStart`, and the

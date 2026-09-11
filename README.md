@@ -31,6 +31,10 @@ Requires Neovim 0.12.2 or newer. The leader key is `<Space>`.
 - [MCP Buff](https://github.com/777lotto/mcp-buff) for reviewing brokered
   Cloudflare and GitHub write tickets through operator-controlled loopback
   tunnels.
+- The zemRip Postgres mirror inside the editor through
+  [nvim-dbee](https://github.com/kndndrj/nvim-dbee): `:Mirror` opens the mirror
+  socket directly on zemrip-server, the operator's grant inside `zemrip-ai`, or
+  a panel-scoped SSH forward from anywhere else, chosen automatically.
 - Guarded UX Foundation, Styling, and Chrome integration. Chrome registers its
   complete contract while Bufferline, Lualine, and native surfaces remain the
   physical owners during the compatibility soak.
@@ -197,6 +201,8 @@ refreshing unpinned Mason tools and parsers without changing plugin lock policy.
 │   │   ├── autocmds.lua             # general editor automation
 │   │   ├── toolchain.lua             # compatibility and managed-tool manifest
 │   │   ├── update.lua               # asynchronous editor maintenance commands
+│   │   ├── mirror.lua               # zemRip mirror route per plane, :Mirror commands
+│   │   ├── mirror_tunnel.lua        # panel-scoped SSH forward to the mirror socket
 │   │   ├── ux_baselines.lua         # exact third-party setup rollback inputs
 │   │   └── lazy.lua                 # lazy.nvim bootstrap and plugin import
 │   └── plugins/                     # lazy.nvim specs grouped by concern
@@ -209,6 +215,7 @@ refreshing unpinned Mason tools and parsers without changing plugin lock policy.
 │       ├── editing.lua
 │       ├── git.lua
 │       ├── operations.lua            # Agent Manager and MCP Buff
+│       ├── database.lua              # nvim-dbee: the zemRip mirror panel
 │       ├── review.lua                # curate-review: zemRip manual-review lanes
 │       ├── ux.lua                    # guarded Foundation/Styling/Chrome integration
 │       └── ...
@@ -243,7 +250,7 @@ and `t` is left unused while `T` owns terminals.
 
 | Prefix      | which-key label | Scope                                                  |
 | ----------- | --------------- | ------------------------------------------------------ |
-| `<leader>a` | `(a)gent`       | Agent sessions, brokered review, and curation          |
+| `<leader>a` | `(a)gent`       | Agent sessions, brokered review, curation, and mirror  |
 | `<leader>b` | `(b)uffer`      | Buffer bar creation, selection, movement, and deletion |
 | `<leader>c` | `(c)ode`        | Code actions, formatting, and rendered Markdown        |
 | `<leader>d` | `(d)iagnostic`  | Diagnostic and TODO views                              |
@@ -260,12 +267,13 @@ and `t` is left unused while `T` owns terminals.
 
 Agent Manager opens directly on `<leader>am`; its remaining actions live inside
 the workspace. `<leader>ar` opens MCP Buff; `<leader>av` opens the zemRip
-curation review workspace.
+curation review workspace; `<leader>ad` opens the zemRip mirror database panel.
 
 The most frequently used file and agent mappings are:
 
 | Key          | Action                                                                                                            |
 | ------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `<leader>ad` | Open the zemRip mirror database panel                                                                             |
 | `<leader>am` | Open Agent Manager                                                                                                |
 | `<leader>ar` | Open MCP Buff                                                                                                     |
 | `<leader>av` | Open the zemRip review dashboard                                                                                  |
@@ -438,6 +446,44 @@ tries `$NVIM_ZEMRIP_ROOT`, then walks upward from Neovim's working directory,
 then `~/zemrip` (the agent container) and `~/works/zemrip` (the operator
 plane). The mirror must be up; lanes, keys, and gates are documented in the
 plugin's README.
+
+## Mirror database
+
+- `<leader>ad` or `:Mirror`: open the zemRip Postgres mirror in
+  [nvim-dbee](https://github.com/kndndrj/nvim-dbee) — a drawer of schemas,
+  tables, and columns, a SQL scratchpad, and a paged result grid.
+- `:MirrorClose` closes the panel; `:MirrorStatus` shows the detected plane,
+  the connection target, and the forward state. Closing any dbee window with
+  `:q` closes the whole panel too.
+
+The panel is one connection, `neondb_owner@neondb`, and `lua/config/mirror.lua`
+chooses how it reaches the mirror from the plane Neovim runs on:
+
+| Plane                          | Detected by                        | Route                                                                                    |
+| ------------------------------ | ---------------------------------- | ---------------------------------------------------------------------------------------- |
+| `socket` — zemrip-server (zed) | `/run/zemrip/mirror` exists        | The mirror's Unix socket, opened directly; no process, no tunnel                         |
+| `grant` — inside `zemrip-ai`   | `~/.local/bin/gh-agent` executable | The operator's attended `agent-mirror-grant` on `127.0.0.1:55432`                        |
+| `tunnel` — anywhere else       | neither                            | One panel-scoped `ssh -L 127.0.0.1:55433:/run/zemrip/mirror/.s.PGSQL.5432 zemrip-server` |
+
+`NVIM_MIRROR_PLANE=socket|grant|tunnel` overrides detection for one launch.
+
+The mirror is Unix-socket-only and trust-authenticated — its socket ACL is the
+access control — so no connection URL carries a credential. On the tunnel plane
+that makes the loopback forward a passwordless door for exactly as long as it
+exists, which is why it follows MCP Buff's model: the forward is a no-shell SSH
+child this config owns, it is opened when the panel opens (through any entry
+point, `:Dbee` included), it is revoked when the panel closes or Neovim exits,
+and an already-occupied `55433` is refused rather than reused. It goes through
+the WireGuard `zemrip-server` alias and never `zemrip-server-lan`.
+
+This is the local mirror only. Nothing reaches Neon until an explicit
+`db.sh push` on the operator plane; see the zemRip repository's
+`apps/local/README.md`.
+
+nvim-dbee needs its Go backend, which `nvim-config sync` (and so `nvim-update`)
+downloads synchronously from dbee's install manifest into
+`~/.local/share/nvim/dbee/bin` and stamps with the manifest version, so an
+unchanged pin is a no-op. `:MirrorStatus` reports whether it is present.
 
 ## Project search and replace
 
