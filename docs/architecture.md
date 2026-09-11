@@ -54,6 +54,32 @@ The Bash, TOML, and KDL parsers and their activating filetypes remain in
 `lua/config/toolchain.lua`, alongside every other managed parser. This keeps
 bootstrap, updates, interactive startup, and headless validation synchronized.
 
+## Mirror boundary
+
+`lua/config/mirror.lua` is the single place that knows how the zemRip Postgres
+mirror is reached. nvim-dbee is only the client: the spec in
+`lua/plugins/database.lua` installs it and hands it exactly one connection
+built by this module, so the plugin never sees a second URL or a fallback.
+
+The route follows the plane rather than a setting. `/run/zemrip/mirror` is
+created by tmpfiles at boot on zemrip-server, so its presence identifies zed's
+own plane and the connection opens the socket directly. `~/.local/bin/gh-agent`
+is the credential-free marker of the `zemrip-ai` container (the same marker
+GitPanel uses), where the operator's attended `agent-mirror-grant` already
+forwards the socket to `127.0.0.1:55432`. Everything else is remote and gets a
+panel-scoped SSH forward to the socket path through `zemrip-server`, owned by
+`lua/config/mirror_tunnel.lua` — mcp-buff's tunnel module with the `-L` target
+changed from a TCP port to the socket. `NVIM_MIRROR_PLANE` overrides detection
+for a launch and is validated like `NVIM_CLIPBOARD`.
+
+The forward's lifetime is attached to dbee's window layout instead of to the
+`:Mirror` command: the layout's `open` first makes the mirror reachable and
+its `close` revokes the forward, so `:Dbee`, `:Dbee toggle`, `:q` in a dbee
+window, `:MirrorClose`, and `VimLeavePre` all behave the same. Socket
+connections are trust-authenticated, so no URL in this module carries a
+credential and none may gain one; the forward is the only thing that turns
+that trust into a loopback door, and it never outlives the panel.
+
 ## How the UI layers fit together
 
 A colorscheme is a program that assigns colors and attributes to named

@@ -11,6 +11,7 @@ require("config.keymaps")
 require("config.diagnostics")
 require("config.autocmds")
 require("config.update").setup()
+require("config.mirror").setup()
 
 local toolchain = require("config.toolchain")
 assert(toolchain.neovim.minimum == "0.12.2", "unexpected Neovim compatibility floor")
@@ -213,6 +214,195 @@ local ui_source = table.concat(vim.fn.readfile(root .. "/lua/plugins/ui.lua"), "
 assert(ui_source:find('{ "<leader>a", group = "(a)gent" }', 1, true), "which-key is missing the (a)gent group")
 assert(not ui_source:find('{ "<leader>r",', 1, true), "retired review group remains")
 
+-- The zemRip mirror panel. nvim-dbee is the client; config.mirror decides how
+-- it reaches the mirror on each plane and owns the forward's lifetime. The
+-- policy is exercised through injected runtime facts, never the machine.
+local mirror = require("config.mirror")
+local function detect(runtime)
+  return mirror.detect(vim.tbl_extend("force", {
+    env = {},
+    stat = function() return nil end,
+    expand = function(path) return path end,
+    executable = function() return false end,
+  }, runtime))
+end
+local function socket_dir(path)
+  return path == mirror.SOCKET_DIR and { type = "directory" } or nil
+end
+local function agent_marker(path)
+  return path == mirror.AGENT_MARKER
+end
+assert(detect({ stat = socket_dir }) == "socket", "zemrip-server must open the mirror socket directly")
+assert(detect({ executable = agent_marker }) == "grant", "zemrip-ai must use the operator's mirror grant")
+assert(detect({}) == "tunnel", "a plane with no local mirror must forward over SSH")
+assert(detect({ stat = socket_dir, executable = agent_marker }) == "socket",
+  "a local mirror socket must win over the agent marker")
+assert(detect({ env = { NVIM_MIRROR_PLANE = "tunnel" }, stat = socket_dir }) == "tunnel",
+  "NVIM_MIRROR_PLANE must override detection")
+assert(detect({ env = { NVIM_MIRROR_PLANE = "bogus" }, stat = socket_dir }) == "socket",
+  "an invalid NVIM_MIRROR_PLANE must fall through to detection")
+
+assert(mirror.url("socket") == "postgres://neondb_owner@/neondb?host=/run/zemrip/mirror&sslmode=disable",
+  "the socket plane must hand lib/pq the socket directory as host")
+assert(mirror.url("grant") == "postgres://neondb_owner@127.0.0.1:55432/neondb?sslmode=disable",
+  "the grant plane must use the agent-mirror-grant's fixed loopback port")
+assert(mirror.url("tunnel") == "postgres://neondb_owner@127.0.0.1:55433/neondb?sslmode=disable",
+  "the tunnel plane must use the managed forward's loopback port")
+for plane in pairs(mirror.PLANES) do
+  local url = mirror.url(plane)
+  assert(url:match("^postgres://neondb_owner@"), plane .. " URL must carry the role and no credential")
+  assert(url:find("sslmode=disable", 1, true), plane .. " URL must disable TLS for lib/pq")
+  assert(mirror.connection(plane).type == "postgres", plane .. " connection must be a postgres connection")
+end
+
+local Tunnel = require("config.mirror_tunnel")
+local tunnel_config = assert(Tunnel.normalize(mirror.tunnel_config()))
+assert(tunnel_config.host == "zemrip-server" and not tunnel_config.host:find("lan", 1, true),
+  "the mirror forward must use the WireGuard zemrip-server SSH alias")
+assert(vim.deep_equal(Tunnel.argv(tunnel_config), {
+  "ssh", "-N", "-T",
+  "-o", "BatchMode=yes",
+  "-o", "ExitOnForwardFailure=yes",
+  "-o", "ServerAliveInterval=15",
+  "-o", "ServerAliveCountMax=3",
+  "-o", "ControlMaster=no",
+  "-o", "ControlPath=none",
+  "-L", "127.0.0.1:55433:/run/zemrip/mirror/.s.PGSQL.5432",
+  "zemrip-server",
+}), "the mirror forward argv changed unexpectedly")
+for _, invalid in ipairs({
+  { host = "zemrip-server -oProxyCommand=x", port = 55433, socket = mirror.SOCKET },
+  { host = "zemrip-server", port = 0, socket = mirror.SOCKET },
+  { host = "zemrip-server", port = 55433, socket = "run/zemrip/mirror/.s.PGSQL.5432" },
+  { host = "zemrip-server", port = 55433, socket = "/run/zemrip:mirror" },
+  { host = "zemrip-server", port = 55433, socket = mirror.SOCKET, extra = true },
+}) do
+  assert(not Tunnel.normalize(invalid), "tunnel normalize accepted " .. vim.inspect(invalid))
+end
+
+local immediate = function(callback) callback() end
+local spawned, killed
+local managed = Tunnel.new(tunnel_config, {
+  spawn = function(command)
+    spawned = command
+    return { kill = function(_, signal) killed = signal end }
+  end,
+  -- The port is free before the spawn and listening once ssh is running.
+  probe = function(_, callback) callback(spawned ~= nil) end,
+  defer = immediate,
+  schedule = immediate,
+  executable = function() return true end,
+})
+local managed_outcome = "pending"
+managed:ensure(function(failure) managed_outcome = failure end)
+assert(spawned and spawned[#spawned] == "zemrip-server", "managed mode did not spawn the forward")
+assert(managed_outcome == nil and managed:is_ready(), "managed mode did not report the listener ready")
+managed:stop()
+assert(killed == 15 and not managed:is_ready(), "stopping the forward must terminate exactly its ssh child")
+
+local refusal
+local occupied = Tunnel.new(tunnel_config, {
+  spawn = function() error("a forward must not be spawned onto an occupied port") end,
+  probe = function(_, callback) callback(true) end,
+  defer = immediate,
+  schedule = immediate,
+  executable = function() return true end,
+})
+occupied:ensure(function(failure) refusal = failure end)
+assert(refusal and refusal.message:find("already has a listener", 1, true),
+  "managed mode must refuse a listener it did not create")
+
+-- The dbee handoff, with the plugin stubbed and the plane forced by env.
+local original_sources, original_layouts = package.loaded["dbee.sources"], package.loaded["dbee.layouts"]
+package.loaded["dbee.sources"] = {
+  MemorySource = {
+    new = function(_, connections, name)
+      connections[1].id = "stub_" .. name
+      return { connections = connections, name = name }
+    end,
+  },
+}
+package.loaded["dbee.layouts"] = {
+  Default = { new = function() return { open = function() end, close = function() end } end },
+}
+local original_plane = vim.env.NVIM_MIRROR_PLANE
+vim.env.NVIM_MIRROR_PLANE = "grant"
+mirror._reset()
+local dbee_options = mirror.dbee_options()
+assert(dbee_options.default_connection == "stub_zemrip", "the mirror connection must be active by default")
+assert(#dbee_options.sources == 1 and dbee_options.sources[1].connections[1].url == mirror.url("grant"),
+  "dbee must receive exactly one connection, built for the detected plane")
+assert(type(dbee_options.window_layout.open) == "function" and type(dbee_options.window_layout.close) == "function",
+  "the dbee layout must be wrapped so open and close carry the forward")
+
+local database_specs = assert(loadfile(root .. "/lua/plugins/database.lua"))()
+local dbee_spec = assert(database_specs[1], "nvim-dbee plugin spec is missing")
+assert(dbee_spec[1] == "kndndrj/nvim-dbee", "unexpected mirror client repository")
+assert(vim.deep_equal(dbee_spec.dependencies, { "MunifTanjim/nui.nvim" }), "nvim-dbee needs nui.nvim")
+assert(type(dbee_spec.build) == "function", "nvim-dbee must install its Go backend through Lazy's build lifecycle")
+assert(vim.list_contains(dbee_spec.cmd, "Dbee"), "Dbee is not lazy-loadable")
+assert(vim.deep_equal(dbee_spec.keys, {
+  { "<leader>ad", "<cmd>Mirror<cr>", desc = "Mirror database" },
+}), "mirror panel shortcut changed unexpectedly")
+local dbee_setup
+local original_dbee = package.loaded.dbee
+package.loaded.dbee = { setup = function(options) dbee_setup = options end }
+dbee_spec.config()
+package.loaded.dbee = original_dbee
+assert(dbee_setup and dbee_setup.default_connection == "stub_zemrip",
+  "nvim-dbee is not configured from config.mirror")
+vim.env.NVIM_MIRROR_PLANE = original_plane
+mirror._reset()
+package.loaded["dbee.sources"], package.loaded["dbee.layouts"] = original_sources, original_layouts
+
+-- The backend install runs synchronously so a headless restore cannot exit
+-- before the archive lands, and an unchanged manifest is a no-op.
+local dbee_root = vim.fn.tempname()
+vim.fn.mkdir(dbee_root .. "/plugin/lua/dbee/install", "p")
+local dbee_uname = vim.uv.os_uname()
+local dbee_key = ("%s/%s"):format(dbee_uname.sysname:lower(),
+  ({ x86_64 = "amd64", aarch64 = "arm64", arm64 = "arm64" })[dbee_uname.machine] or dbee_uname.machine)
+vim.fn.writefile({
+  "return { urls = { [" .. vim.inspect(dbee_key) .. "] = 'https://example.invalid/dbee.tar.gz' }, version = 'stampcafe' }",
+}, dbee_root .. "/plugin/lua/dbee/install/__manifest.lua")
+local dbee_install_dir = dbee_root .. "/data/dbee/bin"
+local original_stdpath, original_dbee_system = vim.fn.stdpath, vim.system
+vim.fn.stdpath = function(what)
+  if what == "data" or what == "cache" then return dbee_root .. "/" .. what end
+  return original_stdpath(what)
+end
+local dbee_commands = {}
+vim.system = function(command)
+  dbee_commands[#dbee_commands + 1] = command
+  if command[1] == "tar" then vim.fn.writefile({ "#!/bin/sh" }, dbee_install_dir .. "/dbee") end
+  return { wait = function() return { code = 0, stdout = "", stderr = "" } end }
+end
+local function run_dbee_build()
+  local messages = {}
+  local build = coroutine.create(function() dbee_spec.build({ dir = dbee_root .. "/plugin" }) end)
+  while true do
+    local ok, message = coroutine.resume(build)
+    assert(ok, "dbee build failed: " .. tostring(message))
+    if coroutine.status(build) == "dead" then break end
+    messages[#messages + 1] = message
+  end
+  return messages
+end
+local first_build = run_dbee_build()
+assert(#dbee_commands == 2 and dbee_commands[1][1] == "curl" and dbee_commands[2][1] == "tar",
+  "the dbee build must download then extract: " .. vim.inspect(dbee_commands))
+assert(dbee_commands[1][#dbee_commands[1]] == "https://example.invalid/dbee.tar.gz",
+  "the dbee build must fetch the manifest URL for this platform")
+assert(dbee_commands[2][#dbee_commands[2]] == dbee_install_dir,
+  "the dbee build must extract into the directory dbee prepends to PATH")
+assert(vim.fn.executable(dbee_install_dir .. "/dbee") == 1, "the dbee backend must be executable after install")
+assert(first_build[#first_build]:find("installed dbee backend", 1, true), "the dbee build did not report success")
+local second_build = run_dbee_build()
+assert(#dbee_commands == 2, "an unchanged dbee manifest must not download again")
+assert(second_build[#second_build]:find("already installed", 1, true), "the dbee build did not report the no-op")
+vim.fn.stdpath, vim.system = original_stdpath, original_dbee_system
+vim.fn.delete(dbee_root, "rf")
+
 -- Which lockfile a session may write. An editing session must never be handed
 -- the committed one: lazy.nvim rewrites it from the resolved plugin
 -- directories, which drops the dev/ fleet's pins and picks up whatever the
@@ -254,7 +444,10 @@ vim.fn.delete(lock_root, "rf")
 vim.fn.delete(lock_state, "rf")
 
 local registered = vim.api.nvim_get_commands({})
-for _, command in ipairs({ "NvimUpdate", "NvimConfigUpdate", "NvimConfigDoctor", "DevPlugins" }) do
+for _, command in ipairs({
+  "NvimUpdate", "NvimConfigUpdate", "NvimConfigDoctor", "DevPlugins",
+  "Mirror", "MirrorClose", "MirrorStatus",
+}) do
   assert(registered[command], command .. " is not registered")
 end
 assert(registered.DevPlugins.nargs == "0", "DevPlugins must not accept a retired channel argument")
@@ -328,6 +521,9 @@ for _, name in ipairs({
   assert(type(pin.commit) == "string" and pin.commit:match("^[0-9a-f]+$") and #pin.commit == 40,
     name .. " lock commit is invalid")
 end
+-- The mirror client is third-party and pinned on its own default branch.
+assert(lock["nvim-dbee"] and lock["nvim-dbee"].branch == "master", "nvim-dbee lock pin is missing")
+assert(lock["nui.nvim"] and lock["nui.nvim"].branch == "main", "nui.nvim lock pin is missing")
 
 local baselines = require("config.ux_baselines")
 local marker = function() return "retained" end

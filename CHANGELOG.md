@@ -7,6 +7,13 @@ versioning for release organization.
 
 ### Added
 
+- The zemRip Postgres mirror inside Neovim on `<leader>ad` and `:Mirror`,
+  served by nvim-dbee. `lua/config/mirror.lua` picks the route from the plane
+  Neovim runs on — the mirror's Unix socket directly on zemrip-server, the
+  operator's grant inside `zemrip-ai`, or a panel-scoped SSH forward to the
+  socket path from the Toughbook — and ties that forward to the dbee layout so
+  every open and close revokes it. `:MirrorStatus` reports the decision. The
+  dbee Go backend installs synchronously during `nvim-config sync`.
 - zemRip's manual-review lanes on `<leader>av` and `:Review`, served by the
   `curate-review` fleet plugin pinned from `bluff`. The plugin resolves the
   zemRip checkout its backend runs from (`$NVIM_ZEMRIP_ROOT`, an upward
